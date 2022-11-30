@@ -7,7 +7,6 @@ from .publish_plugins import HarmonyPublishPlugins
 
 class HarmonySettings(BaseSettingsModel):
     """Harmony Project Settings."""
-    _layout = "expanded"
 
     load: HarmonyLoaderPlugins = Field(
         default_factory=HarmonyLoaderPlugins,
