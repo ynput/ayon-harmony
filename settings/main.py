@@ -1,5 +1,5 @@
 from pydantic import Field
-from openpype.settings.common import BaseSettingsModel
+from ayon_server.settings import BaseSettingsModel, ImageIOBaseModel
 
 from .loader_plugins import HarmonyLoaderPlugins
 from .publish_plugins import HarmonyPublishPlugins
@@ -7,6 +7,11 @@ from .publish_plugins import HarmonyPublishPlugins
 
 class HarmonySettings(BaseSettingsModel):
     """Harmony Project Settings."""
+
+    imageio: ImageIOBaseModel = Field(
+        default_factory=ImageIOBaseModel,
+        title="OCIO config"
+    )
 
     load: HarmonyLoaderPlugins = Field(
         default_factory=HarmonyLoaderPlugins,
