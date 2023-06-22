@@ -1,14 +1,15 @@
 from pydantic import Field
-from ayon_server.settings import BaseSettingsModel, ImageIOBaseModel
+from ayon_server.settings import BaseSettingsModel
 
+from .imageio import HarmonyImageIOModel
 from .publish_plugins import HarmonyPublishPlugins
 
 
 class HarmonySettings(BaseSettingsModel):
     """Harmony Project Settings."""
 
-    imageio: ImageIOBaseModel = Field(
-        default_factory=ImageIOBaseModel,
+    imageio: HarmonyImageIOModel = Field(
+        default_factory=HarmonyImageIOModel,
         title="OCIO config"
     )
 
