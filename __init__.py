@@ -1,6 +1,6 @@
 from ayon_server.addons import BaseServerAddon
 
-from .settings.main import HarmonySettings, DEFAULT_HARMONY_SETTING
+from .settings import HarmonySettings, DEFAULT_HARMONY_SETTING
 from .version import __version__
 
 
