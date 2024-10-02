@@ -1,6 +1,6 @@
 name = "harmony"
 title = "Harmony"
-version = "0.2.1"
+version = "0.2.1+dev"
 client_dir = "ayon_harmony"
 
 ayon_required_addons = {
