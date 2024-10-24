@@ -20,9 +20,9 @@ class CollectInstances(pyblish.api.ContextPlugin):
     order = pyblish.api.CollectorOrder
     hosts = ["harmony"]
     product_type_mapping = {
-        "render": ["review", "ftrack"],
+        "render": ["review"],
         "harmony.template": [],
-        "palette": ["palette", "ftrack"]
+        "palette": ["palette"]
     }
 
     pair_media = True
@@ -70,7 +70,7 @@ class CollectInstances(pyblish.api.ContextPlugin):
             families.extend(self.product_type_mapping[product_type])
             instance.data["families"] = families
 
-            # If set in plugin, pair the scene Version in ftrack with
+            # If set in plugin, pair the scene Version with
             # thumbnails and review media.
             if (self.pair_media and product_type == "scene"):
                 context.data["scene_instance"] = instance
