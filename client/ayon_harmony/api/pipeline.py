@@ -217,10 +217,6 @@ def inject_ayon_js():
 def ls():
     """Yields containers from Harmony scene.
 
-    This is the host-equivalent of api.ls(), but instead of listing
-    assets on disk, it lists assets already loaded in Harmony; once loaded
-    they are called 'containers'.
-
     Yields:
         dict: container
     """
@@ -315,13 +311,13 @@ def containerise(name,
     """Imprint node with metadata.
 
     Containerisation enables a tracking of version, author and origin
-    for loaded assets.
+    for loaded product representations.
 
     Arguments:
         name (str): Name of resulting assembly.
         namespace (str): Namespace under which to host container.
         node (str): Node to containerise.
-        context (dict): Asset information.
+        context (dict): Loaded representation full context information.
         loader (str, optional): Name of loader used to produce this container.
         suffix (str, optional): Suffix of container, defaults to `_CON`.
 

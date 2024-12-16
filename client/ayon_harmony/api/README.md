@@ -579,7 +579,7 @@ replace_files = """function %s_replace_files(args)
 
 class ImageSequenceLoader(load.LoaderPlugin):
     """Load images
-    Stores the imported asset in a container named after the asset.
+    Stores the imported product in a container named after the product.
     """
     product_types = {
         "shot",

@@ -17,7 +17,7 @@ import ayon_harmony.api as harmony
 class ImageSequenceLoader(load.LoaderPlugin):
     """Load image sequences.
 
-    Stores the imported asset in a container named after the asset.
+    Stores the imported product in a container named after the product.
     """
 
     product_types = {
