@@ -51,16 +51,16 @@ def get_current_context_settings():
     """
 
     task_entity = get_current_task_entity()
-    folder_attributes = task_entity["attrib"]
+    task_attributes = task_entity["attrib"]
 
-    fps = folder_attributes.get("fps")
-    frame_start = folder_attributes.get("frameStart")
-    frame_end = folder_attributes.get("frameEnd")
-    handle_start = folder_attributes.get("handleStart")
-    handle_end = folder_attributes.get("handleEnd")
-    resolution_width = folder_attributes.get("resolutionWidth")
-    resolution_height = folder_attributes.get("resolutionHeight")
-    entity_type = folder_attributes.get("entityType")
+    fps = task_attributes.get("fps")
+    frame_start = task_attributes.get("frameStart")
+    frame_end = task_attributes.get("frameEnd")
+    handle_start = task_attributes.get("handleStart")
+    handle_end = task_attributes.get("handleEnd")
+    resolution_width = task_attributes.get("resolutionWidth")
+    resolution_height = task_attributes.get("resolutionHeight")
+    entity_type = task_attributes.get("entityType")
 
     scene_data = {
         "fps": fps,
