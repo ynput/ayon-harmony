@@ -13,7 +13,7 @@ from ayon_core.pipeline import (
     AVALON_CONTAINER_ID,
 )
 from ayon_core.pipeline.load import get_outdated_containers
-from ayon_core.pipeline.context_tools import get_current_folder_entity
+from ayon_core.pipeline.context_tools import get_current_task_entity
 
 from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
@@ -43,15 +43,15 @@ def set_scene_settings(settings):
 
 
 def get_current_context_settings():
-    """Get settings on current folder from server.
+    """Get settings on current task from server.
 
     Returns:
-        dict: Scene data.
+        dict[str, Any]: Scene data.
 
     """
 
-    folder_entity = get_current_folder_entity()
-    folder_attributes = folder_entity["attrib"]
+    task_entity = get_current_task_entity()
+    folder_attributes = task_entity["attrib"]
 
     fps = folder_attributes.get("fps")
     frame_start = folder_attributes.get("frameStart")
