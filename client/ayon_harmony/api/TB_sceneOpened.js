@@ -274,7 +274,7 @@ function Client() {
         self.socket.readyRead.connect(self.onReadyRead);
         var app = QCoreApplication.instance();
 
-        app.avalonClient.send(
+        app.ayonClient.send(
             {
                 'module': 'ayon_core.lib',
                 'method': 'emit_event',
@@ -354,9 +354,9 @@ function start() {
     // Attach the client to the QApplication to preserve.
     var app = QCoreApplication.instance();
 
-    if (app.avalonClient == null) {
-        app.avalonClient = new Client();
-        app.avalonClient.socket.connectToHost(host, port);
+    if (app.ayonClient == null) {
+        app.ayonClient = new Client();
+        app.ayonClient.socket.connectToHost(host, port);
     }
     var mainWindow = null;
     var widgets = QApplication.topLevelWidgets();
@@ -367,17 +367,17 @@ function start() {
     }
     var menuBar = mainWindow.menuBar();
     var actions = menuBar.actions();
-    app.avalonMenu = null;
+    app.ayonMenu = null;
 
     for (var i = 0 ; i < actions.length; i++) {
         label = System.getenv('AYON_MENU_LABEL');
         if (actions[i].text == label) {
-            app.avalonMenu = true;
+            app.ayonMenu = true;
         }
     }
 
     var menu = null;
-    if (app.avalonMenu == null) {
+    if (app.ayonMenu == null) {
         menu = menuBar.addMenu(System.getenv('AYON_MENU_LABEL'));
     }
     // menu = menuBar.addMenu('Avalon');
@@ -386,7 +386,7 @@ function start() {
      * Show creator
      */
     self.onCreator = function() {
-        app.avalonClient.send({
+        app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
             'args': ['creator']
@@ -401,13 +401,13 @@ function start() {
      * Show Workfiles
      */
     self.onWorkfiles = function() {
-        app.avalonClient.send({
+        app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
             'args': ['workfiles']
         }, false);
     };
-    if (app.avalonMenu == null) {
+    if (app.ayonMenu == null) {
         action = menu.addAction('Workfiles...');
         action.triggered.connect(self.onWorkfiles);
     }
@@ -416,14 +416,14 @@ function start() {
      * Show Loader
      */
     self.onLoad = function() {
-        app.avalonClient.send({
+        app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
             'args': ['loader']
         }, false);
     };
     // add Loader item to menu
-    if (app.avalonMenu == null) {
+    if (app.ayonMenu == null) {
         action = menu.addAction('Load...');
         action.triggered.connect(self.onLoad);
     }
@@ -432,14 +432,14 @@ function start() {
      * Show Publisher
      */
     self.onPublish = function() {
-        app.avalonClient.send({
+        app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
             'args': ['publish']
         }, false);
     };
     // add Publisher item to menu
-    if (app.avalonMenu == null) {
+    if (app.ayonMenu == null) {
         action = menu.addAction('Publish...');
         action.triggered.connect(self.onPublish);
     }
@@ -448,14 +448,14 @@ function start() {
      * Show Scene Manager
      */
     self.onManage = function() {
-        app.avalonClient.send({
+        app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
             'args': ['sceneinventory']
         }, false);
     };
     // add Scene Manager item to menu
-    if (app.avalonMenu == null) {
+    if (app.ayonMenu == null) {
         action = menu.addAction('Manage...');
         action.triggered.connect(self.onManage);
     }
@@ -464,14 +464,14 @@ function start() {
       * Show Subset Manager
       */
     self.onSubsetManage = function() {
-        app.avalonClient.send({
+        app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
             'args': ['subsetmanager']
         }, false);
     };
     // add Subset Manager item to menu
-    if (app.avalonMenu == null) {
+    if (app.ayonMenu == null) {
         action = menu.addAction('Subset Manager...');
         action.triggered.connect(self.onSubsetManage);
     }
@@ -480,7 +480,7 @@ function start() {
       * Set scene settings from DB to the scene
       */
     self.onSetSceneSettings = function() {
-          app.avalonClient.send(
+          app.ayonClient.send(
             {
               "module": "ayon_harmony.api",
               "method": "ensure_scene_settings",
@@ -490,7 +490,7 @@ function start() {
           );
     };
     // add Set Scene Settings
-    if (app.avalonMenu == null) {
+    if (app.ayonMenu == null) {
         action = menu.addAction('Set Scene Settings...');
         action.triggered.connect(self.onSetSceneSettings);
     }
@@ -499,14 +499,14 @@ function start() {
       * Show Experimental dialog
       */
     self.onExperimentalTools = function() {
-        app.avalonClient.send({
+        app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
             'args': ['experimental_tools']
         }, false);
     };
     // add Subset Manager item to menu
-    if (app.avalonMenu == null) {
+    if (app.ayonMenu == null) {
         action = menu.addAction('Experimental Tools...');
         action.triggered.connect(self.onExperimentalTools);
     }
@@ -519,10 +519,10 @@ function start() {
     app.onFileChanged = function(path)
     {
       var app = QCoreApplication.instance();
-      if (app.avalonOnFileChanged){
-        app.avalonClient.send(
+      if (app.ayonOnFileChanged){
+        app.ayonClient.send(
           {
-            'module': 'avalon.harmony.lib',
+            'module': 'ayon.harmony.lib',
             'method': 'on_file_changed',
             'args': [path]
           },
@@ -538,7 +538,7 @@ function start() {
 	scene_path = scene.currentProjectPath() +"/" + scene.currentVersionName() + ".xstage";
 	app.watcher.addPath(scenePath);
 	app.watcher.fileChanged.connect(app.onFileChanged);
-  app.avalonOnFileChanged = true;
+  app.ayonOnFileChanged = true;
   */
     app.onFileChanged = function(path) {
         // empty stub
@@ -548,7 +548,7 @@ function start() {
 
 function ensureSceneSettings() {
   var app = QCoreApplication.instance();
-  app.avalonClient.send(
+  app.ayonClient.send(
     {
       "module": "ayon_harmony.api",
       "method": "ensure_scene_settings",

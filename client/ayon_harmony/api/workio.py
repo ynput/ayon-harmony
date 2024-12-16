@@ -56,7 +56,7 @@ def save_file(filepath):
             temp_path, os.path.basename(temp_path) + ".xstage"
         )
         ProcessContext.server.send(
-            {"function": "AvalonHarmony.addPathToWatcher", "args": scene_path}
+            {"function": "AyonHarmonyAPI.addPathToWatcher", "args": scene_path}
         )
     else:
         os.environ["HARMONY_NEW_WORKFILE_PATH"] = filepath.replace("\\", "/")

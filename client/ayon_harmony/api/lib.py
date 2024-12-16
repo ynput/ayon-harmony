@@ -103,43 +103,43 @@ def main(*subprocess_args):
 
 
 def setup_startup_scripts():
-    """Manages installation of avalon's TB_sceneOpened.js for Harmony launch.
+    """Manages installation of ayon's TB_sceneOpened.js for Harmony launch.
 
     If a studio already has defined "TOONBOOM_GLOBAL_SCRIPT_LOCATION", copies
     the TB_sceneOpened.js to that location if the file is different.
-    Otherwise, will set the env var to point to the avalon/harmony folder.
+    Otherwise, will set the env var to point to the ayon/harmony folder.
 
     Admins should be aware that this will overwrite TB_sceneOpened in the
     "TOONBOOM_GLOBAL_SCRIPT_LOCATION", and that if they want to have additional
     logic, they will need to one of the following:
         * Create a Harmony package to manage startup logic
         * Use TB_sceneOpenedUI.js instead to manage startup logic
-        * Add their startup logic to avalon/harmony/TB_sceneOpened.js
+        * Add their startup logic to ayon/harmony/TB_sceneOpened.js
     """
-    avalon_dcc_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+    ayon_dcc_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                                   "api")
     startup_js = "TB_sceneOpened.js"
 
     if os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"):
 
-        avalon_harmony_startup = os.path.join(avalon_dcc_dir, startup_js)
+        ayon_harmony_startup = os.path.join(ayon_dcc_dir, startup_js)
 
         env_harmony_startup = os.path.join(
             os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"), startup_js)
 
-        if not filecmp.cmp(avalon_harmony_startup, env_harmony_startup):
+        if not filecmp.cmp(ayon_harmony_startup, env_harmony_startup):
             try:
-                shutil.copy(avalon_harmony_startup, env_harmony_startup)
+                shutil.copy(ayon_harmony_startup, env_harmony_startup)
             except Exception as e:
                 log.error(e)
                 log.warning(
                     "Failed to copy {0} to {1}! "
                     "Defaulting to Avalon TOONBOOM_GLOBAL_SCRIPT_LOCATION."
-                    .format(avalon_harmony_startup, env_harmony_startup))
+                    .format(ayon_harmony_startup, env_harmony_startup))
 
-                os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = avalon_dcc_dir
+                os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
     else:
-        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = avalon_dcc_dir
+        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
 
 
 def check_libs():
@@ -231,7 +231,7 @@ def open_empty_workfile():
 def get_local_harmony_path(filepath):
     """From the provided path get the equivalent local Harmony path."""
     basename = os.path.splitext(os.path.basename(filepath))[0]
-    harmony_path = os.path.join(os.path.expanduser("~"), ".avalon", "harmony")
+    harmony_path = os.path.join(os.path.expanduser("~"), ".ayon", "harmony")
     return os.path.join(harmony_path, basename)
 
 
@@ -414,7 +414,7 @@ def get_scene_data():
     try:
         return send(
             {
-                "function": "AvalonHarmony.getSceneData"
+                "function": "AyonHarmonyAPI.getSceneData"
             })["result"]
     except json.decoder.JSONDecodeError:
         # Means no scene metadata has been made before.
@@ -434,7 +434,7 @@ def set_scene_data(data):
     # Write scene data.
     send(
         {
-            "function": "AvalonHarmony.setSceneData",
+            "function": "AyonHarmonyAPI.setSceneData",
             "args": data
         })
 
@@ -471,7 +471,7 @@ def delete_node(node):
     """ Physically delete node from scene. """
     send(
         {
-            "function": "AvalonHarmony.deleteNode",
+            "function": "AyonHarmonyAPI.deleteNode",
             "args": node
         }
     )
@@ -510,7 +510,7 @@ def maintained_selection():
 
     selected_nodes = send(
         {
-            "function": "AvalonHarmony.getSelectedNodes"
+            "function": "AyonHarmonyAPI.getSelectedNodes"
         })["result"]
 
     try:
@@ -518,7 +518,7 @@ def maintained_selection():
     finally:
         selected_nodes = send(
             {
-                "function": "AvalonHarmony.selectNodes",
+                "function": "AyonHarmonyAPI.selectNodes",
                 "args": selected_nodes
             }
         )
@@ -533,7 +533,7 @@ def select_nodes(nodes):
     """ Selects nodes in Node View """
     _ = send(
         {
-            "function": "AvalonHarmony.selectNodes",
+            "function": "AyonHarmonyAPI.selectNodes",
             "args": nodes
         }
     )
@@ -545,13 +545,13 @@ def maintained_nodes_state(nodes):
     # Collect current state.
     states = send(
         {
-            "function": "AvalonHarmony.areEnabled", "args": nodes
+            "function": "AyonHarmonyAPI.areEnabled", "args": nodes
         })["result"]
 
     # Disable all nodes.
     send(
         {
-            "function": "AvalonHarmony.disableNodes", "args": nodes
+            "function": "AyonHarmonyAPI.disableNodes", "args": nodes
         })
 
     try:
@@ -559,7 +559,7 @@ def maintained_nodes_state(nodes):
     finally:
         send(
             {
-                "function": "AvalonHarmony.setState",
+                "function": "AyonHarmonyAPI.setState",
                 "args": [nodes, states]
             })
 
@@ -576,13 +576,13 @@ def save_scene():
     # Need to turn off the background watcher else the communication with
     # the server gets spammed with two requests at the same time.
     scene_path = send(
-        {"function": "AvalonHarmony.saveScene"})["result"]
+        {"function": "AyonHarmonyAPI.saveScene"})["result"]
 
     # Manually update the remote file.
     on_file_changed(scene_path, threaded=False)
 
     # Re-enable the background watcher.
-    send({"function": "AvalonHarmony.enableFileWather"})
+    send({"function": "AyonHarmonyAPI.enableFileWather"})
 
 
 def save_scene_as(filepath):
@@ -609,7 +609,7 @@ def save_scene_as(filepath):
     ProcessContext.workfile_path = destination
 
     send(
-        {"function": "AvalonHarmony.addPathToWatcher", "args": filepath}
+        {"function": "AyonHarmonyAPI.addPathToWatcher", "args": filepath}
     )
 
 

@@ -50,7 +50,7 @@ class TemplateLoader(load.LoaderPlugin):
 
         container_group = harmony.send(
             {
-                "function": f"PypeHarmony.Loaders.{self_name}.loadContainer",
+                "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
                 "args": [template_path,
                          context["folder"]["name"],
                          context["product"]["name"],
@@ -90,7 +90,7 @@ class TemplateLoader(load.LoaderPlugin):
 
         update_and_replace = harmony.send(
             {
-                "function": f"PypeHarmony.Loaders.{self_name}."
+                "function": f"AyonHarmony.Loaders.{self_name}."
                             "askForColumnsUpdate",
                 "args": []
             }
@@ -100,7 +100,7 @@ class TemplateLoader(load.LoaderPlugin):
             # FIXME: This won't work, need to implement it.
             harmony.send(
                 {
-                    "function": f"PypeHarmony.Loaders.{self_name}."
+                    "function": f"AyonHarmony.Loaders.{self_name}."
                                 "replaceNode",
                     "args": []
                 }
@@ -123,7 +123,7 @@ class TemplateLoader(load.LoaderPlugin):
         """
         node = harmony.find_node_by_name(container["name"], "GROUP")
         harmony.send(
-            {"function": "PypeHarmony.deleteNode", "args": [node]}
+            {"function": "AyonHarmony.deleteNode", "args": [node]}
         )
 
     def switch(self, container, context):
@@ -134,7 +134,7 @@ class TemplateLoader(load.LoaderPlugin):
         """Set node color to green `rgba(0, 255, 0, 255)`."""
         harmony.send(
             {
-                "function": "PypeHarmony.setColor",
+                "function": "AyonHarmony.setColor",
                 "args": [node, [0, 255, 0, 255]]
             })
 
@@ -142,6 +142,6 @@ class TemplateLoader(load.LoaderPlugin):
         """Set node color to red `rgba(255, 0, 0, 255)`."""
         harmony.send(
             {
-                "function": "PypeHarmony.setColor",
+                "function": "AyonHarmony.setColor",
                 "args": [node, [255, 0, 0, 255]]
             })

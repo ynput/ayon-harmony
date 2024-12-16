@@ -1,12 +1,12 @@
-/* global PypeHarmony:writable, include */
+/* global AyonHarmony:writable, include */
 // ***************************************************************************
 // *                        CollectFarmRender                                *
 // ***************************************************************************
 
 
-// check if PypeHarmony is defined and if not, load it.
-if (typeof PypeHarmony === 'undefined') {
-    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/PypeHarmony.js';
+// check if AyonHarmony is defined and if not, load it.
+if (typeof AyonHarmony === 'undefined') {
+    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/AyonHarmony.js';
     include(AYON_HARMONY_JS.replace(/\\/g, "/"));
 }
 
@@ -50,4 +50,4 @@ CollectFarmRender.prototype.getRenderNodeSettings = function(n) {
 };
 
 // add self to Pype Loaders
-PypeHarmony.Publish.CollectFarmRender = new CollectFarmRender();
+AyonHarmony.Publish.CollectFarmRender = new CollectFarmRender();

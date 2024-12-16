@@ -9,7 +9,7 @@
     "pipeline"
   ],
   "license": "MIT",
-  "main": "PypeHarmony.js",
+  "main": "AyonHarmony.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

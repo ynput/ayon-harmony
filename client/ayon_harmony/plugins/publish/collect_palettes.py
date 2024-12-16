@@ -24,7 +24,7 @@ class CollectPalettes(pyblish.api.ContextPlugin):
         self_name = self.__class__.__name__
         palettes = harmony.send(
             {
-                "function": f"PypeHarmony.Publish.{self_name}.getPalettes",
+                "function": f"AyonHarmony.Publish.{self_name}.getPalettes",
             })["result"]
 
         # skip collecting if not in allowed task

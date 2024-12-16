@@ -42,13 +42,13 @@ First two bytes are *magic* bytes stands for **A**valon **H**armony. Next four b
 
 ## Usage
 
-The integration creates an `Openpype` menu entry where all related tools are located.
+The integration creates an `AYON` menu entry where all related tools are located.
 
 **NOTE: Menu creation can be temperamental. The best way is to launch Harmony and do nothing else until Harmony is fully launched.**
 
 ### Work files
 
-Because Harmony projects are directories, this integration uses `.zip` as work file extension. Internally the project directories are stored under `[User]/.avalon/harmony`. Whenever the user saves the `.xstage` file, the integration zips up the project directory and moves it to the Avalon project path. Zipping and moving happens in the background.
+Because Harmony projects are directories, this integration uses `.zip` as work file extension. Internally the project directories are stored under `[User]/.ayon/harmony`. Whenever the user saves the `.xstage` file, the integration zips up the project directory and moves it to the Avalon project path. Zipping and moving happens in the background.
 
 ### Show Workfiles on launch
 
@@ -94,20 +94,20 @@ print(harmony.send({"function": func, "args": ["Hello", "Python"]})["result"])
 
 When naming your functions be aware that they are executed in global scope. They can potentially clash with Harmony own function and object names.
 For example `func` is already existing Harmony object. When you call your function `func` it will overwrite in global scope the one from Harmony, causing
-erratic behavior of Harmony. Openpype is prefixing those function names with [UUID4](https://docs.python.org/3/library/uuid.html) making chance of such clash minimal.
+erratic behavior of Harmony. AYON is prefixing those function names with [UUID4](https://docs.python.org/3/library/uuid.html) making chance of such clash minimal.
 See above examples how that works. This will result in function named `38dfcef0_a6d7_4064_8069_51fe99ab276e_hello()`.
 You can find list of Harmony object and function in Harmony documentation.
 
 ### Higher level (recommended)
 
-Instead of sending functions directly to Harmony, it is more efficient and safe to just add your code to `js/PypeHarmony.js` or utilize `{"script": "..."}` method.
+Instead of sending functions directly to Harmony, it is more efficient and safe to just add your code to `js/AyonHarmony.js` or utilize `{"script": "..."}` method.
 
-#### Extending PypeHarmony.js
+#### Extending AyonHarmony.js
 
-Add your function to `PypeHarmony.js`. For example:
+Add your function to `AyonHarmony.js`. For example:
 
 ```javascript
-PypeHarmony.myAwesomeFunction = function() {
+AyonHarmony.myAwesomeFunction = function() {
   someCoolStuff();
 };
 ```
@@ -116,7 +116,7 @@ Then you can call that javascript code from your Python like:
 ```Python
 import ayon_harmony.api as harmony
 
-harmony.send({"function": "PypeHarmony.myAwesomeFunction"});
+harmony.send({"function": "AyonHarmony.myAwesomeFunction"});
 
 ```
 
@@ -185,7 +185,7 @@ harmony.save_scene()
 <details>
   <summary>Click to expand for details on scene save.</summary>
 
-  Because Openpype tools does not deal well with folders for a single entity like a Harmony scene, this integration has implemented to use zip files to encapsulate the Harmony scene folders. Saving scene in Harmony via menu or CTRL+S will not result in producing zip file, only saving it from Workfiles will. This is because
+  Because AYON tools do not deal well with folders for a single entity like a Harmony scene, this integration has implemented to use zip files to encapsulate the Harmony scene folders. Saving scene in Harmony via menu or CTRL+S will not result in producing zip file, only saving it from Workfiles will. This is because
   zipping process can take some time in which we cannot block user from saving again. If xstage file is changed during zipping process it will produce corrupted zip
   archive.
 </details>
@@ -196,7 +196,6 @@ These plugins were made with the [polly config](https://github.com/mindbender-st
 #### Creator Plugin
 ```python
 import ayon_harmony.api as harmony
-from uuid import uuid4
 
 
 class CreateComposite(harmony.Creator):

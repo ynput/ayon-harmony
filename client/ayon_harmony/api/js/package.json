@@ -1,5 +1,5 @@
 {
-  "name": "avalon-harmony",
+  "name": "ayon-harmony",
   "version": "1.0.0",
   "description": "Avalon Harmony Host integration",
   "keywords": [
@@ -8,7 +8,7 @@
     "pipeline"
   ],
   "license": "MIT",
-  "main": "AvalonHarmony.js",
+  "main": "AyonHarmonyAPI.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -1,12 +1,12 @@
-/* global PypeHarmony:writable, include */
+/* global AyonHarmony:writable, include */
 // ***************************************************************************
 // *                        CollectCurrentFile                               *
 // ***************************************************************************
 
 
-// check if PypeHarmony is defined and if not, load it.
-if (typeof PypeHarmony === 'undefined') {
-    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/PypeHarmony.js';
+// check if AyonHarmony is defined and if not, load it.
+if (typeof AyonHarmony === 'undefined') {
+    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/AyonHarmony.js';
     include(AYON_HARMONY_JS.replace(/\\/g, "/"));
 }
 
@@ -25,4 +25,4 @@ CollectCurrentFile.prototype.collect = function() {
 };
 
 // add self to Pype Loaders
-PypeHarmony.Publish.CollectCurrentFile = new CollectCurrentFile();
+AyonHarmony.Publish.CollectCurrentFile = new CollectCurrentFile();

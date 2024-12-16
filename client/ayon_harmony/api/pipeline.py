@@ -10,7 +10,7 @@ from ayon_core.pipeline import (
     register_creator_plugin_path,
     deregister_loader_plugin_path,
     deregister_creator_plugin_path,
-    AVALON_CONTAINER_ID,
+    AYON_CONTAINER_ID,
 )
 from ayon_core.pipeline.load import get_outdated_containers
 from ayon_core.pipeline.context_tools import get_current_folder_entity
@@ -39,7 +39,7 @@ def set_scene_settings(settings):
 
     """
     harmony.send(
-        {"function": "PypeHarmony.setSceneSettings", "args": settings})
+        {"function": "AyonHarmony.setSceneSettings", "args": settings})
 
 
 def get_current_context_settings():
@@ -95,7 +95,7 @@ def ensure_scene_settings():
             msg += f"\n{item}"
 
         harmony.send(
-            {"function": "PypeHarmony.message", "args": msg})
+            {"function": "AyonHarmony.message", "args": msg})
 
     set_scene_settings(valid_settings)
 
@@ -118,17 +118,17 @@ def check_inventory():
             outdated_nodes.append(
                 harmony.find_node_by_name(container["name"], "READ")
             )
-    harmony.send({"function": "PypeHarmony.setColor", "args": outdated_nodes})
+    harmony.send({"function": "AyonHarmony.setColor", "args": outdated_nodes})
 
     # Warn about outdated containers.
     msg = "There are outdated containers in the scene."
-    harmony.send({"function": "PypeHarmony.message", "args": msg})
+    harmony.send({"function": "AyonHarmony.message", "args": msg})
 
 
 def application_launch(event):
     """Event that is executed after Harmony is launched."""
     # fills AYON_HARMONY_JS
-    pype_harmony_path = Path(__file__).parent.parent / "js" / "PypeHarmony.js"
+    pype_harmony_path = Path(__file__).parent.parent / "js" / "AyonHarmony.js"
     pype_harmony_js = pype_harmony_path.read_text()
 
     # go through js/creators, loaders and publish folders and load all scripts
@@ -141,7 +141,7 @@ def application_launch(event):
     # send scripts to Harmony
     harmony.send({"script": pype_harmony_js})
     harmony.send({"script": script})
-    inject_avalon_js()
+    inject_ayon_js()
 
     # ensure_scene_settings()
     check_inventory()
@@ -157,7 +157,7 @@ def export_template(backdrops, nodes, filepath):
 
     """
     harmony.send({
-        "function": "PypeHarmony.exportTemplate",
+        "function": "AyonHarmony.exportTemplate",
         "args": [
             backdrops,
             nodes,
@@ -200,17 +200,17 @@ def on_pyblish_instance_toggled(instance, old_value, new_value):
     if node:
         harmony.send(
             {
-                "function": "PypeHarmony.toggleInstance",
+                "function": "AyonHarmony.toggleInstance",
                 "args": [node, new_value]
             }
         )
 
 
-def inject_avalon_js():
-    """Inject AvalonHarmony.js into Harmony."""
-    avalon_harmony_js = Path(__file__).parent.joinpath("js/AvalonHarmony.js")
-    script = avalon_harmony_js.read_text()
-    # send AvalonHarmony.js to Harmony
+def inject_ayon_js():
+    """Inject AyonHarmonyAPI.js into Harmony."""
+    ayon_harmony_js = Path(__file__).parent.joinpath("js/AyonHarmonyAPI.js")
+    script = ayon_harmony_js.read_text()
+    # send AyonHarmonyAPI.js to Harmony
     harmony.send({"script": script})
 
 
@@ -333,7 +333,7 @@ def containerise(name,
 
     data = {
         "schema": "openpype:container-2.0",
-        "id": AVALON_CONTAINER_ID,
+        "id": AYON_CONTAINER_ID,
         "name": name,
         "namespace": namespace,
         "loader": str(loader),

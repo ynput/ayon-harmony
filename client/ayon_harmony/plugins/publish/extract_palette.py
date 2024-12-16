@@ -21,7 +21,7 @@ class ExtractPalette(publish.Extractor):
         self_name = self.__class__.__name__
         result = harmony.send(
             {
-                "function": f"PypeHarmony.Publish.{self_name}.getPalette",
+                "function": f"AyonHarmony.Publish.{self_name}.getPalette",
                 "args": instance.data["id"]
             })["result"]
 
