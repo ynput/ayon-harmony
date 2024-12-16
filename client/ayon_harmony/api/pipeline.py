@@ -5,6 +5,12 @@ import logging
 import pyblish.api
 
 from ayon_core.lib import register_event_callback
+from ayon_core.host import (
+    HostBase,
+    IWorkfileHost,
+    ILoadHost,
+    IPublishHost,
+)
 from ayon_core.pipeline import (
     register_loader_plugin_path,
     register_creator_plugin_path,
@@ -18,6 +24,14 @@ from ayon_core.pipeline.context_tools import get_current_folder_entity
 from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
 
+from .workio import (
+    open_file,
+    save_file,
+    current_file,
+    has_unsaved_changes,
+    file_extensions,
+    work_root
+)
 
 log = logging.getLogger("ayon_harmony")
 
@@ -26,6 +40,53 @@ PUBLISH_PATH = os.path.join(PLUGINS_DIR, "publish")
 LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
 CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 INVENTORY_PATH = os.path.join(PLUGINS_DIR, "inventory")
+
+
+class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
+    name = "harmony"
+
+    def install(self):
+        """Install Pype as host config."""
+        print("Installing AYON Harmony Host ...")
+
+        pyblish.api.register_host("harmony")
+        pyblish.api.register_plugin_path(PUBLISH_PATH)
+        register_loader_plugin_path(LOAD_PATH)
+        register_creator_plugin_path(CREATE_PATH)
+
+        register_event_callback("application.launched", application_launch)
+
+    def uninstall(self):
+        pyblish.api.deregister_plugin_path(PUBLISH_PATH)
+        deregister_loader_plugin_path(LOAD_PATH)
+        deregister_creator_plugin_path(CREATE_PATH)
+
+    def open_workfile(self, filepath):
+        return open_file(filepath)
+
+    def save_workfile(self, filepath=None):
+        return save_file(filepath)
+
+    def work_root(self, session):
+        return work_root(session)
+
+    def get_current_workfile(self):
+        return current_file()
+
+    def workfile_has_unsaved_changes(self):
+        return has_unsaved_changes()
+
+    def get_workfile_extensions(self):
+        return file_extensions()
+
+    def get_containers(self):
+        return ls()
+
+    def get_context_data(self):
+        raise NotImplementedError()
+
+    def update_context_data(self, data, changes):
+        raise NotImplementedError()
 
 
 def set_scene_settings(settings):
@@ -167,45 +228,6 @@ def export_template(backdrops, nodes, filepath):
     })
 
 
-def install():
-    """Install Pype as host config."""
-    print("Installing Pype config ...")
-
-    pyblish.api.register_host("harmony")
-    pyblish.api.register_plugin_path(PUBLISH_PATH)
-    register_loader_plugin_path(LOAD_PATH)
-    register_creator_plugin_path(CREATE_PATH)
-    log.info(PUBLISH_PATH)
-
-    # Register callbacks.
-    pyblish.api.register_callback(
-        "instanceToggled", on_pyblish_instance_toggled
-    )
-
-    register_event_callback("application.launched", application_launch)
-
-
-def uninstall():
-    pyblish.api.deregister_plugin_path(PUBLISH_PATH)
-    deregister_loader_plugin_path(LOAD_PATH)
-    deregister_creator_plugin_path(CREATE_PATH)
-
-
-def on_pyblish_instance_toggled(instance, old_value, new_value):
-    """Toggle node enabling on instance toggles."""
-    node = None
-    if instance.data.get("setMembers"):
-        node = instance.data["setMembers"][0]
-
-    if node:
-        harmony.send(
-            {
-                "function": "AyonHarmony.toggleInstance",
-                "args": [node, new_value]
-            }
-        )
-
-
 def inject_ayon_js():
     """Inject AyonHarmonyAPI.js into Harmony."""
     ayon_harmony_js = Path(__file__).parent.joinpath("js/AyonHarmonyAPI.js")
@@ -248,6 +270,7 @@ def list_instances(remove_orphaned=True):
         Returns:
             (list) of dictionaries matching instances format
     """
+    # TODO: Remove this, refactor to new style Creators instead
     objects = harmony.get_scene_data() or {}
     instances = []
     for key, data in objects.items():
@@ -286,6 +309,7 @@ def remove_instance(instance):
         Args:
             instance (dict): instance representation from subsetmanager model
     """
+    # TODO: Remove this, refactor to new style Creators instead
     node = instance.get("uuid")
     harmony.remove(node)
     harmony.delete_node(node)
@@ -298,6 +322,7 @@ def select_instance(instance):
         Args:
             instance (dict): instance representation from subsetmanager model
     """
+    # TODO: Remove this, refactor to new style Creators instead
     harmony.select_nodes([instance.get("uuid")])
 
 

@@ -10,6 +10,7 @@ class Creator(LegacyCreator):
     If the selection is used, the selected nodes will be connected to the
     created node.
     """
+    # TODO: Refactor to the new creator API
 
     defaults = ["Main"]
     node_type = "COMPOSITE"
