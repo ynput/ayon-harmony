@@ -50,5 +50,5 @@ ExtractTemplate.prototype.getBackdropsByNode = function(probeNode) {
     return valid_backdrops;
 };
 
-// add self to Pype Loaders
+// add self to AYON Loaders
 AyonHarmony.Publish.ExtractTemplate = new ExtractTemplate();

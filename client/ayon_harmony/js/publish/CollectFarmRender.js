@@ -49,5 +49,5 @@ CollectFarmRender.prototype.getRenderNodeSettings = function(n) {
     return output;
 };
 
-// add self to Pype Loaders
+// add self to AYON Loaders
 AyonHarmony.Publish.CollectFarmRender = new CollectFarmRender();

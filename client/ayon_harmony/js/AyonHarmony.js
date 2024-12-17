@@ -1,6 +1,6 @@
 /* global include */
 // ***************************************************************************
-// *                        Pype Harmony Host                                *
+// *                        AYON Harmony Host                                *
 // ***************************************************************************
 
 var LD_OPENHARMONY_PATH = System.getenv('LIB_OPENHARMONY_PATH');
@@ -11,7 +11,7 @@ LD_OPENHARMONY_PATH = LD_OPENHARMONY_PATH.replace(/\\/g, "/");
 
 /**
  * @namespace
- * @classdesc AyonHarmony encapsulate all Pype related functions.
+ * @classdesc AyonHarmony encapsulate all AYON related functions.
  * @property  {Object}  loaders   Namespace for Loaders JS code.
  * @property  {Object}  Creators  Namespace for Creators JS code.
  * @property  {Object}  Publish   Namespace for Publish plugins JS code.

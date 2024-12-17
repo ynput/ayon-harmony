@@ -24,5 +24,5 @@ CollectCurrentFile.prototype.collect = function() {
     );
 };
 
-// add self to Pype Loaders
+// add self to AYON Loaders
 AyonHarmony.Publish.CollectCurrentFile = new CollectCurrentFile();

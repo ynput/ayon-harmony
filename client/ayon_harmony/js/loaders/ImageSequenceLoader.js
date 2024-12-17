@@ -304,5 +304,5 @@ ImageSequenceLoader.prototype.replaceFiles = function(args) {
     node.setColor(_node, greenColor);
 };
 
-// add self to Pype Loaders
+// add self to AYON Loaders
 AyonHarmony.Loaders.ImageSequenceLoader = new ImageSequenceLoader();
