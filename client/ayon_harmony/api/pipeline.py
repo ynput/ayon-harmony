@@ -128,8 +128,8 @@ def check_inventory():
 def application_launch(event):
     """Event that is executed after Harmony is launched."""
     # fills AYON_HARMONY_JS
-    pype_harmony_path = Path(__file__).parent.parent / "js" / "AyonHarmony.js"
-    pype_harmony_js = pype_harmony_path.read_text()
+    ayon_harmony_path = Path(__file__).parent.parent / "js" / "AyonHarmony.js"
+    ayon_harmony_js = ayon_harmony_path.read_text()
 
     # go through js/creators, loaders and publish folders and load all scripts
     script = ""
@@ -139,7 +139,7 @@ def application_launch(event):
             script += child.read_text()
 
     # send scripts to Harmony
-    harmony.send({"script": pype_harmony_js})
+    harmony.send({"script": ayon_harmony_js})
     harmony.send({"script": script})
     inject_ayon_js()
 

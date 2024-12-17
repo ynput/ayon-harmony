@@ -48,7 +48,7 @@ The integration creates an `AYON` menu entry where all related tools are located
 
 ### Work files
 
-Because Harmony projects are directories, this integration uses `.zip` as work file extension. Internally the project directories are stored under `[User]/.ayon/harmony`. Whenever the user saves the `.xstage` file, the integration zips up the project directory and moves it to the Avalon project path. Zipping and moving happens in the background.
+Because Harmony projects are directories, this integration uses `.zip` as work file extension. Internally the project directories are stored under `[User]/.ayon/harmony`. Whenever the user saves the `.xstage` file, the integration zips up the project directory and moves it to the AYON project path. Zipping and moving happens in the background.
 
 ### Show Workfiles on launch
 

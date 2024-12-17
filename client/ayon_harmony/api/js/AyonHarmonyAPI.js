@@ -1,11 +1,11 @@
 // ***************************************************************************
-// *                        Avalon Harmony Host                                *
+// *                        AYON Harmony Host                                *
 // ***************************************************************************
 
 
 /**
  * @namespace
- * @classdesc AyonHarmonyAPI encapsulate all Avalon related functions.
+ * @classdesc AyonHarmonyAPI encapsulate all AYON related functions.
  */
 var AyonHarmonyAPI = {};
 
@@ -34,7 +34,7 @@ AyonHarmonyAPI.setSceneData = function(metadata) {
     scene.setMetadata({
         'name'       : 'ayon',
         'type'       : 'string',
-        'creator'    : 'Avalon',
+        'creator'    : 'AYON',
         'version'    : '1.0',
         'value'      : JSON.stringify(metadata)
     });
