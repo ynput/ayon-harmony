@@ -33,5 +33,5 @@ ExtractPalette.prototype.getPalette = function(paletteId) {
     ];  
 };
 
-// add self to Pype Loaders
+// add self to AYON Loaders
 AyonHarmony.Publish.ExtractPalette = new ExtractPalette();

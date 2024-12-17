@@ -1,10 +1,10 @@
 /* global QTcpSocket, QByteArray, QDataStream, QTimer, QTextCodec, QIODevice, QApplication, include */
 /* global QTcpSocket, QByteArray, QDataStream, QTimer, QTextCodec, QIODevice, QApplication, include */
 /*
-Avalon Harmony Integration - Client
+AYON Harmony Integration - Client
 -----------------------------------
 
-This script implements client communication with Avalon server to bridge
+This script implements client communication with AYON server to bridge
 gap between Python and QtScript.
 
 */
@@ -342,7 +342,7 @@ function Client() {
 }
 
 /**
- * Entry point, creating Avalon Client.
+ * Entry point, creating AYON Client.
  */
 function start() {
     var self = this;

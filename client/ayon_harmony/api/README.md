@@ -37,7 +37,7 @@ Server/client now uses stricter protocol to handle communication. This is necess
 | A | H | 0x00 | 0x00 | 0x00 | 0x00 | ...
 
 ```
-First two bytes are *magic* bytes stands for **A**valon **H**armony. Next four bytes hold length of the message `...` encoded as 32bit unsigned integer. This way we know how many bytes to read from the socket and if we need more or we need to parse multiple messages.
+First two bytes are *magic* bytes stands for **A**yon **H**armony. Next four bytes hold length of the message `...` encoded as 32bit unsigned integer. This way we know how many bytes to read from the socket and if we need more or we need to parse multiple messages.
 
 
 ## Usage
@@ -48,7 +48,7 @@ The integration creates an `AYON` menu entry where all related tools are located
 
 ### Work files
 
-Because Harmony projects are directories, this integration uses `.zip` as work file extension. Internally the project directories are stored under `[User]/.ayon/harmony`. Whenever the user saves the `.xstage` file, the integration zips up the project directory and moves it to the Avalon project path. Zipping and moving happens in the background.
+Because Harmony projects are directories, this integration uses `.zip` as work file extension. Internally the project directories are stored under `[User]/.ayon/harmony`. Whenever the user saves the `.xstage` file, the integration zips up the project directory and moves it to the AYON project path. Zipping and moving happens in the background.
 
 ### Show Workfiles on launch
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Utility functions used for Avalon - Harmony integration."""
+"""Utility functions used for AYON - Harmony integration."""
 import platform
 import subprocess
 import threading
@@ -134,7 +134,7 @@ def setup_startup_scripts():
                 log.error(e)
                 log.warning(
                     "Failed to copy {0} to {1}! "
-                    "Defaulting to Avalon TOONBOOM_GLOBAL_SCRIPT_LOCATION."
+                    "Defaulting to AYON TOONBOOM_GLOBAL_SCRIPT_LOCATION."
                     .format(ayon_harmony_startup, env_harmony_startup))
 
                 os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
@@ -145,7 +145,7 @@ def setup_startup_scripts():
 def check_libs():
     """Check if `OpenHarmony`_ is available.
 
-    Avalon expects either path in `LIB_OPENHARMONY_PATH` or `openHarmony.js`
+    AYON expects either path in `LIB_OPENHARMONY_PATH` or `openHarmony.js`
     present in `TOONBOOM_GLOBAL_SCRIPT_LOCATION`.
 
     Throws:
@@ -282,7 +282,7 @@ def launch_zip_file(filepath):
     if ProcessContext.server:
         ProcessContext.server.stop()
 
-    # Launch Avalon server.
+    # Launch AYON server.
     ProcessContext.server = Server(ProcessContext.port)
     ProcessContext.server.start()
     # thread = threading.Thread(target=self.server.start)
@@ -572,7 +572,7 @@ def maintained_nodes_state(nodes):
 def save_scene():
     """Save the Harmony scene safely.
 
-    The built-in (to Avalon) background zip and moving of the Harmony scene
+    The built-in (to AYON) background zip and moving of the Harmony scene
     folder, interferes with server/client communication by sending two requests
     at the same time. This only happens when sending "scene.saveAll()". This
     method prevents this double request and safely saves the scene.

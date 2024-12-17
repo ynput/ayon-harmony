@@ -29,5 +29,5 @@ CollectPalettes.prototype.getPalettes = function() {
     return palettes;
 };
 
-// add self to Pype Loaders
+// add self to AYON Loaders
 AyonHarmony.Publish.CollectPalettes = new CollectPalettes();
