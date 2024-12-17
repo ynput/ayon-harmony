@@ -1,12 +1,12 @@
-/* global PypeHarmony:writable, include */
+/* global AyonHarmony:writable, include */
 // ***************************************************************************
 // *                           ExtractTemplate                               *
 // ***************************************************************************
 
 
-// check if PypeHarmony is defined and if not, load it.
-if (typeof PypeHarmony === 'undefined') {
-    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/PypeHarmony.js';
+// check if AyonHarmony is defined and if not, load it.
+if (typeof AyonHarmony === 'undefined') {
+    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/AyonHarmony.js';
     include(AYON_HARMONY_JS.replace(/\\/g, "/"));
 }
 
@@ -50,5 +50,5 @@ ExtractTemplate.prototype.getBackdropsByNode = function(probeNode) {
     return valid_backdrops;
 };
 
-// add self to Pype Loaders
-PypeHarmony.Publish.ExtractTemplate = new ExtractTemplate();
+// add self to AYON Loaders
+AyonHarmony.Publish.ExtractTemplate = new ExtractTemplate();

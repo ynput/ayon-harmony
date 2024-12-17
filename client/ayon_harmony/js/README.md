@@ -1,4 +1,4 @@
-## Pype - ToonBoom Harmony integration
+## AYON - ToonBoom Harmony integration
 
 ### Development
 

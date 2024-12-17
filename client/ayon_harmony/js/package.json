@@ -1,15 +1,15 @@
 {
-  "name": "pype-harmony",
+  "name": "ayon-harmony",
   "version": "1.0.0",
-  "description": "Avalon Harmony Host integration",
+  "description": "AYON Harmony Host integration",
   "keywords": [
-    "Pype",
-    "Avalon",
+    "AYON",
+    "Ynput",
     "Harmony",
     "pipeline"
   ],
   "license": "MIT",
-  "main": "PypeHarmony.js",
+  "main": "AyonHarmony.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

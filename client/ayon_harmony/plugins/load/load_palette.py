@@ -52,7 +52,7 @@ class ImportPaletteLoader(load.LoaderPlugin):
 
         harmony.send(
             {
-                "function": "PypeHarmony.message",
+                "function": "AyonHarmony.message",
                 "args": msg
             })
         return name

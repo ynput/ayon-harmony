@@ -58,7 +58,7 @@ class CollectFarmRender(publish.AbstractCollectRender):
         # 0 - filename / 1 - type / 2 - zeros / 3 - start
         info = harmony.send(
             {
-                "function": f"PypeHarmony.Publish.{self_name}."
+                "function": f"AyonHarmony.Publish.{self_name}."
                             "getRenderNodeSettings",
                 "args": node
             })["result"]
@@ -120,7 +120,7 @@ class CollectFarmRender(publish.AbstractCollectRender):
             # 0 - filename / 1 - type / 2 - zeros / 3 - start / 4 - enabled
             info = harmony.send(
                 {
-                    "function": f"PypeHarmony.Publish.{self_name}."
+                    "function": f"AyonHarmony.Publish.{self_name}."
                                 "getRenderNodeSettings",
                     "args": node
                 })["result"]

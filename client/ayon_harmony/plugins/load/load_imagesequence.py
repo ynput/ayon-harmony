@@ -17,7 +17,7 @@ import ayon_harmony.api as harmony
 class ImageSequenceLoader(load.LoaderPlugin):
     """Load image sequences.
 
-    Stores the imported asset in a container named after the asset.
+    Stores the imported product in a container named after the product.
     """
 
     product_types = {
@@ -60,7 +60,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
         group_id = str(uuid.uuid4())
         read_node = harmony.send(
             {
-                "function": f"PypeHarmony.Loaders.{self_name}.importFiles",  # noqa: E501
+                "function": f"AyonHarmony.Loaders.{self_name}.importFiles",  # noqa: E501
                 "args": [
                     files,
                     folder_name,
@@ -113,7 +113,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
 
         harmony.send(
             {
-                "function": f"PypeHarmony.Loaders.{self_name}.replaceFiles",
+                "function": f"AyonHarmony.Loaders.{self_name}.replaceFiles",
                 "args": [files, node, 1]
             }
         )
@@ -122,13 +122,13 @@ class ImageSequenceLoader(load.LoaderPlugin):
         if is_representation_from_latest(repre_entity):
             harmony.send(
                 {
-                    "function": "PypeHarmony.setColor",
+                    "function": "AyonHarmony.setColor",
                     "args": [node, [0, 255, 0, 255]]
                 })
         else:
             harmony.send(
                 {
-                    "function": "PypeHarmony.setColor",
+                    "function": "AyonHarmony.setColor",
                     "args": [node, [255, 0, 0, 255]]
                 })
 
@@ -145,7 +145,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
         """
         node = container.get("nodes").pop()
         harmony.send(
-            {"function": "PypeHarmony.deleteNode", "args": [node]}
+            {"function": "AyonHarmony.deleteNode", "args": [node]}
         )
         harmony.imprint(node, {}, remove=True)
 

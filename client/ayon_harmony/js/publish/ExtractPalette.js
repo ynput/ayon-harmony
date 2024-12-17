@@ -1,12 +1,12 @@
-/* global PypeHarmony:writable, include */
+/* global AyonHarmony:writable, include */
 // ***************************************************************************
 // *                           ExtractPalette                                *
 // ***************************************************************************
 
 
-// check if PypeHarmony is defined and if not, load it.
-if (typeof PypeHarmony === 'undefined') {
-    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/PypeHarmony.js';
+// check if AyonHarmony is defined and if not, load it.
+if (typeof AyonHarmony === 'undefined') {
+    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/AyonHarmony.js';
     include(AYON_HARMONY_JS.replace(/\\/g, "/"));
 }
 
@@ -33,5 +33,5 @@ ExtractPalette.prototype.getPalette = function(paletteId) {
     ];  
 };
 
-// add self to Pype Loaders
-PypeHarmony.Publish.ExtractPalette = new ExtractPalette();
+// add self to AYON Loaders
+AyonHarmony.Publish.ExtractPalette = new ExtractPalette();

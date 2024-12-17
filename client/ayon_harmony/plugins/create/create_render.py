@@ -22,6 +22,6 @@ class CreateRender(plugin.Creator):
         path = "render/{0}/{0}.".format(node.split("/")[-1])
         harmony.send(
             {
-                "function": f"PypeHarmony.Creators.{self_name}.create",
+                "function": f"AyonHarmony.Creators.{self_name}.create",
                 "args": [node, path]
             })

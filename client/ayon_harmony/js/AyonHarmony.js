@@ -1,6 +1,6 @@
 /* global include */
 // ***************************************************************************
-// *                        Pype Harmony Host                                *
+// *                        AYON Harmony Host                                *
 // ***************************************************************************
 
 var LD_OPENHARMONY_PATH = System.getenv('LIB_OPENHARMONY_PATH');
@@ -11,12 +11,12 @@ LD_OPENHARMONY_PATH = LD_OPENHARMONY_PATH.replace(/\\/g, "/");
 
 /**
  * @namespace
- * @classdesc PypeHarmony encapsulate all Pype related functions.
+ * @classdesc AyonHarmony encapsulate all AYON related functions.
  * @property  {Object}  loaders   Namespace for Loaders JS code.
  * @property  {Object}  Creators  Namespace for Creators JS code.
  * @property  {Object}  Publish   Namespace for Publish plugins JS code.
  */
-var PypeHarmony = {
+var AyonHarmony = {
     Loaders: {},
     Creators: {},
     Publish: {}
@@ -28,7 +28,7 @@ var PypeHarmony = {
  * @function
  * @param {string} message  Argument containing message.
  */
-PypeHarmony.message = function(message) {
+AyonHarmony.message = function(message) {
     MessageBox.information(message);
 };
 
@@ -38,7 +38,7 @@ PypeHarmony.message = function(message) {
  * @function
  * @param {obj} settings  Scene settings.
  */
-PypeHarmony.setSceneSettings = function(settings) {
+AyonHarmony.setSceneSettings = function(settings) {
     if (settings.fps) {
         scene.setFrameRate(settings.fps);
     }
@@ -70,7 +70,7 @@ PypeHarmony.setSceneSettings = function(settings) {
  * @function
  * @return {array} Scene settings.
  */
-PypeHarmony.getSceneSettings = function() {
+AyonHarmony.getSceneSettings = function() {
     return [
         about.getApplicationPath(),
         scene.currentProjectPath(),
@@ -92,9 +92,9 @@ PypeHarmony.getSceneSettings = function() {
  * @param {array} nodes List of nodes.
  * @param {array} rgba  array of RGBA components of color.
  */
-PypeHarmony.setColor = function(nodes, rgba) {
+AyonHarmony.setColor = function(nodes, rgba) {
     for (var i =0; i <= nodes.length - 1; ++i) {
-        var color = PypeHarmony.color(rgba);
+        var color = AyonHarmony.color(rgba);
         node.setColor(nodes[i], color);
     }
 };
@@ -110,7 +110,7 @@ PypeHarmony.setColor = function(nodes, rgba) {
  * var args = [backdrops, nodes, templateFilename, templateDir];
  *
  */
-PypeHarmony.exportTemplate = function(args) {
+AyonHarmony.exportTemplate = function(args) {
     var tempNode = node.add('Top', 'temp_note', 'NOTE', 0, 0, 0);
     var templateGroup = node.createGroup(tempNode, 'temp_group');
     node.deleteNode( templateGroup + '/temp_note' );
@@ -148,7 +148,7 @@ PypeHarmony.exportTemplate = function(args) {
  * @function
  * @param {array} args  Instance name and value.
  */
-PypeHarmony.toggleInstance = function(args) {
+AyonHarmony.toggleInstance = function(args) {
     node.setEnable(args[0], args[1]);
 };
 
@@ -158,7 +158,7 @@ PypeHarmony.toggleInstance = function(args) {
  * @function
  * @param {string} _node  Node name.
  */
-PypeHarmony.deleteNode = function(_node) {
+AyonHarmony.deleteNode = function(_node) {
     node.deleteNode(_node, true, true);
 };
 
@@ -169,7 +169,7 @@ PypeHarmony.deleteNode = function(_node) {
  * @param {string}  src Source file name.
  * @param {string}  dst Destination file name.
  */
-PypeHarmony.copyFile = function(src, dst) {
+AyonHarmony.copyFile = function(src, dst) {
     var srcFile = new PermanentFile(src);
     var dstFile = new PermanentFile(dst);
     srcFile.copy(dstFile);
@@ -182,7 +182,7 @@ PypeHarmony.copyFile = function(src, dst) {
  * @param   {array}     rgba array of rgba values.
  * @return  {ColorRGBA} ColorRGBA Harmony class.
  */
-PypeHarmony.color = function(rgba) {
+AyonHarmony.color = function(rgba) {
     return new ColorRGBA(rgba[0], rgba[1], rgba[2], rgba[3]);
 };
 
@@ -193,7 +193,7 @@ PypeHarmony.color = function(rgba) {
  * @param   {string}  _node node path.
  * @return  {array}   List of dependent nodes.
  */
-PypeHarmony.getDependencies = function(_node) {
+AyonHarmony.getDependencies = function(_node) {
     var target_node = _node;
     var numInput = node.numberOfInputPorts(target_node);
     var dependencies = [];
@@ -209,7 +209,7 @@ PypeHarmony.getDependencies = function(_node) {
  * @function
  * @return  {array} [major_version, minor_version]
  */
-PypeHarmony.getVersion = function() {
+AyonHarmony.getVersion = function() {
     return [
         about.getMajorVersion(),
         about.getMinorVersion()

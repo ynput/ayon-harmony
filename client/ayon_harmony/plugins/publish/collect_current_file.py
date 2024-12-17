@@ -18,5 +18,5 @@ class CollectCurrentFile(pyblish.api.ContextPlugin):
         self_name = self.__class__.__name__
 
         current_file = harmony.send(
-            {"function": f"PypeHarmony.Publish.{self_name}.collect"})["result"]
+            {"function": f"AyonHarmony.Publish.{self_name}.collect"})["result"]
         context.data["currentFile"] = os.path.normpath(current_file)
