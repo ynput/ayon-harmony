@@ -37,7 +37,7 @@ Server/client now uses stricter protocol to handle communication. This is necess
 | A | H | 0x00 | 0x00 | 0x00 | 0x00 | ...
 
 ```
-First two bytes are *magic* bytes stands for **A**valon **H**armony. Next four bytes hold length of the message `...` encoded as 32bit unsigned integer. This way we know how many bytes to read from the socket and if we need more or we need to parse multiple messages.
+First two bytes are *magic* bytes stands for **A**yon **H**armony. Next four bytes hold length of the message `...` encoded as 32bit unsigned integer. This way we know how many bytes to read from the socket and if we need more or we need to parse multiple messages.
 
 
 ## Usage
