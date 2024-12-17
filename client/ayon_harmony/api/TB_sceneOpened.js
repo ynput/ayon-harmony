@@ -380,7 +380,6 @@ function start() {
     if (app.ayonMenu == null) {
         menu = menuBar.addMenu(System.getenv('AYON_MENU_LABEL'));
     }
-    // menu = menuBar.addMenu('Avalon');
 
     /**
      * Show creator
