@@ -17,6 +17,11 @@ var AyonHarmonyAPI = {};
  */
 AyonHarmonyAPI.getSceneData = function() {
     var metadata = scene.metadata('ayon');
+    if (!metadata) {
+        // Backwards compatibility
+        metadata = scene.metadata('avalon');
+    }
+
     if (metadata){
         return JSON.parse(metadata.value);
     }else {
