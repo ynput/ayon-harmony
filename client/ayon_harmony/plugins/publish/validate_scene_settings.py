@@ -45,7 +45,7 @@ class ValidateSceneSettings(pyblish.api.InstancePlugin):
     settings_category = "harmony"
     optional = True
 
-    # skip frameEnd check if asset contains any of:
+    # skip frameEnd check if folder contains any of:
     frame_check_filter = ["_ch_", "_pr_", "_intd_", "_extd_"]  # regex
 
     # skip resolution check if Task name matches any of regex patterns
@@ -62,7 +62,6 @@ class ValidateSceneSettings(pyblish.api.InstancePlugin):
         #   - the same approach can be used in 'ValidateSceneSettingsRepair'
         expected_settings = harmony.get_current_context_settings()
         self.log.info("scene settings from DB:{}".format(expected_settings))
-        expected_settings.pop("entityType")  # not useful for the validation
 
         expected_settings = _update_frames(dict.copy(expected_settings))
         expected_settings["frameEndHandle"] = expected_settings["frameEnd"] +\
