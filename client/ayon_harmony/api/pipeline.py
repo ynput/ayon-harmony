@@ -60,7 +60,6 @@ def get_current_context_settings():
     handle_end = folder_attributes.get("handleEnd")
     resolution_width = folder_attributes.get("resolutionWidth")
     resolution_height = folder_attributes.get("resolutionHeight")
-    entity_type = folder_attributes.get("entityType")
 
     scene_data = {
         "fps": fps,
@@ -69,8 +68,7 @@ def get_current_context_settings():
         "handleStart": handle_start,
         "handleEnd": handle_end,
         "resolutionWidth": resolution_width,
-        "resolutionHeight": resolution_height,
-        "entityType": entity_type
+        "resolutionHeight": resolution_height
     }
 
     return scene_data
