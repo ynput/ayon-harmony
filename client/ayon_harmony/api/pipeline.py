@@ -228,45 +228,6 @@ def export_template(backdrops, nodes, filepath):
     })
 
 
-def install():
-    """Install AYON Harmony as host config."""
-    print("Installing AYON config ...")
-
-    pyblish.api.register_host("harmony")
-    pyblish.api.register_plugin_path(PUBLISH_PATH)
-    register_loader_plugin_path(LOAD_PATH)
-    register_creator_plugin_path(CREATE_PATH)
-    log.info(PUBLISH_PATH)
-
-    # Register callbacks.
-    pyblish.api.register_callback(
-        "instanceToggled", on_pyblish_instance_toggled
-    )
-
-    register_event_callback("application.launched", application_launch)
-
-
-def uninstall():
-    pyblish.api.deregister_plugin_path(PUBLISH_PATH)
-    deregister_loader_plugin_path(LOAD_PATH)
-    deregister_creator_plugin_path(CREATE_PATH)
-
-
-def on_pyblish_instance_toggled(instance, old_value, new_value):
-    """Toggle node enabling on instance toggles."""
-    node = None
-    if instance.data.get("setMembers"):
-        node = instance.data["setMembers"][0]
-
-    if node:
-        harmony.send(
-            {
-                "function": "AyonHarmony.toggleInstance",
-                "args": [node, new_value]
-            }
-        )
-
-
 def inject_ayon_js():
     """Inject AyonHarmonyAPI.js into Harmony."""
     ayon_harmony_js = Path(__file__).parent.joinpath("js/AyonHarmonyAPI.js")
