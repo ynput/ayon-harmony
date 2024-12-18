@@ -1,11 +1,11 @@
-/* global PypeHarmony:writable, include */
+/* global AyonHarmony:writable, include */
 // ***************************************************************************
 // *                        ImageSequenceLoader                              *
 // ***************************************************************************
 
-// check if PypeHarmony is defined and if not, load it.
-if (typeof PypeHarmony === 'undefined') {
-    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/PypeHarmony.js';
+// check if AyonHarmony is defined and if not, load it.
+if (typeof AyonHarmony === 'undefined') {
+    var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/AyonHarmony.js';
     include(AYON_HARMONY_JS.replace(/\\/g, "/"));
 }
 
@@ -94,9 +94,9 @@ ImageSequenceLoader.getUniqueColumnName = function(columnPrefix) {
  * ];
  */
 ImageSequenceLoader.prototype.importFiles = function(args) {
-    MessageLog.trace("ImageSequence:: " + typeof PypeHarmony);
+    MessageLog.trace("ImageSequence:: " + typeof AyonHarmony);
     MessageLog.trace("ImageSequence $:: " + typeof $);
-    MessageLog.trace("ImageSequence OH:: " + typeof PypeHarmony.OpenHarmony);
+    MessageLog.trace("ImageSequence OH:: " + typeof AyonHarmony.OpenHarmony);
     var PNGTransparencyMode = 0; // Premultiplied with Black
     var TGATransparencyMode = 0; // Premultiplied with Black
     var SGITransparencyMode = 0; // Premultiplied with Black
@@ -189,7 +189,7 @@ ImageSequenceLoader.prototype.importFiles = function(args) {
         Drawing.create(elemId, 1, true);
         // Get the actual path, in tmp folder.
         drawingFilePath = Drawing.filename(elemId, '1');
-        PypeHarmony.copyFile(files[0], drawingFilePath);
+        AyonHarmony.copyFile(files[0], drawingFilePath);
         // Expose the image for the entire frame range.
         for (var i =0; i <= frame.numberOf() - 1; ++i) {
             timing = startFrame + i;
@@ -203,7 +203,7 @@ ImageSequenceLoader.prototype.importFiles = function(args) {
             Drawing.create(elemId, timing, true);
             // Get the actual path, in tmp folder.
             drawingFilePath = Drawing.filename(elemId, timing.toString());
-            PypeHarmony.copyFile(files[j], drawingFilePath);
+            AyonHarmony.copyFile(files[j], drawingFilePath);
             column.setEntry(uniqueColumnName, 1, timing, timing.toString());
         }
     }
@@ -280,7 +280,7 @@ ImageSequenceLoader.prototype.replaceFiles = function(args) {
         Drawing.create(elemId, 1, true);
         // Get the actual path, in tmp folder.
         drawingFilePath = Drawing.filename(elemId, '1');
-        PypeHarmony.copyFile(files[0], drawingFilePath);
+        AyonHarmony.copyFile(files[0], drawingFilePath);
         MessageLog.trace(files[0]);
         MessageLog.trace(drawingFilePath);
         // Expose the image for the entire frame range.
@@ -296,7 +296,7 @@ ImageSequenceLoader.prototype.replaceFiles = function(args) {
             Drawing.create(elemId, timing, true);
             // Get the actual path, in tmp folder.
             drawingFilePath = Drawing.filename(elemId, timing.toString());
-            PypeHarmony.copyFile( files[l], drawingFilePath );
+            AyonHarmony.copyFile( files[l], drawingFilePath );
             column.setEntry(_column, 1, timing, timing.toString());
         }
     }
@@ -304,5 +304,5 @@ ImageSequenceLoader.prototype.replaceFiles = function(args) {
     node.setColor(_node, greenColor);
 };
 
-// add self to Pype Loaders
-PypeHarmony.Loaders.ImageSequenceLoader = new ImageSequenceLoader();
+// add self to AYON Loaders
+AyonHarmony.Loaders.ImageSequenceLoader = new ImageSequenceLoader();

@@ -91,7 +91,7 @@ class ExtractTemplate(publish.Extractor):
         """
         self_name = self.__class__.__name__
         return harmony.send({
-            "function": f"PypeHarmony.Publish.{self_name}.getBackdropsByNode",
+            "function": f"AyonHarmony.Publish.{self_name}.getBackdropsByNode",
             "args": node})["result"]
 
     def get_dependencies(
@@ -110,7 +110,7 @@ class ExtractTemplate(publish.Extractor):
         """
         current_dependencies = harmony.send(
             {
-                "function": "PypeHarmony.getDependencies",
+                "function": "AyonHarmony.getDependencies",
                 "args": node}
         )["result"]
 

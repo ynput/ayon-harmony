@@ -17,7 +17,7 @@ class CollectScene(pyblish.api.ContextPlugin):
         """Plugin entry point."""
         result = harmony.send(
             {
-                "function": "PypeHarmony.getSceneSettings",
+                "function": "AyonHarmony.getSceneSettings",
                 "args": []}
         )["result"]
 
@@ -62,7 +62,7 @@ class CollectScene(pyblish.api.ContextPlugin):
 
         result = harmony.send(
             {
-                "function": "PypeHarmony.getVersion",
+                "function": "AyonHarmony.getVersion",
                 "args": []}
         )["result"]
         context.data["harmonyVersion"] = "{}.{}".format(result[0], result[1])

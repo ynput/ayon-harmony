@@ -45,7 +45,7 @@ class ValidateSceneSettings(pyblish.api.InstancePlugin):
     settings_category = "harmony"
     optional = True
 
-    # skip frameEnd check if asset contains any of:
+    # skip frameEnd check if folder contains any of:
     frame_check_filter = ["_ch_", "_pr_", "_intd_", "_extd_"]  # regex
 
     # skip resolution check if Task name matches any of regex patterns

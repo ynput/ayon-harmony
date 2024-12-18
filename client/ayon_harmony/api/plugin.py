@@ -22,7 +22,7 @@ class Creator(LegacyCreator):
         """
         harmony.send(
             {
-                "function": "AvalonHarmony.setupNodeForCreator",
+                "function": "AyonHarmonyAPI.setupNodeForCreator",
                 "args": node
             }
         )
@@ -31,7 +31,7 @@ class Creator(LegacyCreator):
         """Plugin entry point."""
         existing_node_names = harmony.send(
             {
-                "function": "AvalonHarmony.getNodesNamesByType",
+                "function": "AyonHarmonyAPI.getNodesNamesByType",
                 "args": self.node_type
             })["result"]
 
@@ -41,7 +41,7 @@ class Creator(LegacyCreator):
             if self.name.lower() == name.lower():
                 harmony.send(
                     {
-                        "function": "AvalonHarmony.message", "args": msg
+                        "function": "AyonHarmonyAPI.message", "args": msg
                     }
                 )
                 return False
@@ -52,14 +52,14 @@ class Creator(LegacyCreator):
             if (self.options or {}).get("useSelection") and selection:
                 node = harmony.send(
                     {
-                        "function": "AvalonHarmony.createContainer",
+                        "function": "AyonHarmonyAPI.createContainer",
                         "args": [self.name, self.node_type, selection[-1]]
                     }
                 )["result"]
             else:
                 node = harmony.send(
                     {
-                        "function": "AvalonHarmony.createContainer",
+                        "function": "AyonHarmonyAPI.createContainer",
                         "args": [self.name, self.node_type]
                     }
                 )["result"]

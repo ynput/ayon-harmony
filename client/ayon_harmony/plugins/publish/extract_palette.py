@@ -21,7 +21,7 @@ class ExtractPalette(publish.Extractor):
         self_name = self.__class__.__name__
         result = harmony.send(
             {
-                "function": f"PypeHarmony.Publish.{self_name}.getPalette",
+                "function": f"AyonHarmony.Publish.{self_name}.getPalette",
                 "args": instance.data["id"]
             })["result"]
 
@@ -147,7 +147,7 @@ class ExtractPalette(publish.Extractor):
                     pixels[i, j] = (255, 255, 255)
 
         draw = ImageDraw.Draw(img)
-        # TODO: This needs to be font included with Pype because
+        # TODO: This needs to be font included with AYON because
         # arial is not available on other platforms then Windows.
         title_font = ImageFont.truetype("arial.ttf", 28)
         label_font = ImageFont.truetype("arial.ttf", 20)

@@ -20,7 +20,7 @@ class ValidateAudioPlugin(BaseSettingsModel):
 
 class ValidateSceneSettingsPlugin(BaseSettingsModel):
     """Validate if FrameStart, FrameEnd and Resolution match shot data in DB.
-       Use regular expressions to limit validations only on particular asset
+       Use regular expressions to limit validations only on particular folder
        or task names."""
     _isGroup = True
     enabled: bool = True
@@ -29,7 +29,7 @@ class ValidateSceneSettingsPlugin(BaseSettingsModel):
 
     frame_check_filter: list[str] = SettingsField(
         default_factory=list,
-        title="Skip Frame check for Assets with name containing"
+        title="Skip Frame check for Folder Paths with name containing"
     )
 
     skip_resolution_check: list[str] = SettingsField(
