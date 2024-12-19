@@ -403,9 +403,6 @@ def show(tool_name):
         kwargs["use_context"] = True
     elif tool_name == "publisher":
         kwargs["tab"] = "publish"
-    elif tool_name == "creator":
-        tool_name = "publisher"
-        kwargs["tab"] = "create"
 
     ProcessContext.execute_in_main_thread(
         lambda: host_tools.show_tool_by_name(tool_name, **kwargs)
