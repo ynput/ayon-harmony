@@ -42,7 +42,7 @@ CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 INVENTORY_PATH = os.path.join(PLUGINS_DIR, "inventory")
 
 
-class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
+class HarmonyHost(HostBase, IWorkfileHost, ILoadHost):
     name = "harmony"
 
     def install(self):
@@ -82,11 +82,11 @@ class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     def get_containers(self):
         return ls()
 
-    def get_context_data(self):
-        raise NotImplementedError()
-
-    def update_context_data(self, data, changes):
-        raise NotImplementedError()
+    # def get_context_data(self):
+    #     raise NotImplementedError()
+    #
+    # def update_context_data(self, data, changes):
+    #     raise NotImplementedError()
 
 
 def set_scene_settings(settings):
