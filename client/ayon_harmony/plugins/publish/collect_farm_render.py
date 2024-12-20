@@ -117,6 +117,15 @@ class CollectFarmRender(publish.AbstractCollectRender):
             if product_type != "renderFarm":
                 continue
 
+            # check if node is enabled
+            enabled = harmony.send(
+                {"function": "node.getEnable", "args": [node]})
+            enabled = enabled["result"]
+
+            # Skip disabled nodes.
+            if not enabled:
+                continue
+
             # 0 - filename / 1 - type / 2 - zeros / 3 - start / 4 - enabled
             info = harmony.send(
                 {

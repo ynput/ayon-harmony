@@ -59,12 +59,18 @@ class CollectInstances(pyblish.api.ContextPlugin):
             if product_type == "renderFarm":
                 continue
 
+            enabled = harmony.send(
+                {"function": "node.getEnable", "args": [node]})
+            enabled = enabled["result"]
+
+            # Skip disabled nodes.
+            if not enabled:
+                continue
+
             instance = context.create_instance(node.split("/")[-1])
             instance.data.update(data)
             instance.data["setMembers"] = [node]
-            instance.data["publish"] = harmony.send(
-                {"function": "node.getEnable", "args": [node]}
-            )["result"]
+            instance.data["publish"] = enabled
 
             families = [product_type]
             families.extend(self.product_type_mapping[product_type])
