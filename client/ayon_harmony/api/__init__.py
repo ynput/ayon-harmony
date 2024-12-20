@@ -34,7 +34,8 @@ from .lib import (
     find_node_by_name,
     signature,
     select_nodes,
-    get_scene_data
+    get_scene_data,
+    get_workdir
 )
 
 from .workio import (
@@ -78,6 +79,7 @@ __all__ = [
     "signature",
     "select_nodes",
     "get_scene_data",
+    "get_workdir",
 
     # Workfiles API
     "open_file",

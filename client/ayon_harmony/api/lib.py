@@ -186,9 +186,9 @@ def launch(application_path, *args):
 
     """
     from ayon_core.pipeline import install_host
-    from ayon_harmony import api as harmony
+    from ayon_harmony.api import HarmonyHost
 
-    install_host(harmony)
+    install_host(HarmonyHost())
 
     ProcessContext.port = random.randrange(49152, 65535)
     os.environ["AYON_HARMONY_PORT"] = str(ProcessContext.port)
@@ -401,6 +401,8 @@ def show(tool_name):
     kwargs = {}
     if tool_name == "loader":
         kwargs["use_context"] = True
+    elif tool_name == "publisher":
+        kwargs["tab"] = "publish"
 
     ProcessContext.execute_in_main_thread(
         lambda: host_tools.show_tool_by_name(tool_name, **kwargs)
@@ -636,3 +638,6 @@ def find_node_by_name(name, node_type):
             return node
 
     return None
+
+def get_workdir():
+    return ProcessContext.workfile_path
