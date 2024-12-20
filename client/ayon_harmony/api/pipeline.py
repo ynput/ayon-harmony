@@ -9,7 +9,6 @@ from ayon_core.host import (
     HostBase,
     IWorkfileHost,
     ILoadHost,
-    IPublishHost,
 )
 from ayon_core.pipeline import (
     register_loader_plugin_path,

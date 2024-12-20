@@ -48,7 +48,7 @@ from .workio import (
 __all__ = [
     # pipeline
     "ls",
-    "install",
+    "HarmonyHost",
     "list_instances",
     "remove_instance",
     "select_instance",
