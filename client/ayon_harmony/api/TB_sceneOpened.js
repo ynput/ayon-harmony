@@ -395,22 +395,6 @@ function start() {
     var action = menu.addAction('Create...');
     action.triggered.connect(self.onCreator);
 
-
-    /**
-     * Show Workfiles
-     */
-    self.onWorkfiles = function() {
-        app.ayonClient.send({
-            'module': 'ayon_harmony.api.lib',
-            'method': 'show',
-            'args': ['workfiles']
-        }, false);
-    };
-    if (app.ayonMenu == null) {
-        action = menu.addAction('Workfiles...');
-        action.triggered.connect(self.onWorkfiles);
-    }
-
     /**
      * Show Loader
      */
@@ -434,7 +418,7 @@ function start() {
         app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
-            'args': ['publish']
+            'args': ['publisher']
         }, false);
     };
     // add Publisher item to menu
@@ -460,19 +444,19 @@ function start() {
     }
 
     /**
-      * Show Subset Manager
-      */
-    self.onSubsetManage = function() {
+     * Show Workfiles
+     */
+    self.onWorkfiles = function() {
         app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
             'method': 'show',
-            'args': ['subsetmanager']
+            'args': ['workfiles']
         }, false);
     };
-    // add Subset Manager item to menu
     if (app.ayonMenu == null) {
-        action = menu.addAction('Subset Manager...');
-        action.triggered.connect(self.onSubsetManage);
+        menu.addSeparator();
+        action = menu.addAction('Workfiles...');
+        action.triggered.connect(self.onWorkfiles);
     }
 
      /**
@@ -488,8 +472,10 @@ function start() {
             false
           );
     };
+
     // add Set Scene Settings
     if (app.ayonMenu == null) {
+        menu.addSeparator();
         action = menu.addAction('Set Scene Settings...');
         action.triggered.connect(self.onSetSceneSettings);
     }
@@ -504,8 +490,8 @@ function start() {
             'args': ['experimental_tools']
         }, false);
     };
-    // add Subset Manager item to menu
     if (app.ayonMenu == null) {
+        menu.addSeparator();
         action = menu.addAction('Experimental Tools...');
         action.triggered.connect(self.onExperimentalTools);
     }
