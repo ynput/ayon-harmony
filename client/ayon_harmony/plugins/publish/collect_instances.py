@@ -3,82 +3,50 @@
 import json
 
 import pyblish.api
-import ayon_harmony.api as harmony
 
 
-class CollectInstances(pyblish.api.ContextPlugin):
+class CollectInstances(pyblish.api.InstancePlugin):
     """Gather instances by nodes metadata.
 
     This collector takes into account assets that are associated with
     a composite node and marked with a unique identifier.
-
-    Identifier:
-        id (str): "ayon.create.instance"
     """
 
     label = "Instances"
     order = pyblish.api.CollectorOrder
     hosts = ["harmony"]
+
     product_type_mapping = {
         "render": ["review"],
         "harmony.template": [],
         "palette": ["palette"]
     }
-
     pair_media = True
 
-    def process(self, context):
-        """Plugin entry point.
+    def process(self, instance: pyblish.api.Instance):
 
-        Args:
-            context (:class:`pyblish.api.Context`): Context data.
+        # skip render farm product type as it is collected separately
+        product_type = instance.data["productType"]
+        if product_type == "renderFarm":
+            return
 
-        """
-        nodes = harmony.send(
-            {"function": "node.subNodes", "args": ["Top"]}
-        )["result"]
+        node = instance.data["transientData"]["node"]
 
-        for node in nodes:
-            data = harmony.read(node)
+        instance.data["setMembers"] = [node]
 
-            # Skip non-tagged nodes.
-            if not data:
-                continue
+        families = [product_type]
+        families.extend(self.product_type_mapping[product_type])
+        instance.data["families"] = families
 
-            # Skip containers.
-            if "container" in data["id"]:
-                continue
+        # If set in plugin, pair the scene Version with
+        # thumbnails and review media.
+        if (self.pair_media and product_type == "scene"):
+            instance.context.data["scene_instance"] = instance
 
-            product_type = data.get("productType")
-            if product_type is None:
-                product_type = data["family"]
-                data["productType"] = product_type
-            data["family"] = product_type
-
-            # skip render farm product type as it is collected separately
-            if product_type == "renderFarm":
-                continue
-
-            instance = context.create_instance(node.split("/")[-1])
-            instance.data.update(data)
-            instance.data["setMembers"] = [node]
-            instance.data["publish"] = harmony.send(
-                {"function": "node.getEnable", "args": [node]}
-            )["result"]
-
-            families = [product_type]
-            families.extend(self.product_type_mapping[product_type])
-            instance.data["families"] = families
-
-            # If set in plugin, pair the scene Version with
-            # thumbnails and review media.
-            if (self.pair_media and product_type == "scene"):
-                context.data["scene_instance"] = instance
-
-            # Produce diagnostic message for any graphical
-            # user interface interested in visualising it.
-            self.log.info(
-                "Found: \"{0}\": \n{1}".format(
-                    instance.data["name"], json.dumps(instance.data, indent=4)
-                )
+        # Produce diagnostic message for any graphical
+        # user interface interested in visualising it.
+        self.log.info(
+            "Processed: \"{0}\": \n{1}".format(
+                instance.data["name"], json.dumps(instance.data, indent=4)
             )
+        )

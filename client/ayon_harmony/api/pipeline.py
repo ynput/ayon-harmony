@@ -83,10 +83,12 @@ class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return ls()
 
     def get_context_data(self):
-        raise NotImplementedError()
+        # TODO: Implement
+        return {}
 
     def update_context_data(self, data, changes):
-        raise NotImplementedError()
+        # TODO: Implement
+        pass
 
 
 def set_scene_settings(settings):

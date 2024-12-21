@@ -1,12 +1,9 @@
 from ayon_harmony.api import plugin
 
 
-class CreateTemplate(plugin.Creator):
+class CreateTemplate(plugin.HarmonyCreator):
     """Composite node for publishing to templates."""
 
-    name = "templateDefault"
+    identifier = "io.ayon.creators.harmony.template"
     label = "Template"
     product_type = "harmony.template"
-
-    def __init__(self, *args, **kwargs):
-        super(CreateTemplate, self).__init__(*args, **kwargs)

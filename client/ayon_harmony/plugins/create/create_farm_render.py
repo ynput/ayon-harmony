@@ -4,17 +4,14 @@ import ayon_harmony.api as harmony
 from ayon_harmony.api import plugin
 
 
-class CreateFarmRender(plugin.Creator):
+class CreateFarmRender(plugin.HarmonyCreator):
     """Composite node for publishing renders."""
 
-    name = "renderDefault"
+    identifier = "io.ayon.creators.harmony.render.farm"
     label = "Render on Farm"
     product_type = "renderFarm"
-    node_type = "WRITE"
 
-    def __init__(self, *args, **kwargs):
-        """Constructor."""
-        super(CreateFarmRender, self).__init__(*args, **kwargs)
+    node_type = "WRITE"
 
     def setup_node(self, node):
         """Set render node."""
