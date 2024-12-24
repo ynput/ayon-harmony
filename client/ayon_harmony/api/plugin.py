@@ -93,6 +93,14 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
         for created_inst, _changes in update_list:
             node = created_inst.transient_data["node"]
             new_data = created_inst.data_to_store()
+
+            # Use the node's active state to store the instance's active state
+            active = new_data.pop("active", True)
+            harmony.send(
+                {"function": "AyonHarmonyAPI.setState",
+                 "args": [[node], [active]]}
+            )
+
             harmony.imprint(node, new_data)
 
     def remove_instances(self, instances):
@@ -117,9 +125,9 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
                                                      creator=self)
             instance.transient_data["node"] = node
 
-            # TODO: Get AND SET the enable state from the node
-            instance.data["publish"] = harmony.send(
-                {"function": "node.getEnable", "args": [node]}
+            # Active state is based of the node's active state
+            instance.data["active"] = harmony.send(
+                {"function": "AyonHarmonyAPI.isEnabled", "args": [node]}
             )["result"]
 
             self._add_instance_to_context(instance)
