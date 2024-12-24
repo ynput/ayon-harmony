@@ -22,6 +22,18 @@ class HarmonyCreatorBase:
             Dict[str, Any]: Shared data.
 
         """
+
+        # TODO: We should find a time and place to 'clean up' orphaned data
+        #  of nodes that do not actually exist in the scene anymore.
+        #  Consider this pseudocode based on the legacy creators:
+        # if remove_orphaned:
+        #     node_name = key.split("/")[-1]
+        #     located_node = harmony.find_node_by_name(node_name, 'WRITE')
+        #     if not located_node:
+        #         print("Removing orphaned instance {}".format(key))
+        #         harmony.remove(key)
+        #         continue
+
         if shared_data.get("harmony_cached_instance_data") is None:
             cache = dict()
             cache_legacy = dict()
