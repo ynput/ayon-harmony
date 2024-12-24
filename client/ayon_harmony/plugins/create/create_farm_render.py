@@ -10,6 +10,7 @@ class CreateFarmRender(plugin.HarmonyCreator):
     identifier = "io.ayon.creators.harmony.render.farm"
     label = "Render on Farm"
     product_type = "renderFarm"
+    icon = "eye"
 
     node_type = "WRITE"
 

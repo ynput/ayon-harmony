@@ -7,3 +7,4 @@ class CreateTemplate(plugin.HarmonyCreator):
     identifier = "io.ayon.creators.harmony.template"
     label = "Template"
     product_type = "harmony.template"
+    icon = "cubes"
