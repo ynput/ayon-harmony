@@ -97,11 +97,7 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
     def remove_instances(self, instances):
         for instance in instances:
-
             # There is only ever one workfile instance
-
-
-
             harmony.delete_node(instance.transient_data["node"])
             self._remove_instance_from_context(instance)
 
