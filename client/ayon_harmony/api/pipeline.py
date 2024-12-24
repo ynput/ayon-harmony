@@ -24,6 +24,7 @@ from ayon_core.pipeline.context_tools import get_current_task_entity
 from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
 
+from .lib import get_scene_data, set_scene_data
 from .workio import (
     open_file,
     save_file,
@@ -44,6 +45,8 @@ INVENTORY_PATH = os.path.join(PLUGINS_DIR, "inventory")
 
 class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     name = "harmony"
+
+    _context_key = "AYON_context"
 
     def install(self):
         """Install Pype as host config."""
@@ -83,12 +86,13 @@ class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return ls()
 
     def get_context_data(self):
-        # TODO: Implement
-        return {}
+        return get_scene_data().get(self._context_key, {})
 
     def update_context_data(self, data, changes):
-        # TODO: Implement
-        pass
+        scene_data = get_scene_data()
+        context_data = scene_data.setdefault(self._context_key, {})
+        context_data.update(data)
+        set_scene_data(scene_data)
 
 
 def set_scene_settings(settings):
