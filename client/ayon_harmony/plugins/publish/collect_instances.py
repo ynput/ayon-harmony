@@ -27,7 +27,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
 
         # skip render farm product type as it is collected separately
         product_type = instance.data["productType"]
-        if product_type == "renderFarm":
+        if product_type in {"renderFarm", "workfile"}:
             return
 
         node = instance.data["transientData"]["node"]
@@ -35,7 +35,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
         instance.data["setMembers"] = [node]
 
         families = [product_type]
-        families.extend(self.product_type_mapping[product_type])
+        families.extend(self.product_type_mapping.get(product_type, []))
         instance.data["families"] = families
 
         # If set in plugin, pair the scene Version with

@@ -1,6 +1,6 @@
 from ayon_core.pipeline import (
     Creator, AYON_INSTANCE_ID, AVALON_INSTANCE_ID,
-    CreatedInstance
+    CreatedInstance, CreatorError
 )
 import ayon_harmony.api as harmony
 
@@ -29,13 +29,16 @@ class HarmonyCreatorBase:
             nodes = harmony.send(
                 {"function": "node.subNodes", "args": ["Top"]}
             )["result"]
+
+            # Collect scene data once instead of calling `read()` per node
+            scene_data = harmony.get_scene_data()
             for node in nodes:
-                data = harmony.read(node)
 
                 # Skip non-tagged nodes.
-                if not data:
+                if node not in scene_data:
                     continue
 
+                data = scene_data[node]
                 if data.get("id") not in {
                     AYON_INSTANCE_ID, AVALON_INSTANCE_ID
                 }:
@@ -54,6 +57,7 @@ class HarmonyCreatorBase:
 
                     cache_legacy.setdefault(family, []).append(node)
 
+            shared_data["harmony_cached_scene_data"] = scene_data
             shared_data["harmony_cached_instance_data"] = cache
             shared_data["harmony_cached_legacy_instances"] = cache_legacy
         return shared_data
@@ -72,30 +76,40 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
     settings_category = "harmony"
 
     def create(self, product_name, instance_data, pre_create_data):
-        node = self._create(product_name, instance_data, pre_create_data)
         instance = CreatedInstance(
             self.product_type,
             product_name,
             instance_data,
             self)
+
+        # Create the node
+        node = self._create(product_name, instance_data, pre_create_data)
         instance.transient_data["node"] = node
+        harmony.imprint(node, instance.data_to_store())
+
         self._add_instance_to_context(instance)
 
     def update_instances(self, update_list):
         for created_inst, _changes in update_list:
-            node = created_inst
+            node = created_inst.transient_data["node"]
             new_data = created_inst.data_to_store()
             harmony.imprint(node, new_data)
 
     def remove_instances(self, instances):
         for instance in instances:
-            harmony.delete_node(instance)
+
+            # There is only ever one workfile instance
+
+
+
+            harmony.delete_node(instance.transient_data["node"])
             self._remove_instance_from_context(instance)
 
     def collect_instances(self):
-        data = self.cache_instance_data(self.collection_shared_data)
-        for node in data.get("harmony_cached_instance_data").get(
+        cache = self.cache_instance_data(self.collection_shared_data)
+        for node in cache.get("harmony_cached_instance_data").get(
                 self.identifier, []):
+            data = cache.get("harmony_cached_scene_data")[node]
 
             product_type = data.get("productType")
             if product_type is None:
@@ -131,19 +145,15 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
         existing_node_names = harmony.send(
             {
                 "function": "AyonHarmonyAPI.getNodesNamesByType",
-                "args": self.node_type
+                "args": [self.node_type]
             })["result"]
 
-        # Dont allow instances with the same name.
-        msg = "Instance with name \"{}\" already exists.".format(name)
-        for name in existing_node_names:
-            if name.lower() == name.lower():
-                harmony.send(
-                    {
-                        "function": "AyonHarmonyAPI.message", "args": msg
-                    }
-                )
-                return False
+        # Don't allow instances with the same name.
+        name_lower = name.lower()
+        for existing_name in existing_node_names:
+            if name_lower == existing_name.lower():
+                msg = f"Instance with name \"{name}\" already exists."
+                raise CreatorError(msg)
 
         with harmony.maintained_selection() as selection:
 
