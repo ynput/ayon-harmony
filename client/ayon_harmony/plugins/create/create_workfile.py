@@ -34,10 +34,6 @@ class CreateWorkfile(plugin.HarmonyCreatorBase, AutoCreator):
         task_entity = self.create_context.get_current_task_entity()
         host_name = self.create_context.host_name
 
-        current_folder_path = None
-        if current_instance is not None:
-            current_folder_path = current_instance["folderPath"]
-
         if current_instance is None:
             product_name = self.get_product_name(
                 project_name,
@@ -66,7 +62,7 @@ class CreateWorkfile(plugin.HarmonyCreatorBase, AutoCreator):
             )
             self._add_instance_to_context(current_instance)
         elif (
-            current_folder_path != folder_entity["path"]
+            current_instance["folderPath"] != folder_entity["path"]
             or current_instance["task"] != task_entity["name"]
         ):
             # Update instance context if is not the same
