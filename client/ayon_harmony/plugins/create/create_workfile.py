@@ -30,8 +30,8 @@ class CreateWorkfile(plugin.HarmonyCreatorBase, AutoCreator):
             ), None)
 
         project_name = self.project_name
-        folder_path = self.create_context.get_current_folder_path()
-        task_name = self.create_context.get_current_task_name()
+        folder_entity = self.create_context.get_current_folder_entity()
+        task_entity = self.create_context.get_current_task_entity()
         host_name = self.create_context.host_name
 
         current_folder_path = None
@@ -39,12 +39,6 @@ class CreateWorkfile(plugin.HarmonyCreatorBase, AutoCreator):
             current_folder_path = current_instance["folderPath"]
 
         if current_instance is None:
-            folder_entity = ayon_api.get_folder_by_path(
-                project_name, folder_path
-            )
-            task_entity = ayon_api.get_task_by_name(
-                project_name, folder_entity["id"], task_name
-            )
             product_name = self.get_product_name(
                 project_name,
                 folder_entity,
@@ -53,8 +47,8 @@ class CreateWorkfile(plugin.HarmonyCreatorBase, AutoCreator):
                 host_name,
             )
             data = {
-                "folderPath": folder_path,
-                "task": task_name,
+                "folderPath": folder_entity["path"],
+                "task": task_entity["name"],
                 "variant": variant
             }
             data.update(
@@ -72,16 +66,10 @@ class CreateWorkfile(plugin.HarmonyCreatorBase, AutoCreator):
             )
             self._add_instance_to_context(current_instance)
         elif (
-            current_folder_path != folder_path
-            or current_instance["task"] != task_name
+            current_folder_path != folder_entity["path"]
+            or current_instance["task"] != task_entity["name"]
         ):
             # Update instance context if is not the same
-            folder_entity = ayon_api.get_folder_by_path(
-                project_name, folder_path
-            )
-            task_entity = ayon_api.get_task_by_name(
-                project_name, folder_entity["id"], task_name
-            )
             product_name = self.get_product_name(
                 project_name,
                 folder_entity,
@@ -91,7 +79,7 @@ class CreateWorkfile(plugin.HarmonyCreatorBase, AutoCreator):
             )
 
             current_instance["folderPath"] = folder_entity["path"]
-            current_instance["task"] = task_name
+            current_instance["task"] = task_entity["name"]
             current_instance["productName"] = product_name
 
         current_instance.transient_data["node"] = self._node_name
