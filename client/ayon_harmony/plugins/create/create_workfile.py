@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """Creator plugin for creating workfiles."""
-import ayon_api
-
 from ayon_core.pipeline import CreatedInstance, AutoCreator
 from ayon_harmony.api import plugin, lib
 
