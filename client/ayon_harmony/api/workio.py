@@ -70,7 +70,7 @@ def open_file(filepath):
 
 def current_file():
     """Returning None to make Workfiles app look at first file extension."""
-    return None
+    return ProcessContext.workfile_path
 
 
 def work_root(session):
