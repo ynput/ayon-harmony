@@ -5,7 +5,7 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 """
 from .pipeline import (
     ls,
-    install,
+    HarmonyHost,
     list_instances,
     remove_instance,
     select_instance,
@@ -16,7 +16,6 @@ from .pipeline import (
     check_inventory,
     application_launch,
     export_template,
-    on_pyblish_instance_toggled,
     inject_ayon_js,
 )
 
@@ -49,7 +48,7 @@ from .workio import (
 __all__ = [
     # pipeline
     "ls",
-    "install",
+    "HarmonyHost",
     "list_instances",
     "remove_instance",
     "select_instance",
@@ -60,7 +59,6 @@ __all__ = [
     "check_inventory",
     "application_launch",
     "export_template",
-    "on_pyblish_instance_toggled",
     "inject_ayon_js",
 
     # lib
