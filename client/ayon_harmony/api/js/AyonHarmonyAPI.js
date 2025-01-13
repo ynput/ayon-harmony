@@ -186,7 +186,7 @@ AyonHarmonyAPI.setupNodeForCreator = function(node) {
  * @return {array} Node names.
  */
 AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
-    var nodes = node.getNodes(nodeType);
+    var nodes = node.getNodes([nodeType]);
     var nodeNames = [];
     for (var i = 0; i < nodes.length; ++i) {
         nodeNames.push(node.getName(nodes[i]));

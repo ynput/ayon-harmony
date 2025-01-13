@@ -1,6 +1,7 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
 from .imageio import HarmonyImageIOModel
+from .creator_plugins import HarmonyCreatePlugins
 from .publish_plugins import HarmonyPublishPlugins
 
 
@@ -10,6 +11,10 @@ class HarmonySettings(BaseSettingsModel):
     imageio: HarmonyImageIOModel = SettingsField(
         default_factory=HarmonyImageIOModel,
         title="OCIO config"
+    )
+    create: HarmonyCreatePlugins = SettingsField(
+        default_factory=HarmonyCreatePlugins,
+        title="Creator plugins"
     )
     publish: HarmonyPublishPlugins = SettingsField(
         default_factory=HarmonyPublishPlugins,
