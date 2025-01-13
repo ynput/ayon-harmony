@@ -9,6 +9,7 @@ from ayon_core.host import (
     HostBase,
     IWorkfileHost,
     ILoadHost,
+    IPublishHost,
 )
 from ayon_core.pipeline import (
     register_loader_plugin_path,
@@ -23,6 +24,7 @@ from ayon_core.pipeline.context_tools import get_current_task_entity
 from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
 
+from .lib import get_scene_data, set_scene_data
 from .workio import (
     open_file,
     save_file,
@@ -41,8 +43,10 @@ CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 INVENTORY_PATH = os.path.join(PLUGINS_DIR, "inventory")
 
 
-class HarmonyHost(HostBase, IWorkfileHost, ILoadHost):
+class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     name = "harmony"
+
+    _context_key = "AYON_context"
 
     def install(self):
         """Install Pype as host config."""
@@ -81,11 +85,14 @@ class HarmonyHost(HostBase, IWorkfileHost, ILoadHost):
     def get_containers(self):
         return ls()
 
-    # def get_context_data(self):
-    #     raise NotImplementedError()
-    #
-    # def update_context_data(self, data, changes):
-    #     raise NotImplementedError()
+    def get_context_data(self):
+        return get_scene_data().get(self._context_key, {})
+
+    def update_context_data(self, data, changes):
+        scene_data = get_scene_data()
+        context_data = scene_data.setdefault(self._context_key, {})
+        context_data.update(data)
+        set_scene_data(scene_data)
 
 
 def set_scene_settings(settings):
@@ -225,45 +232,6 @@ def export_template(backdrops, nodes, filepath):
     })
 
 
-def install():
-    """Install AYON Harmony as host config."""
-    print("Installing AYON config ...")
-
-    pyblish.api.register_host("harmony")
-    pyblish.api.register_plugin_path(PUBLISH_PATH)
-    register_loader_plugin_path(LOAD_PATH)
-    register_creator_plugin_path(CREATE_PATH)
-    log.info(PUBLISH_PATH)
-
-    # Register callbacks.
-    pyblish.api.register_callback(
-        "instanceToggled", on_pyblish_instance_toggled
-    )
-
-    register_event_callback("application.launched", application_launch)
-
-
-def uninstall():
-    pyblish.api.deregister_plugin_path(PUBLISH_PATH)
-    deregister_loader_plugin_path(LOAD_PATH)
-    deregister_creator_plugin_path(CREATE_PATH)
-
-
-def on_pyblish_instance_toggled(instance, old_value, new_value):
-    """Toggle node enabling on instance toggles."""
-    node = None
-    if instance.data.get("setMembers"):
-        node = instance.data["setMembers"][0]
-
-    if node:
-        harmony.send(
-            {
-                "function": "AyonHarmony.toggleInstance",
-                "args": [node, new_value]
-            }
-        )
-
-
 def inject_ayon_js():
     """Inject AyonHarmonyAPI.js into Harmony."""
     ayon_harmony_js = Path(__file__).parent.joinpath("js/AyonHarmonyAPI.js")
@@ -291,75 +259,6 @@ def ls():
         if not data.get("objectName"):  # backward compatibility
             data["objectName"] = data["name"]
         yield data
-
-
-def list_instances(remove_orphaned=True):
-    """
-        List all created instances from current workfile which
-        will be published.
-
-        Pulls from File > File Info
-
-        For SubsetManager, by default it check if instance has matching node
-        in the scene, if not, instance gets deleted from metadata.
-
-        Returns:
-            (list) of dictionaries matching instances format
-    """
-    # TODO: Remove this, refactor to new style Creators instead
-    objects = harmony.get_scene_data() or {}
-    instances = []
-    for key, data in objects.items():
-        # Skip non-tagged objects.
-        if not data:
-            continue
-
-        # Filter out containers.
-        if "container" in data.get("id"):
-            continue
-
-        data['uuid'] = key
-
-        if remove_orphaned:
-            node_name = key.split("/")[-1]
-            located_node = harmony.find_node_by_name(node_name, 'WRITE')
-            if not located_node:
-                print("Removing orphaned instance {}".format(key))
-                harmony.remove(key)
-                continue
-
-        instances.append(data)
-
-    return instances
-
-
-def remove_instance(instance):
-    """
-        Remove instance from current workfile metadata and from scene!
-
-        Updates metadata of current file in File > File Info and removes
-        icon highlight on group layer.
-
-        For SubsetManager
-
-        Args:
-            instance (dict): instance representation from subsetmanager model
-    """
-    # TODO: Remove this, refactor to new style Creators instead
-    node = instance.get("uuid")
-    harmony.remove(node)
-    harmony.delete_node(node)
-
-
-def select_instance(instance):
-    """
-        Select instance in Node View
-
-        Args:
-            instance (dict): instance representation from subsetmanager model
-    """
-    # TODO: Remove this, refactor to new style Creators instead
-    harmony.select_nodes([instance.get("uuid")])
 
 
 def containerise(name,
