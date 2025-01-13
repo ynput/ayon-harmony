@@ -1,4 +1,6 @@
-from ayon_core.pipeline import LegacyCreator
+import re
+
+from ayon_core.pipeline import LegacyCreator, CreatorError
 import ayon_harmony.api as harmony
 
 
@@ -14,6 +16,10 @@ class Creator(LegacyCreator):
 
     defaults = ["Main"]
     node_type = "COMPOSITE"
+    settings_category = "harmony"
+
+    auto_connect = False
+    composition_node_pattern = ""
 
     def setup_node(self, node):
         """Prepare node as container.
@@ -57,6 +63,33 @@ class Creator(LegacyCreator):
                         "args": [self.name, self.node_type, selection[-1]]
                     }
                 )["result"]
+            elif (self.auto_connect):
+                    existing_comp_names = harmony.send(
+                    {
+                        "function": "AyonHarmonyAPI.getNodesNamesByType",
+                        "args": "COMPOSITE"
+                    })["result"]
+                    name_pattern = self.composition_node_pattern
+                    if not name_pattern:
+                        raise CreatorError("Composition name regex pattern "
+                                           "must be filled")
+                    compiled_pattern = re.compile(name_pattern)
+                    matching_nodes = [name for name in existing_comp_names
+                                      if compiled_pattern.match(name)]
+                    if len(matching_nodes) > 1:
+                        self.log.warning("Multiple composition node found, "
+                                         "picked first")
+                    elif len(matching_nodes) <= 0:
+                        raise CreatorError("No matching composition "
+                                           "node found")
+                    node_name = f"/Top/{matching_nodes[0]}"
+
+                    node = harmony.send(
+                        {
+                            "function": "AyonHarmonyAPI.createContainer",
+                            "args": [self.name, self.node_type, node_name]
+                        }
+                    )["result"]
             else:
                 node = harmony.send(
                     {
