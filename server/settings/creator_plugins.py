@@ -8,13 +8,12 @@ class CreateRenderPluginModel(BaseSettingsModel):
         default_factory=list,
         title="Default Variants"
     )
-    auto_connect: bool = SettingsField(False, title="Auto connect to node")
+    auto_connect: bool = SettingsField(False,
+                                       title="Auto connect to Composite node")
     composition_node_pattern: str = SettingsField(
         "Composition",
-        title="Auto connect to Composition node",
-        description="Provide regex pattern to find Composition node to connect "
-                    "newly created Write node to. "
-                    "Required for Harmony Advanced without Node View"
+        title="Regex pattern for Composite node name",
+        description="Provide regex pattern to find Composite node to connect newly Write node to"
     )
 
 
