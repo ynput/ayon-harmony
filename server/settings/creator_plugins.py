@@ -13,7 +13,8 @@ class CreateRenderPluginModel(BaseSettingsModel):
     composition_node_pattern: str = SettingsField(
         "Composition",
         title="Regex pattern for Composite node name",
-        description="Provide regex pattern to find Composite node to connect newly Write node to"
+        description="Provide regex pattern to find Composite node to "
+                    "connect newly Write node to"
     )
 
 
@@ -35,7 +36,7 @@ DEFAULT_CREATE_SETTINGS = {
             "Main"
         ],
         "auto_connect": False,
-        "composition_node_pattern": "Composition"
+        "composition_node_pattern": "Composite"
     },
     "CreateFarmRender": {
         "enabled": True,
@@ -43,6 +44,6 @@ DEFAULT_CREATE_SETTINGS = {
             "Main"
         ],
         "auto_connect": False,
-        "composition_node_pattern": "Composition"
+        "composition_node_pattern": "Composite"
     }
 }
