@@ -285,7 +285,7 @@ def ls():
             continue
 
         # Filter to only containers.
-        if "container" not in data.get("id"):
+        if "container" not in data.get("id", ""):
             continue
 
         if not data.get("objectName"):  # backward compatibility
