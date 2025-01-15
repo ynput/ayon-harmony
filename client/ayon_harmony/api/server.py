@@ -91,7 +91,6 @@ class Server(threading.Thread):
         """
         current_time = time.time()
         while True:
-            self.log.info("wait ttt")
             # Receive the data in small chunks and retransmit it
             request = None
             try:
