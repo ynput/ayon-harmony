@@ -23,20 +23,22 @@ class HarmonySettings(BaseSettingsModel):
 
 
 DEFAULT_HARMONY_SETTING = {
-    "load": {
-        "ImageSequenceLoader": {
-            "family": [
-                "shot",
-                "render",
-                "image",
-                "plate",
-                "reference"
+    "create": {
+        "CreateRender": {
+            "enabled": True,
+            "default_variants": [
+                "Main"
             ],
-            "representations": [
-                "jpeg",
-                "png",
-                "jpg"
-            ]
+            "auto_connect": False,
+            "composition_node_pattern": "Composite"
+        },
+        "CreateFarmRender": {
+            "enabled": True,
+            "default_variants": [
+                "Main"
+            ],
+            "auto_connect": False,
+            "composition_node_pattern": "Composite"
         }
     },
     "publish": {

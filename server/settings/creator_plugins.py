@@ -11,7 +11,7 @@ class CreateRenderPluginModel(BaseSettingsModel):
     auto_connect: bool = SettingsField(False,
                                        title="Auto connect to Composite node")
     composition_node_pattern: str = SettingsField(
-        "Composition",
+        "Composite",
         title="Regex pattern for Composite node name",
         description="Provide regex pattern to find Composite node to "
                     "connect newly Write node to"
@@ -27,23 +27,3 @@ class HarmonyCreatePlugins(BaseSettingsModel):
         title="Render on Farm",
         default_factory=CreateRenderPluginModel,
     )
-
-
-DEFAULT_CREATE_SETTINGS = {
-    "CreateRender": {
-        "enabled": True,
-        "default_variants": [
-            "Main"
-        ],
-        "auto_connect": False,
-        "composition_node_pattern": "Composite"
-    },
-    "CreateFarmRender": {
-        "enabled": True,
-        "default_variants": [
-            "Main"
-        ],
-        "auto_connect": False,
-        "composition_node_pattern": "Composite"
-    }
-}
