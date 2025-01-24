@@ -60,6 +60,7 @@ class ExtractTemplate(publish.Extractor):
             "zip",
             staging_dir,
         )
+
         representation = {
             "name": "tpl",
             "ext": "zip",
