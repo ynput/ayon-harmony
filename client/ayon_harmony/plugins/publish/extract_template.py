@@ -58,7 +58,7 @@ class ExtractTemplate(publish.Extractor):
         shutil.make_archive(
             f"{instance.name}",
             "zip",
-            os.path.join(staging_dir, f"{instance.name}.tpl")
+            staging_dir,
         )
 
         representation = {
