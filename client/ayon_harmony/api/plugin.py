@@ -1,6 +1,4 @@
-import re
-
-from ayon_core.pipeline import LegacyCreator, CreatorError
+from ayon_core.pipeline import LegacyCreator
 import ayon_harmony.api as harmony
 
 
