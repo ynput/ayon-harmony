@@ -213,7 +213,7 @@ def export_backdrop_as_template(backdrop, filepath):
         filepath (str): Path where to save Template.
     """
     harmony.send({
-        "function": "AyonHarmony.exportTemplate",
+        "function": "AyonHarmony.exportBackdropAsTemplate",
         "args": [
             backdrop,
             os.path.basename(filepath),
