@@ -23,7 +23,7 @@ class TemplateLoader(load.LoaderPlugin):
 
     """
 
-    product_types = {"template", "workfile"}
+    product_types = {"harmony.template"}
     representations = {"*"}
     label = "Load Template"
     icon = "gift"
@@ -42,16 +42,16 @@ class TemplateLoader(load.LoaderPlugin):
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
         zip_file = get_representation_path(context["representation"])
-        template_path = os.path.join(temp_dir, "temp.tpl")
+        template_path = os.path.join(temp_dir)
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(template_path)
 
         group_id = "{}".format(uuid.uuid4())
 
-        container_group = harmony.send(
+        container_backdrop = harmony.send(
             {
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
-                "args": [template_path,
+                "args": [os.path.join(template_path, "harmony.tpl"),
                          context["folder"]["name"],
                          context["product"]["name"],
                          group_id]
@@ -65,12 +65,12 @@ class TemplateLoader(load.LoaderPlugin):
         return harmony.containerise(
             name,
             namespace,
-            container_group,
+            container_backdrop,
             context,
             self_name
         )
 
-    def update(self, container, context):
+    def update(self, container, context): # TODO: Implement this
         """Update loaded containers.
 
         Args:
@@ -114,7 +114,7 @@ class TemplateLoader(load.LoaderPlugin):
             node, {"representation": repre_entity["id"]}
         )
 
-    def remove(self, container):
+    def remove(self, container): # TODO: Implement this
         """Remove container.
 
         Args:
@@ -126,11 +126,11 @@ class TemplateLoader(load.LoaderPlugin):
             {"function": "AyonHarmony.deleteNode", "args": [node]}
         )
 
-    def switch(self, container, context):
+    def switch(self, container, context): # TODO: Implement this
         """Switch representation containers."""
         self.update(container, context)
 
-    def _set_green(self, node):
+    def _set_green(self, node): # TODO refactor for backdrop
         """Set node color to green `rgba(0, 255, 0, 255)`."""
         harmony.send(
             {
@@ -138,7 +138,7 @@ class TemplateLoader(load.LoaderPlugin):
                 "args": [node, [0, 255, 0, 255]]
             })
 
-    def _set_red(self, node):
+    def _set_red(self, node): # TODO refactor for backdrop
         """Set node color to red `rgba(255, 0, 0, 255)`."""
         harmony.send(
             {

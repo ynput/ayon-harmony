@@ -196,7 +196,7 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
 
 
 /**
- * Create container node in Harmony.
+ * Create container backdrop in Harmony.
  * @function
  * @param {array} args Arguments, see example.
  * @return {string} Resulting node.
@@ -205,19 +205,18 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
  * // arguments are in following order:
  * var args = [
  *  nodeName,
- *  nodeType,
  *  selection
  * ];
  */
 AyonHarmonyAPI.createContainer = function(args) {
-    var resultNode = node.add('Top', args[0], args[1], 0, 0, 0);
-    if (args.length > 2) {
-        node.link(args[2], 0, resultNode, 0, false, true);
-        node.setCoord(resultNode,
-            node.coordX(args[2]),
-            node.coordY(args[2]) + 70);
-    }
-    return resultNode;
+    return Backdrop.addBackdrop("Top",
+        {
+            // TODO Find position based on selection?
+            "position"    : {"x": 0, "y" :0, "w":300, "h":300},
+            "title"       : {"text" : args[0], "size" : 14, "font" : "Arial"},
+            // "color"       : TODO
+          }
+    );
 };
 
 

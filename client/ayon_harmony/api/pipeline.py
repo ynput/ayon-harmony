@@ -205,20 +205,17 @@ def application_launch(event):
     check_inventory()
 
 
-def export_template(backdrops, nodes, filepath):
-    """Export Template to file.
+def export_backdrop_as_template(backdrop, filepath):
+    """Export Backdrop as Template (.tpl) file.
 
     Args:
-        backdrops (list): List of backdrops to export.
-        nodes (list): List of nodes to export.
+        backdrop (list): Backdrop to export.
         filepath (str): Path where to save Template.
-
     """
     harmony.send({
         "function": "AyonHarmony.exportTemplate",
         "args": [
-            backdrops,
-            nodes,
+            backdrop,
             os.path.basename(filepath),
             os.path.dirname(filepath)
         ]

@@ -101,45 +101,25 @@ AyonHarmony.setColor = function(nodes, rgba) {
 
 
 /**
- * Extract Template into file.
+ * Extract Backdrop as Template file.
  * @function
  * @param {array} args  Arguments for template extraction.
  *
  * @example
  * // arguments are in this order:
- * var args = [backdrops, nodes, templateFilename, templateDir];
+ * var args = [backdropName, templateFilename, templateDir];
  *
  */
-AyonHarmony.exportTemplate = function(args) {
-    var tempNode = node.add('Top', 'temp_note', 'NOTE', 0, 0, 0);
-    var templateGroup = node.createGroup(tempNode, 'temp_group');
-    node.deleteNode( templateGroup + '/temp_note' );
+AyonHarmony.exportBackdropAsTemplate = function(args) {
+    var backdropName = args[0];
 
-    selection.clearSelection();
-    for (var f = 0; f < args[1].length; f++) {
-        selection.addNodeToSelection(args[1][f]);
-    }
-
-    Action.perform('copy()', 'Node View');
-
-    selection.clearSelection();
-    selection.addNodeToSelection(templateGroup);
-    Action.perform('onActionEnterGroup()', 'Node View');
-    Action.perform('paste()', 'Node View');
-
-    // Recreate backdrops in group.
-    for (var i = 0; i < args[0].length; i++) {
-        MessageLog.trace(args[0][i]);
-        Backdrop.addBackdrop(templateGroup, args[0][i]);
-    }
-
-    Action.perform('selectAll()', 'Node View' );
-    copyPaste.createTemplateFromSelection(args[2], args[3]);
-
-    // Unfocus the group in Node view, delete all nodes and backdrops
-    // created during the process.
-    Action.perform('onActionUpToParent()', 'Node View');
-    node.deleteNode(templateGroup, true, true);
+    // Select backdrop and its nodes
+    selection.clearSelection(); // TODO save current selection?
+    selection.addBackdropToSelection(backdropName);
+    selection.addNodesToSelection(Backdrop.nodes(backdropName));
+    
+    // Export template
+    copyPaste.createTemplateFromSelection(args[1], args[2]);
 };
 
 

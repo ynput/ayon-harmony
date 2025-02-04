@@ -24,59 +24,28 @@ var TemplateLoader = function() {};
  * Load template as container.
  * @function
  * @param {array} args Arguments, see example.
- * @return {string} Name of container.
+ * @return {string} Name of backdrop container.
  *
  * @example
  * // arguments are in following order:
  * var args = [
  *  templatePath, // Path to tpl file.
- *  folderName,    // Folder name.
- *  productName,  // Product name.
- *  groupId       // unique ID (uuid4)
  * ];
  */
 TemplateLoader.prototype.loadContainer = function(args) {
-    var doc = $.scn;
     var templatePath = args[0];
-    var folderName = args[1];
-    var productName = args[2];
-    var groupId = args[3];
 
-    // Get the current group
-    var nodeViewWidget = $.app.getWidgetByName('Node View');
-    if (!nodeViewWidget) {
-        $.alert('You must have a Node View open!', 'No Node View!', 'OK!');
-        return;
-    }
+    // Copy from template file
+    var _copyOptions = copyPaste.getCurrentCreateOptions();
+    var _tpl = copyPaste.copyFromTemplate(templatePath, 0, 999, _copyOptions);
 
-    nodeViewWidget.setFocus();
-    var currentGroup;
-    var nodeView = view.currentView();
-    if (!nodeView) {
-        currentGroup = doc.root;
-    } else {
-        currentGroup = doc.$node(view.group(nodeView));
-    }
+    // Paste into scene
+    var pasteOptions = copyPaste.getCurrentPasteOptions();
+    pasteOptions.extendScene = true; // TODO does this work?
+    copyPaste.pasteNewNodes(_tpl, "Top", pasteOptions);
 
-    // Get a unique iterative name for the container group
-    var num = 0;
-    var containerGroupName = '';
-    do {
-        containerGroupName = folderName + '_' + (num++) + '_' + productName;
-    } while (currentGroup.getNodeByName(containerGroupName) != null);
-
-    // import the template
-    var tplNodes = currentGroup.importTemplate(templatePath);
-    MessageLog.trace(tplNodes);
-    // Create the container group
-    var groupNode = currentGroup.addGroup(
-        containerGroupName, false, false, tplNodes);
-
-    // Add uuid to attribute of the container group
-    node.createDynamicAttr(groupNode, 'STRING', 'uuid', 'uuid', false);
-    node.setTextAttr(groupNode, 'uuid', 1.0, groupId);
-
-    return String(groupNode);
+    // Find backdrop name
+    return selection.selectedBackdrops()[0]["title"]["text"];
 };
 
 

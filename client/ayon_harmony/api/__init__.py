@@ -15,7 +15,7 @@ from .pipeline import (
     ensure_scene_settings,
     check_inventory,
     application_launch,
-    export_template,
+    export_backdrop_as_template,
     inject_ayon_js,
 )
 
@@ -58,7 +58,7 @@ __all__ = [
     "ensure_scene_settings",
     "check_inventory",
     "application_launch",
-    "export_template",
+    "export_backdrop_as_template",
     "inject_ayon_js",
 
     # lib

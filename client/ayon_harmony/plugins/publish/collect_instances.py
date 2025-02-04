@@ -34,12 +34,13 @@ class CollectInstances(pyblish.api.ContextPlugin):
             context (:class:`pyblish.api.Context`): Context data.
 
         """
-        nodes = harmony.send(
-            {"function": "node.subNodes", "args": ["Top"]}
+        backdrops = harmony.send(
+            {"function": "Backdrop.backdrops", "args": ["Top"]} # TODO is it possible to have nested containers?
         )["result"]
 
-        for node in nodes:
-            data = harmony.read(node)
+        for backdrop in backdrops:
+            container_name = backdrop["title"]["text"]
+            data = harmony.read(container_name)
 
             # Skip non-tagged nodes.
             if not data:
@@ -59,12 +60,10 @@ class CollectInstances(pyblish.api.ContextPlugin):
             if product_type == "renderFarm":
                 continue
 
-            instance = context.create_instance(node.split("/")[-1])
+            instance = context.create_instance(container_name)
             instance.data.update(data)
-            instance.data["setMembers"] = [node]
-            instance.data["publish"] = harmony.send(
-                {"function": "node.getEnable", "args": [node]}
-            )["result"]
+            instance.data["setMembers"] = [backdrop]
+            # instance.data["publish"] = harmony.send( // TODO base enabling on last composite node state?
 
             families = [product_type]
             families.extend(self.product_type_mapping[product_type])
