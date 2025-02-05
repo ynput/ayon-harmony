@@ -30,6 +30,7 @@ from .lib import (
     remove,
     delete_node,
     find_node_by_name,
+    find_backdrop_by_name,
     signature,
     select_nodes,
     get_scene_data
@@ -71,6 +72,7 @@ __all__ = [
     "remove",
     "delete_node",
     "find_node_by_name",
+    "find_backdrop_by_name",
     "signature",
     "select_nodes",
     "get_scene_data",

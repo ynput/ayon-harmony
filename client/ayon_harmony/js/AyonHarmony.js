@@ -150,6 +150,28 @@ AyonHarmony.getSubBackdrops = function(backdrop) {
 
 
 /**
+ * Remove backdrop and its contents.
+ * @function
+ * @param {string} backdrop Backdrop object.
+ * 
+ */
+AyonHarmony.removeBackdropWithContents = function(backdrop) {
+    // Delete all nodes in backdrop
+    Backdrop.nodes(backdrop).forEach(function(n) {
+        AyonHarmony.deleteNode(n);
+    });
+
+    // Delete subbackdrops
+    AyonHarmony.getSubBackdrops(backdrop).forEach(function(b) {
+        Backdrop.removeBackdrop(b);
+    });
+
+    // Delete backdrop
+    Backdrop.removeBackdrop(backdrop);
+};
+
+
+/**
  * Toggle instance in Harmony.
  * @function
  * @param {array} args  Instance name and value.

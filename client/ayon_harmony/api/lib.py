@@ -618,3 +618,21 @@ def find_node_by_name(name, node_type):
             return node
 
     return None
+
+def find_backdrop_by_name(name: str) -> dict:
+    """Find backdrop by its name.
+
+    Args:
+        name (str): Name of the backdrop.
+
+    Returns:
+        dict: Backdrop.
+    """
+    backdrops = send(
+        {"function": "Backdrop.backdrops", "args": ["Top"]}
+    )["result"]
+    for backdrop in backdrops:
+        if backdrop["title"]["text"] == name:
+            return backdrop
+
+    return None

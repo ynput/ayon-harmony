@@ -114,16 +114,15 @@ class TemplateLoader(load.LoaderPlugin):
             node, {"representation": repre_entity["id"]}
         )
 
-    def remove(self, container): # TODO: Implement this
+    def remove(self, container):
         """Remove container.
 
         Args:
             container (dict): container definition.
-
         """
-        node = harmony.find_node_by_name(container["name"], "GROUP")
+        backdrop = harmony.find_backdrop_by_name(container["name"])
         harmony.send(
-            {"function": "AyonHarmony.deleteNode", "args": [node]}
+            {"function": "AyonHarmony.removeBackdropWithContents", "args": backdrop}
         )
 
     def switch(self, container, context): # TODO: Implement this
