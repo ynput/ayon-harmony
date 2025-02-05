@@ -107,20 +107,46 @@ AyonHarmony.setColor = function(nodes, rgba) {
  *
  * @example
  * // arguments are in this order:
- * var args = [backdropName, templateFilename, templateDir];
+ * var args = [backdrop, templateFilename, templateDir];
  *
  */
 AyonHarmony.exportBackdropAsTemplate = function(args) {
-    var backdropName = args[0];
+    var backdrop = args[0];
 
-    // Select backdrop and its nodes
-    selection.clearSelection(); // TODO save current selection?
-    selection.addBackdropToSelection(backdropName);
-    selection.addNodesToSelection(Backdrop.nodes(backdropName));
+    // Select backdrop and all nodes in it
+    selection.clearSelection();
+    selection.addBackdropToSelection(backdrop);
+    selection.addNodesToSelection(Backdrop.nodes(backdrop));
+
+    // Select subbackdrops
+    AyonHarmony.getSubBackdrops(backdrop).forEach(function(b) {
+        selection.addBackdropToSelection(b);
+    });
     
     // Export template
     copyPaste.createTemplateFromSelection(args[1], args[2]);
 };
+
+/**
+ * Get subbackdrops of a backdrop.
+ * @function
+ * @param {object} backdrop Backdrop object as described in Backdrop class.
+ * @return {array} List of subbackdrops.
+ */
+AyonHarmony.getSubBackdrops = function(backdrop) {
+    var subBackdrops = [];
+    Backdrop.backdrops(backdrop["group"]).forEach(function(b) {
+        if (b["title"]["text"] != backdrop["title"]["text"]
+            && backdrop["position"]["x"] < b["position"]["x"]
+            && backdrop["position"]["x"] + backdrop["position"]["w"] > b["position"]["x"] + b["position"]["w"]
+            && backdrop["position"]["y"] < b["position"]["y"]
+            && backdrop["position"]["y"] + backdrop["position"]["h"] > b["position"]["y"] + b["position"]["h"]
+        ) {
+            subBackdrops.push(b);
+        }
+    });
+    return subBackdrops;
+}
 
 
 /**
