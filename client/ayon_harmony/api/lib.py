@@ -506,26 +506,6 @@ def imprint(node_id, data, remove=False):
     set_scene_data(scene_data)
 
 
-@contextlib.contextmanager
-def maintained_selection():
-    """Maintain selection during context."""
-
-    selected_nodes = send(
-        {
-            "function": "AyonHarmonyAPI.getSelectedNodes"
-        })["result"]
-
-    try:
-        yield selected_nodes
-    finally:
-        selected_nodes = send(
-            {
-                "function": "AyonHarmonyAPI.selectNodes",
-                "args": selected_nodes
-            }
-        )
-
-
 def send(request):
     """Public method for sending requests to Harmony."""
     return ProcessContext.server.send(request)

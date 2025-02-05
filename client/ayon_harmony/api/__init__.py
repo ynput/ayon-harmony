@@ -21,7 +21,6 @@ from .pipeline import (
 
 from .lib import (
     launch,
-    maintained_selection,
     imprint,
     read,
     send,
@@ -63,7 +62,6 @@ __all__ = [
 
     # lib
     "launch",
-    "maintained_selection",
     "imprint",
     "read",
     "send",

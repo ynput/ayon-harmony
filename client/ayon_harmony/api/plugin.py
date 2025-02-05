@@ -13,7 +13,7 @@ class Creator(LegacyCreator):
     # TODO: Refactor to the new creator API
 
     defaults = ["Main"]
-    node_type = "COMPOSITE"
+    node_type = "COMPOSITE"  # TODO remove this
     settings_category = "harmony"
 
     auto_connect = False
@@ -51,24 +51,13 @@ class Creator(LegacyCreator):
                 )
                 return False
 
-        with harmony.maintained_selection() as selection:
-            backdrop = None
+        backdrop = harmony.send(
+            {
+                "function": "AyonHarmonyAPI.createContainer",
+                "args": [self.name, (self.options or {}).get("useSelection", False)]
+            }
+        )["result"]
 
-            if (self.options or {}).get("useSelection") and selection:  # TODO use selection
-                backdrop = harmony.send(
-                    {
-                        "function": "AyonHarmonyAPI.createContainer",
-                        "args": [self.name, self.node_type, selection[-1]]
-                    }
-                )["result"]
-            else:
-                backdrop = harmony.send(
-                    {
-                        "function": "AyonHarmonyAPI.createContainer",
-                        "args": [self.name, self.node_type]
-                    }
-                )["result"]
-
-            harmony.imprint(backdrop["title"]["text"], self.data)
+        harmony.imprint(backdrop["title"]["text"], self.data)
 
         return backdrop
