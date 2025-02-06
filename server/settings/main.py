@@ -1,6 +1,7 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
 from .imageio import HarmonyImageIOModel
+from .creator_plugins import HarmonyCreatePlugins
 from .publish_plugins import HarmonyPublishPlugins
 
 
@@ -11,6 +12,10 @@ class HarmonySettings(BaseSettingsModel):
         default_factory=HarmonyImageIOModel,
         title="OCIO config"
     )
+    create: HarmonyCreatePlugins = SettingsField(
+        default_factory=HarmonyCreatePlugins,
+        title="Creator plugins"
+    )
     publish: HarmonyPublishPlugins = SettingsField(
         default_factory=HarmonyPublishPlugins,
         title="Publish plugins"
@@ -18,20 +23,22 @@ class HarmonySettings(BaseSettingsModel):
 
 
 DEFAULT_HARMONY_SETTING = {
-    "load": {
-        "ImageSequenceLoader": {
-            "family": [
-                "shot",
-                "render",
-                "image",
-                "plate",
-                "reference"
+    "create": {
+        "CreateRender": {
+            "enabled": True,
+            "default_variants": [
+                "Main"
             ],
-            "representations": [
-                "jpeg",
-                "png",
-                "jpg"
-            ]
+            "auto_connect": False,
+            "composition_node_pattern": "Composite"
+        },
+        "CreateFarmRender": {
+            "enabled": True,
+            "default_variants": [
+                "Main"
+            ],
+            "auto_connect": False,
+            "composition_node_pattern": "Composite"
         }
     },
     "publish": {

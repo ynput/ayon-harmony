@@ -16,6 +16,7 @@ from ayon_core.pipeline import (
     register_creator_plugin_path,
     deregister_loader_plugin_path,
     deregister_creator_plugin_path,
+    AVALON_CONTAINER_ID,
     AYON_CONTAINER_ID,
 )
 from ayon_core.pipeline.load import get_outdated_containers
@@ -240,6 +241,11 @@ def inject_ayon_js():
     harmony.send({"script": script})
 
 
+def is_container_data(data: dict) -> bool:
+    """Return whether data is container data."""
+    return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
+
+
 def ls():
     """Yields containers from Harmony scene.
 
@@ -248,12 +254,7 @@ def ls():
     """
     objects = harmony.get_scene_data() or {}
     for _, data in objects.items():
-        # Skip non-tagged objects.
-        if not data:
-            continue
-
-        # Filter to only containers.
-        if "container" not in data.get("id"):
+        if not is_container_data(data):
             continue
 
         if not data.get("objectName"):  # backward compatibility
