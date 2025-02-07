@@ -4,7 +4,6 @@ import tempfile
 import zipfile
 import os
 import shutil
-import uuid
 
 from ayon_core.pipeline import (
     load,
@@ -95,7 +94,7 @@ class TemplateLoader(load.LoaderPlugin):
         # Keep backdrop links
         backdrop_links = harmony.send(
             {
-                "function": f"AyonHarmony.getBackdropLinks",
+                "function": "AyonHarmony.getBackdropLinks",
                 "args": backdrop,
             }
         )["result"]
@@ -107,7 +106,7 @@ class TemplateLoader(load.LoaderPlugin):
         # Restore backdrop links
         harmony.send(
             {
-                "function": f"AyonHarmony.setNodesLinks",
+                "function": "AyonHarmony.setNodesLinks",
                 "args": backdrop_links
             }
         )
