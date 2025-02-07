@@ -46,15 +46,10 @@ class TemplateLoader(load.LoaderPlugin):
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(template_path)
 
-        group_id = "{}".format(uuid.uuid4())
-
-        container_backdrop = harmony.send(
+        backdrop_name = harmony.send(
             {
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
-                "args": [os.path.join(template_path, "harmony.tpl"),
-                         context["folder"]["name"],
-                         context["product"]["name"],
-                         group_id]
+                "args": os.path.join(template_path, "harmony.tpl")
             }
         )["result"]
 
@@ -65,12 +60,24 @@ class TemplateLoader(load.LoaderPlugin):
         return harmony.containerise(
             name,
             namespace,
-            container_backdrop,
+            backdrop_name,
             context,
             self_name
         )
+    
+    def remove(self, container):
+        """Remove container.
 
-    def update(self, container, context): # TODO: Implement this
+        Args:
+            container (dict): container definition.
+        """
+        container_backdrop = harmony.find_backdrop_by_name(container["name"])
+        harmony.send(
+            {"function": "AyonHarmony.removeBackdropWithContents", "args": container_backdrop}
+        )
+        harmony.remove(container["name"])
+
+    def update(self, container, context):
         """Update loaded containers.
 
         Args:
@@ -78,56 +85,34 @@ class TemplateLoader(load.LoaderPlugin):
             context (dict): Representation context data.
 
         """
-        node_name = container["name"]
-        node = harmony.find_node_by_name(node_name, "GROUP")
-        self_name = self.__class__.__name__
+        return self.switch(container, context)
 
-        repre_entity = context["representation"]
-        if is_representation_from_latest(repre_entity):
-            self._set_green(node)
-        else:
-            self._set_red(node)
+    def switch(self, container, context):
+        """Switch representation containers."""
+        backdrop_name = container["name"]
+        backdrop = harmony.find_backdrop_by_name(backdrop_name)
 
-        update_and_replace = harmony.send(
+        # Keep backdrop links
+        backdrop_links = harmony.send(
             {
-                "function": f"AyonHarmony.Loaders.{self_name}."
-                            "askForColumnsUpdate",
-                "args": []
+                "function": f"AyonHarmony.getBackdropLinks",
+                "args": backdrop,
             }
         )["result"]
 
-        if update_and_replace:
-            # FIXME: This won't work, need to implement it.
-            harmony.send(
-                {
-                    "function": f"AyonHarmony.Loaders.{self_name}."
-                                "replaceNode",
-                    "args": []
-                }
-            )
-        else:
-            self.load(
-                container["context"], container["name"],
-                None, container["data"])
+        # Replace template container
+        self.remove(container)  # Before load to avoid node name incrementation
+        container = self.load(context, container["name"], container["namespace"])
 
-        harmony.imprint(
-            node, {"representation": repre_entity["id"]}
-        )
-
-    def remove(self, container):
-        """Remove container.
-
-        Args:
-            container (dict): container definition.
-        """
-        backdrop = harmony.find_backdrop_by_name(container["name"])
+        # Restore backdrop links
         harmony.send(
-            {"function": "AyonHarmony.removeBackdropWithContents", "args": backdrop}
+            {
+                "function": f"AyonHarmony.setNodesLinks",
+                "args": backdrop_links
+            }
         )
 
-    def switch(self, container, context): # TODO: Implement this
-        """Switch representation containers."""
-        self.update(container, context)
+        return container
 
     def _set_green(self, node): # TODO refactor for backdrop
         """Set node color to green `rgba(0, 255, 0, 255)`."""

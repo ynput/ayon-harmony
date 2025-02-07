@@ -150,6 +150,67 @@ AyonHarmony.getSubBackdrops = function(backdrop) {
 
 
 /**
+ * Get backdrop links.
+ * A backdrop link is a link between a node in the backdrop and a node outside the backdrop.
+ * @function
+ * @param {object} backdrop Backdrop object as described in Backdrop class.
+ * @return {array} List of nodes links.
+ */
+AyonHarmony.getBackdropLinks = function(backdrop) {
+    var backdropNodes = Backdrop.nodes(backdrop);
+    var nodesLinks = [];
+
+    // Input links
+    backdropNodes.forEach(function(n) {
+        for (var i = 0; i < node.numberOfInputPorts(n); i++) {
+            var link = node.srcNodeInfo(n, i);
+
+            // Skip if no link or if it's a node from the backdrop container
+            if (link == null || backdropNodes.indexOf(link.node) > -1) continue;
+
+            nodesLinks.push({
+                srcNode: link.node,
+                srcPort: link.port,
+                dstNode: n,
+                dstPort: i,
+            });
+        }
+    });
+
+    // Output links
+    backdropNodes.forEach(function(n) {
+        for (var i = 0; i < node.numberOfOutputPorts(n); i++) {
+            for (var j = 0; j < node.numberOfOutputLinks(n, i); j++) {
+                var link = node.dstNodeInfo(n, i, j);
+
+                // Skip if no link or if it's a node from the backdrop container
+                if (link == null || backdropNodes.indexOf(link.node) > -1) continue;
+
+                nodesLinks.push({
+                    srcNode: n,
+                    srcPort: i,
+                    dstNode: link.node,
+                    dstPort: link.port
+                });
+            }
+        }
+    });
+
+    return nodesLinks;
+};
+
+/**
+ * Set nodes links.
+ * @function
+ * @param {array} links List of nodes links.
+ */
+AyonHarmony.setNodesLinks = function(links) {
+    links.forEach(function(l) {
+        node.link(l.srcNode, l.srcPort, l.dstNode, l.dstPort);
+    });
+};
+
+/**
  * Remove backdrop and its contents.
  * @function
  * @param {string} backdrop Backdrop object.
@@ -158,6 +219,11 @@ AyonHarmony.getSubBackdrops = function(backdrop) {
 AyonHarmony.removeBackdropWithContents = function(backdrop) {
     // Delete all nodes in backdrop
     Backdrop.nodes(backdrop).forEach(function(n) {
+        // Unlink node first to avoid default relinking
+        for (var i = 0; i < node.numberOfInputPorts(n); i++) {
+            node.unlink(n, i);
+        }
+
         AyonHarmony.deleteNode(n);
     });
 
