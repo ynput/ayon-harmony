@@ -17,12 +17,12 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
     should nevertheless cover all creators that came with OpenPype.
 
     """
-    identifier = "io.openpype.creators.harmony.legacy"
+    identifier = "io.ayon.creators.harmony.legacy"
     product_type_to_id = {
-        "render": "io.openpype.creators.harmony.render",
-        "renderFarm": "io.openpype.creators.harmony.render.farm",
-        "template": "io.openpype.creators.harmony.template",
-        "workfile": "io.openpype.creators.harmony.workfile",
+        "render": "io.ayon.creators.harmony.render",
+        "renderFarm": "io.ayon.creators.harmony.render.farm",
+        "template": "io.ayon.creators.harmony.template",
+        "workfile": "io.ayon.creators.harmony.workfile",
     }
 
     def __init__(self, *args, **kwargs):
