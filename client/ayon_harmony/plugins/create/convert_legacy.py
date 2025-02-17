@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Converter for legacy Houdini products."""
+"""Converter for legacy Harmony products."""
 from ayon_core.pipeline.create.creator_plugins import ProductConvertorPlugin
 import ayon_harmony.api as harmony
 
@@ -40,7 +40,7 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
 
         """
         self.legacy_instances = self.collection_shared_data.get(
-            "harmony_cached_legacy_instances")
+            "harmony_cached_legacy_instances_names")
         if not self.legacy_instances:
             return
         self.add_convertor_item(
@@ -59,14 +59,15 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
         if not self.legacy_instances:
             return
 
-        for product_type, instance_nodes in self.legacy_instances.items():
+        for product_type, node_names in self.legacy_instances.items():
             if product_type in self.product_type_to_id:
-                for instance_node in instance_nodes:
+                for node_name in node_names:
                     creator_identifier = self.product_type_to_id[product_type]
                     self.log.info(
-                        "Converting {} to {}".format(instance_node.name,
+                        "Converting {} to {}".format(node_name,
                                                      creator_identifier)
                     )
-                    harmony.imprint(instance_node, data={
-                        "creator_identifier": creator_identifier
+                    harmony.imprint(node_name, data={
+                        "creator_identifier": creator_identifier,
+                        "id": "ayon.create.instance"
                     })
