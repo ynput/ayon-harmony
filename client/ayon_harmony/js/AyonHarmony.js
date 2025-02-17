@@ -101,45 +101,139 @@ AyonHarmony.setColor = function(nodes, rgba) {
 
 
 /**
- * Extract Template into file.
+ * Extract Backdrop as Template file.
  * @function
  * @param {array} args  Arguments for template extraction.
  *
  * @example
  * // arguments are in this order:
- * var args = [backdrops, nodes, templateFilename, templateDir];
+ * var args = [backdrop, templateFilename, templateDir];
  *
  */
-AyonHarmony.exportTemplate = function(args) {
-    var tempNode = node.add('Top', 'temp_note', 'NOTE', 0, 0, 0);
-    var templateGroup = node.createGroup(tempNode, 'temp_group');
-    node.deleteNode( templateGroup + '/temp_note' );
+AyonHarmony.exportBackdropAsTemplate = function(args) {
+    var backdrop = args[0];
 
+    // Select backdrop and all nodes in it
     selection.clearSelection();
-    for (var f = 0; f < args[1].length; f++) {
-        selection.addNodeToSelection(args[1][f]);
-    }
+    selection.addBackdropToSelection(backdrop);
+    selection.addNodesToSelection(Backdrop.nodes(backdrop));
 
-    Action.perform('copy()', 'Node View');
+    // Select subbackdrops
+    AyonHarmony.getSubBackdrops(backdrop).forEach(function(b) {
+        selection.addBackdropToSelection(b);
+    });
+    
+    // Export template
+    copyPaste.createTemplateFromSelection(args[1], args[2]);
+};
 
-    selection.clearSelection();
-    selection.addNodeToSelection(templateGroup);
-    Action.perform('onActionEnterGroup()', 'Node View');
-    Action.perform('paste()', 'Node View');
+/**
+ * Get subbackdrops of a backdrop.
+ * @function
+ * @param {object} backdrop Backdrop object as described in Backdrop class.
+ * @return {array} List of subbackdrops.
+ */
+AyonHarmony.getSubBackdrops = function(backdrop) {
+    var subBackdrops = [];
+    Backdrop.backdrops(backdrop["group"]).forEach(function(b) {
+        if (b["title"]["text"] != backdrop["title"]["text"]
+            && backdrop["position"]["x"] < b["position"]["x"]
+            && backdrop["position"]["x"] + backdrop["position"]["w"] > b["position"]["x"] + b["position"]["w"]
+            && backdrop["position"]["y"] < b["position"]["y"]
+            && backdrop["position"]["y"] + backdrop["position"]["h"] > b["position"]["y"] + b["position"]["h"]
+        ) {
+            subBackdrops.push(b);
+        }
+    });
+    return subBackdrops;
+}
 
-    // Recreate backdrops in group.
-    for (var i = 0; i < args[0].length; i++) {
-        MessageLog.trace(args[0][i]);
-        Backdrop.addBackdrop(templateGroup, args[0][i]);
-    }
 
-    Action.perform('selectAll()', 'Node View' );
-    copyPaste.createTemplateFromSelection(args[2], args[3]);
+/**
+ * Get backdrop links.
+ * A backdrop link is a link between a node in the backdrop and a node outside the backdrop.
+ * @function
+ * @param {object} backdrop Backdrop object as described in Backdrop class.
+ * @return {array} List of nodes links.
+ */
+AyonHarmony.getBackdropLinks = function(backdrop) {
+    var backdropNodes = Backdrop.nodes(backdrop);
+    var nodesLinks = [];
 
-    // Unfocus the group in Node view, delete all nodes and backdrops
-    // created during the process.
-    Action.perform('onActionUpToParent()', 'Node View');
-    node.deleteNode(templateGroup, true, true);
+    // Input links
+    backdropNodes.forEach(function(n) {
+        for (var i = 0; i < node.numberOfInputPorts(n); i++) {
+            var link = node.srcNodeInfo(n, i);
+
+            // Skip if no link or if it's a node from the backdrop container
+            if (link == null || backdropNodes.indexOf(link.node) > -1) continue;
+
+            nodesLinks.push({
+                srcNode: link.node,
+                srcPort: link.port,
+                dstNode: n,
+                dstPort: i,
+            });
+        }
+    });
+
+    // Output links
+    backdropNodes.forEach(function(n) {
+        for (var i = 0; i < node.numberOfOutputPorts(n); i++) {
+            for (var j = 0; j < node.numberOfOutputLinks(n, i); j++) {
+                var link = node.dstNodeInfo(n, i, j);
+
+                // Skip if no link or if it's a node from the backdrop container
+                if (link == null || backdropNodes.indexOf(link.node) > -1) continue;
+
+                nodesLinks.push({
+                    srcNode: n,
+                    srcPort: i,
+                    dstNode: link.node,
+                    dstPort: link.port
+                });
+            }
+        }
+    });
+
+    return nodesLinks;
+};
+
+/**
+ * Set nodes links.
+ * @function
+ * @param {array} links List of nodes links.
+ */
+AyonHarmony.setNodesLinks = function(links) {
+    links.forEach(function(l) {
+        node.link(l.srcNode, l.srcPort, l.dstNode, l.dstPort);
+    });
+};
+
+/**
+ * Remove backdrop and its contents.
+ * @function
+ * @param {string} backdrop Backdrop object.
+ * 
+ */
+AyonHarmony.removeBackdropWithContents = function(backdrop) {
+    // Delete all nodes in backdrop
+    Backdrop.nodes(backdrop).forEach(function(n) {
+        // Unlink node first to avoid default relinking
+        for (var i = 0; i < node.numberOfInputPorts(n); i++) {
+            node.unlink(n, i);
+        }
+
+        AyonHarmony.deleteNode(n);
+    });
+
+    // Delete subbackdrops
+    AyonHarmony.getSubBackdrops(backdrop).forEach(function(b) {
+        Backdrop.removeBackdrop(b);
+    });
+
+    // Delete backdrop
+    Backdrop.removeBackdrop(backdrop);
 };
 
 

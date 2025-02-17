@@ -506,26 +506,6 @@ def imprint(node_id, data, remove=False):
     set_scene_data(scene_data)
 
 
-@contextlib.contextmanager
-def maintained_selection():
-    """Maintain selection during context."""
-
-    selected_nodes = send(
-        {
-            "function": "AyonHarmonyAPI.getSelectedNodes"
-        })["result"]
-
-    try:
-        yield selected_nodes
-    finally:
-        selected_nodes = send(
-            {
-                "function": "AyonHarmonyAPI.selectNodes",
-                "args": selected_nodes
-            }
-        )
-
-
 def send(request):
     """Public method for sending requests to Harmony."""
     return ProcessContext.server.send(request)
@@ -636,5 +616,23 @@ def find_node_by_name(name, node_type):
         node_name = node.split("/")[-1]
         if name == node_name:
             return node
+
+    return None
+
+def find_backdrop_by_name(name: str) -> dict:
+    """Find backdrop by its name.
+
+    Args:
+        name (str): Name of the backdrop.
+
+    Returns:
+        dict: Backdrop.
+    """
+    backdrops = send(
+        {"function": "Backdrop.backdrops", "args": ["Top"]}
+    )["result"]
+    for backdrop in backdrops:
+        if backdrop["title"]["text"] == name:
+            return backdrop
 
     return None

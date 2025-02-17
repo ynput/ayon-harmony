@@ -1,6 +1,4 @@
-import re
-
-from ayon_core.pipeline import LegacyCreator, CreatorError
+from ayon_core.pipeline import LegacyCreator
 import ayon_harmony.api as harmony
 
 
@@ -15,7 +13,7 @@ class Creator(LegacyCreator):
     # TODO: Refactor to the new creator API
 
     defaults = ["Main"]
-    node_type = "COMPOSITE"
+    node_type = "COMPOSITE"  # TODO remove this
     settings_category = "harmony"
 
     auto_connect = False
@@ -53,52 +51,13 @@ class Creator(LegacyCreator):
                 )
                 return False
 
-        with harmony.maintained_selection() as selection:
-            node = None
+        backdrop = harmony.send(
+            {
+                "function": "AyonHarmonyAPI.createContainer",
+                "args": [self.name, (self.options or {}).get("useSelection", False)]
+            }
+        )["result"]
 
-            if (self.options or {}).get("useSelection") and selection:
-                node = harmony.send(
-                    {
-                        "function": "AyonHarmonyAPI.createContainer",
-                        "args": [self.name, self.node_type, selection[-1]]
-                    }
-                )["result"]
-            elif (self.auto_connect):
-                    existing_comp_names = harmony.send(
-                    {
-                        "function": "AyonHarmonyAPI.getNodesNamesByType",
-                        "args": "COMPOSITE"
-                    })["result"]
-                    name_pattern = self.composition_node_pattern
-                    if not name_pattern:
-                        raise CreatorError("Composition name regex pattern "
-                                           "must be filled")
-                    compiled_pattern = re.compile(name_pattern)
-                    matching_nodes = [name for name in existing_comp_names
-                                      if compiled_pattern.match(name)]
-                    if len(matching_nodes) > 1:
-                        self.log.warning("Multiple composition node found, "
-                                         "picked first")
-                    elif len(matching_nodes) <= 0:
-                        raise CreatorError("No matching composition "
-                                           "node found")
-                    node_name = f"/Top/{matching_nodes[0]}"
+        harmony.imprint(backdrop["title"]["text"], self.data)
 
-                    node = harmony.send(
-                        {
-                            "function": "AyonHarmonyAPI.createContainer",
-                            "args": [self.name, self.node_type, node_name]
-                        }
-                    )["result"]
-            else:
-                node = harmony.send(
-                    {
-                        "function": "AyonHarmonyAPI.createContainer",
-                        "args": [self.name, self.node_type]
-                    }
-                )["result"]
-
-            harmony.imprint(node, self.data)
-            self.setup_node(node)
-
-        return node
+        return backdrop

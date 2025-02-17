@@ -196,28 +196,41 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
 
 
 /**
- * Create container node in Harmony.
+ * Create container backdrop in Harmony.
  * @function
  * @param {array} args Arguments, see example.
- * @return {string} Resulting node.
+ * @return {string} Resulting backdrop.
  *
  * @example
  * // arguments are in following order:
  * var args = [
- *  nodeName,
- *  nodeType,
- *  selection
+ *  backdropName,
+ *  useSelection
  * ];
  */
 AyonHarmonyAPI.createContainer = function(args) {
-    var resultNode = node.add('Top', args[0], args[1], 0, 0, 0);
-    if (args.length > 2) {
-        node.link(args[2], 0, resultNode, 0, false, true);
-        node.setCoord(resultNode,
-            node.coordX(args[2]),
-            node.coordY(args[2]) + 70);
+    var backdropName = args[0];
+    var useSelection = args[1];
+    var selectedBackdrops = selection.selectedBackdrops();
+
+    if (useSelection && selectedBackdrops.length > 0) {
+        // Rename selected backdrop
+        var allBackdrops = Backdrop.backdrops("Top");
+        var selectedBackdropIdx = allBackdrops.map(function(b) { return b.title.text; }).indexOf(selectedBackdrops[0].title.text);
+        allBackdrops[selectedBackdropIdx].title.text = backdropName;
+        Backdrop.setBackdrops("Top", allBackdrops);
+        return allBackdrops[selectedBackdropIdx];
+    } else {
+        // Create new backdrop
+        return Backdrop.addBackdrop(
+            "Top",
+            {
+                "position"    : {"x": 0, "y" :0, "w":300, "h":300},
+                "title"       : {"text" : backdropName, "size" : 14, "font" : "Arial"},
+                // "color"       : TODO
+            }
+        );
     }
-    return resultNode;
 };
 
 
