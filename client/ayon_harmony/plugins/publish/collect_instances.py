@@ -4,6 +4,7 @@ import json
 
 import pyblish.api
 import ayon_harmony.api as harmony
+from ayon_harmony.api.pipeline import is_container_data
 
 
 class CollectInstances(pyblish.api.ContextPlugin):
@@ -47,7 +48,7 @@ class CollectInstances(pyblish.api.ContextPlugin):
                 continue
 
             # Skip containers.
-            if "container" in data["id"]:
+            if is_container_data(data):
                 continue
 
             product_type = data.get("productType")
