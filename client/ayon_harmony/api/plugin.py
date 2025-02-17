@@ -35,7 +35,6 @@ class HarmonyCreatorBase:
         #         print("Removing orphaned instance {}".format(key))
         #         harmony.remove(key)
         #         continue
-
         if shared_data.get("harmony_cached_instance_data") is None:
             cache = dict()
             cache_legacy = dict()
@@ -43,37 +42,37 @@ class HarmonyCreatorBase:
             nodes = harmony.send(
                 {"function": "node.subNodes", "args": ["Top"]}
             )["result"]
-
             # Collect scene data once instead of calling `read()` per node
             scene_data = harmony.get_scene_data()
-            for node in nodes:
-
+            for node_name in nodes:
                 # Skip non-tagged nodes.
-                if node not in scene_data:
+                if node_name not in scene_data:
                     continue
 
-                data = scene_data[node]
-                if data.get("id") not in {
+                node_data = scene_data[node_name]
+                if node_data.get("id") not in {
                     AYON_INSTANCE_ID, AVALON_INSTANCE_ID
                 }:
                     continue
 
-                creator_id = data.get("creator_identifier")
+                creator_id = node_data.get("creator_identifier")
                 if creator_id is not None:
                     # creator instance
-                    cache.setdefault(creator_id, []).append(node)
+                    cache.setdefault(creator_id, []).append(node_name)
                 else:
                     # legacy instance
-                    family = data.get("family")
-                    if family is None:
+                    product_type = node_data.get(
+                        "productType") or node_data.get("family")
+
+                    if product_type is None:
                         # must be a broken instance
                         continue
 
-                    cache_legacy.setdefault(family, []).append(node)
+                    cache_legacy.setdefault(product_type, []).append(node_name)
 
             shared_data["harmony_cached_scene_data"] = scene_data
             shared_data["harmony_cached_instance_data"] = cache
-            shared_data["harmony_cached_legacy_instances"] = cache_legacy
+            shared_data["harmony_cached_legacy_instances_names"] = cache_legacy
         return shared_data
 
 
@@ -128,9 +127,9 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
     def collect_instances(self):
         cache = self.cache_instance_data(self.collection_shared_data)
-        for node in cache.get("harmony_cached_instance_data").get(
+        for node_name in cache.get("harmony_cached_instance_data").get(
                 self.identifier, []):
-            data = cache.get("harmony_cached_scene_data")[node]
+            data = cache.get("harmony_cached_scene_data")[node_name]
 
             product_type = data.get("productType")
             if product_type is None:
@@ -140,11 +139,11 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
             instance = CreatedInstance.from_existing(instance_data=data,
                                                      creator=self)
-            instance.transient_data["node"] = node
+            instance.transient_data["node"] = node_name
 
             # Active state is based of the node's active state
             instance.data["active"] = harmony.send(
-                {"function": "AyonHarmonyAPI.isEnabled", "args": [node]}
+                {"function": "AyonHarmonyAPI.isEnabled", "args": [node_name]}
             )["result"]
 
             self._add_instance_to_context(instance)
