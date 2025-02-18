@@ -196,6 +196,35 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
 
 
 /**
+ * Create new Composite node in Harmony.
+ * @function
+ * @param {array} args Arguments, see example.
+ * @return {string} Resulting node.
+ *
+ * @example
+ * // arguments are in following order:
+ * var args = [
+ *  nodeName,
+ *  nodeType,
+ *  selection
+ * ];
+ */
+AyonHarmonyAPI.createContainer = function(args) {
+    var nodeName = args[0];
+    var nodeType = args[1];
+    var resultNode = node.add('Top', nodeName, nodeType, 0, 0, 0);
+    if (args.length > 2) {
+        var selectedNode = args[2];
+        node.link(selectedNode, 0, resultNode, 0, false, true);
+        node.setCoord(resultNode,
+            node.coordX(selectedNode),
+            node.coordY(selectedNode) + 70);
+    }
+    return resultNode;
+};
+
+
+/**
  * Create container backdrop in Harmony.
  * @function
  * @param {array} args Arguments, see example.
@@ -208,7 +237,7 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
  *  useSelection
  * ];
  */
-AyonHarmonyAPI.createContainer = function(args) {
+AyonHarmonyAPI.createBackdropContainer = function(args) {
     var backdropName = args[0];
     var useSelection = args[1];
     var selectedBackdrops = selection.selectedBackdrops();
