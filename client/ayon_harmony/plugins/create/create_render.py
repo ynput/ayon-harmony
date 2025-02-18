@@ -4,7 +4,7 @@ import ayon_harmony.api as harmony
 from ayon_harmony.api import plugin
 
 
-class CreateRender(plugin.HarmonyCreator):
+class CreateRender(plugin.HarmonyRenderCreator):
     """Composite node for publishing renders."""
 
     identifier = "io.ayon.creators.harmony.render"

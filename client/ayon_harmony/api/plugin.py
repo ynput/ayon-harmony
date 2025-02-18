@@ -1,5 +1,6 @@
 import re
 
+from ayon_core.lib import BoolDef
 from ayon_core.pipeline import (
     Creator, AYON_INSTANCE_ID, AVALON_INSTANCE_ID,
     CreatedInstance, CreatorError
@@ -39,12 +40,20 @@ class HarmonyCreatorBase:
             cache = dict()
             cache_legacy = dict()
 
-            nodes = harmony.send(
+            node_names = harmony.send(
                 {"function": "node.subNodes", "args": ["Top"]}
             )["result"]
+            backdrops = harmony.send(
+                {"function": "Backdrop.backdrops", "args": ["Top"]}
+            )["result"]
+            backdrop_names = [
+                backdrop["title"]["text"]
+                for backdrop in backdrops
+            ]
+            all_top_names = list(set(node_names) | set(backdrop_names))
             # Collect scene data once instead of calling `read()` per node
             scene_data = harmony.get_scene_data()
-            for node_name in nodes:
+            for node_name in all_top_names:
                 # Skip non-tagged nodes.
                 if node_name not in scene_data:
                     continue
@@ -84,12 +93,9 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
     If the selection is used, the selected nodes will be connected to the
     created node.
     """
-    node_type = "COMPOSITE"
 
     settings_category = "harmony"
 
-    auto_connect = False
-    composition_node_pattern = ""
 
     def create(self, product_name, instance_data, pre_create_data):
         instance = CreatedInstance(
@@ -99,7 +105,7 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
             self)
 
         # Create the node
-        node = self._create(product_name, instance_data, pre_create_data)
+        node = self.product_impl(product_name, instance_data, pre_create_data)
         instance.transient_data["node"] = node
         harmony.imprint(node, instance.data_to_store())
 
@@ -161,7 +167,29 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
             }
         )
 
-    def _create(self, name, instance_data: dict, pre_create_data: dict):
+    def product_impl(self, name, instance_data: dict, pre_create_data: dict):
+        raise NotImplemented
+
+    def get_pre_create_attr_defs(self):
+        output = [
+            BoolDef(
+                "use_selection",
+                tooltip="Composition for publishable instance should be "
+                        "selected by default.",
+                default=True,
+                label="Use selection"
+            ),
+        ]
+        return output
+
+
+class HarmonyRenderCreator(HarmonyCreator):
+
+    node_type = "COMPOSITE"
+    auto_connect = False
+    composition_node_pattern = ""
+
+    def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         existing_node_names = harmony.send(
             {
                 "function": "AyonHarmonyAPI.getNodesNamesByType",
@@ -175,14 +203,41 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
                 msg = f"Instance with name \"{name}\" already exists."
                 raise CreatorError(msg)
 
-        backdrop = harmony.send(
-            {
-                "function": "AyonHarmonyAPI.createContainer",
-                "args": [self.name, (self.options or {}).get("useSelection", False)]
-            }
-        )["result"]
+        with harmony.maintained_selection() as selection:
 
-        harmony.imprint(backdrop["title"]["text"], self.data)
+            args = [name, self.node_type]
+            if pre_create_data.get("use_selection") and selection:
+                args.append(selection[-1])
+            elif self.auto_connect:
+                existing_comp_names = harmony.send(
+                    {
+                        "function": "AyonHarmonyAPI.getNodesNamesByType",
+                        "args": "COMPOSITE"
+                    })["result"]
+                name_pattern = self.composition_node_pattern
+                if not name_pattern:
+                    raise CreatorError("Composition name regex pattern "
+                                       "must be filled")
+                compiled_pattern = re.compile(name_pattern)
+                matching_nodes = [name for name in existing_comp_names
+                                  if compiled_pattern.match(name)]
+                if len(matching_nodes) > 1:
+                    self.log.warning("Multiple composition node found, "
+                                     "picked first")
+                elif len(matching_nodes) <= 0:
+                    raise CreatorError("No matching composition "
+                                       "node found")
+                node_name = f"/Top/{matching_nodes[0]}"
+                args.append(node_name)
 
-        return backdrop
+            node = harmony.send(
+                {
+                    "function": "AyonHarmonyAPI.createContainer",
+                    "args": args
+                }
+            )["result"]
 
+            harmony.imprint(node, instance_data)
+            self.setup_node(node)
+
+        return node
