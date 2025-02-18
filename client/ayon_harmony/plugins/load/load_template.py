@@ -4,13 +4,11 @@ import tempfile
 import zipfile
 import os
 import shutil
-import uuid
 
 from ayon_core.pipeline import (
     load,
     get_representation_path,
 )
-from ayon_core.pipeline.context_tools import is_representation_from_latest
 import ayon_harmony.api as harmony
 
 
@@ -23,7 +21,7 @@ class TemplateLoader(load.LoaderPlugin):
 
     """
 
-    product_types = {"template", "workfile"}
+    product_types = {"harmony.template"}
     representations = {"*"}
     label = "Load Template"
     icon = "gift"
@@ -42,19 +40,14 @@ class TemplateLoader(load.LoaderPlugin):
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
         zip_file = get_representation_path(context["representation"])
-        template_path = os.path.join(temp_dir, "temp.tpl")
+        template_path = os.path.join(temp_dir)
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(template_path)
 
-        group_id = "{}".format(uuid.uuid4())
-
-        container_group = harmony.send(
+        backdrop_name = harmony.send(
             {
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
-                "args": [template_path,
-                         context["folder"]["name"],
-                         context["product"]["name"],
-                         group_id]
+                "args": os.path.join(template_path, "harmony.tpl")
             }
         )["result"]
 
@@ -65,10 +58,22 @@ class TemplateLoader(load.LoaderPlugin):
         return harmony.containerise(
             name,
             namespace,
-            container_group,
+            backdrop_name,
             context,
             self_name
         )
+    
+    def remove(self, container):
+        """Remove container.
+
+        Args:
+            container (dict): container definition.
+        """
+        container_backdrop = harmony.find_backdrop_by_name(container["name"])
+        harmony.send(
+            {"function": "AyonHarmony.removeBackdropWithContents", "args": container_backdrop}
+        )
+        harmony.remove(container["name"])
 
     def update(self, container, context):
         """Update loaded containers.
@@ -78,59 +83,36 @@ class TemplateLoader(load.LoaderPlugin):
             context (dict): Representation context data.
 
         """
-        node_name = container["name"]
-        node = harmony.find_node_by_name(node_name, "GROUP")
-        self_name = self.__class__.__name__
-
-        repre_entity = context["representation"]
-        if is_representation_from_latest(repre_entity):
-            self._set_green(node)
-        else:
-            self._set_red(node)
-
-        update_and_replace = harmony.send(
-            {
-                "function": f"AyonHarmony.Loaders.{self_name}."
-                            "askForColumnsUpdate",
-                "args": []
-            }
-        )["result"]
-
-        if update_and_replace:
-            # FIXME: This won't work, need to implement it.
-            harmony.send(
-                {
-                    "function": f"AyonHarmony.Loaders.{self_name}."
-                                "replaceNode",
-                    "args": []
-                }
-            )
-        else:
-            self.load(
-                container["context"], container["name"],
-                None, container["data"])
-
-        harmony.imprint(
-            node, {"representation": repre_entity["id"]}
-        )
-
-    def remove(self, container):
-        """Remove container.
-
-        Args:
-            container (dict): container definition.
-
-        """
-        node = harmony.find_node_by_name(container["name"], "GROUP")
-        harmony.send(
-            {"function": "AyonHarmony.deleteNode", "args": [node]}
-        )
+        return self.switch(container, context)
 
     def switch(self, container, context):
         """Switch representation containers."""
-        self.update(container, context)
+        backdrop_name = container["name"]
+        backdrop = harmony.find_backdrop_by_name(backdrop_name)
 
-    def _set_green(self, node):
+        # Keep backdrop links
+        backdrop_links = harmony.send(
+            {
+                "function": "AyonHarmony.getBackdropLinks",
+                "args": backdrop,
+            }
+        )["result"]
+
+        # Replace template container
+        self.remove(container)  # Before load to avoid node name incrementation
+        container = self.load(context, container["name"], container["namespace"])
+
+        # Restore backdrop links
+        harmony.send(
+            {
+                "function": "AyonHarmony.setNodesLinks",
+                "args": backdrop_links
+            }
+        )
+
+        return container
+
+    def _set_green(self, node): # TODO refactor for backdrop
         """Set node color to green `rgba(0, 255, 0, 255)`."""
         harmony.send(
             {
@@ -138,7 +120,7 @@ class TemplateLoader(load.LoaderPlugin):
                 "args": [node, [0, 255, 0, 255]]
             })
 
-    def _set_red(self, node):
+    def _set_red(self, node): # TODO refactor for backdrop
         """Set node color to red `rgba(255, 0, 0, 255)`."""
         harmony.send(
             {
