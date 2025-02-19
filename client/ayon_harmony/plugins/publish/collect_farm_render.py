@@ -8,7 +8,6 @@ from ayon_core.lib import get_formatted_current_time
 from ayon_core.pipeline import publish
 from ayon_core.pipeline.publish import RenderInstance
 import ayon_harmony.api as harmony
-from ayon_harmony.api.pipeline import is_container_data
 
 
 @attr.s
