@@ -168,7 +168,7 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
         )
 
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
-        raise NotImplemented
+        raise NotImplementedError
 
     def get_pre_create_attr_defs(self):
         output = [
