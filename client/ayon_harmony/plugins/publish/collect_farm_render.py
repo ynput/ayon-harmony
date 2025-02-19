@@ -115,7 +115,9 @@ class CollectFarmRender(publish.AbstractCollectRender):
             product_type = data.get("productType")
             if product_type is None:
                 product_type = data.get("family")
-            if product_type != "renderFarm":
+
+            creator_attributes = data["creator_attributes"]
+            if creator_attributes["render_target"] == "local":
                 continue
 
             # 0 - filename / 1 - type / 2 - zeros / 3 - start / 4 - enabled

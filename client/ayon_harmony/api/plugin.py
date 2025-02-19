@@ -1,6 +1,6 @@
 import re
 
-from ayon_core.lib import BoolDef
+from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.pipeline import (
     Creator, AYON_INSTANCE_ID, AVALON_INSTANCE_ID,
     CreatedInstance, CreatorError
@@ -98,14 +98,15 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
 
     def create(self, product_name, instance_data, pre_create_data):
+        # Create the node
+        node = self.product_impl(product_name, instance_data, pre_create_data)
+
         instance = CreatedInstance(
             self.product_type,
             product_name,
             instance_data,
-            self)
-
-        # Create the node
-        node = self.product_impl(product_name, instance_data, pre_create_data)
+            self
+        )
         instance.transient_data["node"] = node
         harmony.imprint(node, instance.data_to_store())
 
@@ -189,6 +190,11 @@ class HarmonyRenderCreator(HarmonyCreator):
     auto_connect = False
     composition_node_pattern = ""
 
+    rendering_targets = {
+        "local": "Local machine rendering",
+        "farm": "Farm rendering",
+    }
+
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         existing_node_names = harmony.send(
             {
@@ -236,8 +242,30 @@ class HarmonyRenderCreator(HarmonyCreator):
                     "args": args
                 }
             )["result"]
-
-            harmony.imprint(node, instance_data)
             self.setup_node(node)
 
+        instance_data["creator_attributes"] = {
+            "render_target": pre_create_data["render_target"]
+        }
+
         return node
+
+    def get_pre_create_attr_defs(self):
+        output = super().get_pre_create_attr_defs()
+        output.extend([
+            EnumDef(
+                "render_target",
+                items=self.rendering_targets,
+                label="Render target"
+            ),
+        ])
+        return output
+
+    def get_instance_attr_defs(self):
+        return [
+            EnumDef(
+                "render_target",
+                items=self.rendering_targets,
+                label="Render target"
+            )
+        ]
