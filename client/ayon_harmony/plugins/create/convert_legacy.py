@@ -20,7 +20,7 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
     identifier = "io.ayon.creators.harmony.legacy"
     product_type_to_id = {
         "render": "io.ayon.creators.harmony.render",
-        "renderFarm": "io.ayon.creators.harmony.render.farm",
+        "renderFarm": "io.ayon.creators.harmony.render",
         "template": "io.ayon.creators.harmony.template",
         "workfile": "io.ayon.creators.harmony.workfile",
     }
@@ -28,6 +28,7 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
     def __init__(self, *args, **kwargs):
         super(HarmonyLegacyConvertor, self).__init__(*args, **kwargs)
         self.legacy_instances = {}
+        self.scene_metadata = {}
 
     def find_instances(self):
         """Find legacy products in the scene.
@@ -43,6 +44,9 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
             "harmony_cached_legacy_instances_names")
         if not self.legacy_instances:
             return
+        # harmony_cached_scene_data is not accessible in `convert` directly
+        self.scene_metadata = self.collection_shared_data.get(
+            "harmony_cached_scene_data")
         self.add_convertor_item(
             "Found {} incompatible product{}".format(
                 len(self.legacy_instances),
@@ -67,7 +71,17 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
                         "Converting {} to {}".format(node_name,
                                                      creator_identifier)
                     )
-                    harmony.imprint(node_name, data={
+                    changed_data = {
                         "creator_identifier": creator_identifier,
-                        "id": "ayon.create.instance"
-                    })
+                        "id": "ayon.create.instance",
+                        "creator_attributes": {"render_target": "local"}
+                    }
+                    if product_type == "renderFarm":
+                        node_meta = self.scene_metadata[node_name]
+                        changed_data["productType"] = "render"
+                        changed_data["productName"] = (
+                            node_meta["productName"].replace("Farm", ""))
+                        changed_data["creator_attributes"]["render_target"] = \
+                            "farm"
+
+                    harmony.imprint(node_name, data=changed_data)
