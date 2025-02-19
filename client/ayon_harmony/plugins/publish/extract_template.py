@@ -22,6 +22,7 @@ class ExtractTemplate(publish.Extractor):
         self.log.info(f"Outputting template to {staging_dir}")
 
         # Export template
+        self.log.info(f'{instance.data["setMembers"][0]}')
         harmony.export_backdrop_as_template(
             instance.data["setMembers"][0], filepath
         )

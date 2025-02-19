@@ -403,6 +403,9 @@ def show(tool_name):
         kwargs["use_context"] = True
     elif tool_name == "publisher":
         kwargs["tab"] = "publish"
+    elif tool_name == "creator":
+        tool_name = "publisher"
+        kwargs["tab"] = "create"
 
     ProcessContext.execute_in_main_thread(
         lambda: host_tools.show_tool_by_name(tool_name, **kwargs)
@@ -504,6 +507,26 @@ def imprint(node_id, data, remove=False):
             scene_data[node_id] = data
 
     set_scene_data(scene_data)
+
+
+@contextlib.contextmanager
+def maintained_selection():
+    """Maintain selection during context."""
+
+    selected_nodes = send(
+        {
+            "function": "AyonHarmonyAPI.getSelectedNodes"
+        })["result"]
+
+    try:
+        yield selected_nodes
+    finally:
+        selected_nodes = send(
+            {
+                "function": "AyonHarmonyAPI.selectNodes",
+                "args": selected_nodes
+            }
+        )
 
 
 def send(request):

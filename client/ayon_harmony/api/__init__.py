@@ -6,9 +6,6 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 from .pipeline import (
     ls,
     HarmonyHost,
-    list_instances,
-    remove_instance,
-    select_instance,
     containerise,
     set_scene_settings,
     get_current_context_settings,
@@ -21,6 +18,7 @@ from .pipeline import (
 
 from .lib import (
     launch,
+    maintained_selection,
     imprint,
     read,
     send,
@@ -49,9 +47,6 @@ __all__ = [
     # pipeline
     "ls",
     "HarmonyHost",
-    "list_instances",
-    "remove_instance",
-    "select_instance",
     "containerise",
     "set_scene_settings",
     "get_current_context_settings",
@@ -63,6 +58,7 @@ __all__ = [
 
     # lib
     "launch",
+    "maintained_selection",
     "imprint",
     "read",
     "send",

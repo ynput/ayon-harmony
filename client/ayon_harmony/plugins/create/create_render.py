@@ -4,17 +4,15 @@ import ayon_harmony.api as harmony
 from ayon_harmony.api import plugin
 
 
-class CreateRender(plugin.Creator):
+class CreateRender(plugin.HarmonyRenderCreator):
     """Composite node for publishing renders."""
 
-    name = "renderDefault"
+    identifier = "io.ayon.creators.harmony.render"
     label = "Render"
     product_type = "render"
-    node_type = "WRITE"
+    icon = "eye"
 
-    def __init__(self, *args, **kwargs):
-        """Constructor."""
-        super(CreateRender, self).__init__(*args, **kwargs)
+    node_type = "WRITE"
 
     def setup_node(self, node):
         """Set render node."""

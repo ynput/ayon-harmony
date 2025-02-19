@@ -111,8 +111,12 @@ AyonHarmony.setColor = function(nodes, rgba) {
  *
  */
 AyonHarmony.exportBackdropAsTemplate = function(args) {
-    var backdrop = args[0];
-
+    var backdropName = args[0];
+    var backdrop = AyonHarmony._getBackdropByName(backdropName);
+    if (!backdrop){
+        MessageLog.trace("Cannot find::", backdropName);
+        throw new Error("Cannot find::", backdropName);
+    }
     // Select backdrop and all nodes in it
     selection.clearSelection();
     selection.addBackdropToSelection(backdrop);
@@ -126,6 +130,19 @@ AyonHarmony.exportBackdropAsTemplate = function(args) {
     // Export template
     copyPaste.createTemplateFromSelection(args[1], args[2]);
 };
+
+AyonHarmony._getBackdropByName = function(backdropName){
+    var groupPath = "Top";
+    var backdrops = Backdrop.backdrops(groupPath);
+    if (backdrops && backdrops.length > 0) {
+        for (var i = 0; i < backdrops.length; i++) {
+            var backdrop = backdrops[i];
+            if (backdrop["title"]["text"] == backdropName){
+                return backdrop
+            }
+        }
+    }
+}
 
 /**
  * Get subbackdrops of a backdrop.

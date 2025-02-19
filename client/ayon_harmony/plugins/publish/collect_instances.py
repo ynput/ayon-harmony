@@ -3,82 +3,55 @@
 import json
 
 import pyblish.api
-import ayon_harmony.api as harmony
-from ayon_harmony.api.pipeline import is_container_data
 
 
-class CollectInstances(pyblish.api.ContextPlugin):
+class CollectInstances(pyblish.api.InstancePlugin):
     """Gather instances by nodes metadata.
 
     This collector takes into account assets that are associated with
     a composite node and marked with a unique identifier.
-
-    Identifier:
-        id (str): "ayon.create.instance"
     """
 
     label = "Instances"
     order = pyblish.api.CollectorOrder
     hosts = ["harmony"]
+
     product_type_mapping = {
         "render": ["review"],
         "harmony.template": [],
         "palette": ["palette"]
     }
-
     pair_media = True
 
-    def process(self, context):
-        """Plugin entry point.
+    def process(self, instance: pyblish.api.Instance):
 
-        Args:
-            context (:class:`pyblish.api.Context`): Context data.
+        # skip render farm product type as it is collected separately
+        product_type = instance.data["productType"]
+        if product_type == "workfile":
+            return
 
-        """
-        backdrops = harmony.send(
-            {"function": "Backdrop.backdrops", "args": ["Top"]} # TODO is it possible to have nested containers?
-        )["result"]
+        node = instance.data["transientData"]["node"]
 
-        for backdrop in backdrops:
-            container_name = backdrop["title"]["text"]
-            data = harmony.read(container_name)
+        instance.data["setMembers"] = [node]
 
-            # Skip non-tagged nodes.
-            if not data:
-                continue
+        families = [product_type]
+        families.extend(self.product_type_mapping.get(product_type, []))
+        if product_type == "render":
+            creator_attributes = instance.data.get("creator_attributes", {})
+            render_target = creator_attributes["render_target"]
+            families.append(f"render.{render_target}")
 
-            # Skip containers.
-            if is_container_data(data):
-                continue
+        instance.data["families"] = families
 
-            product_type = data.get("productType")
-            if product_type is None:
-                product_type = data["family"]
-                data["productType"] = product_type
-            data["family"] = product_type
+        # If set in plugin, pair the scene Version with
+        # thumbnails and review media.
+        if (self.pair_media and product_type == "scene"):
+            instance.context.data["scene_instance"] = instance
 
-            # skip render farm product type as it is collected separately
-            if product_type == "renderFarm":
-                continue
-
-            instance = context.create_instance(container_name)
-            instance.data.update(data)
-            instance.data["setMembers"] = [backdrop]
-            # instance.data["publish"] = harmony.send( // TODO base enabling on last composite node state?
-
-            families = [product_type]
-            families.extend(self.product_type_mapping[product_type])
-            instance.data["families"] = families
-
-            # If set in plugin, pair the scene Version with
-            # thumbnails and review media.
-            if (self.pair_media and product_type == "scene"):
-                context.data["scene_instance"] = instance
-
-            # Produce diagnostic message for any graphical
-            # user interface interested in visualising it.
-            self.log.info(
-                "Found: \"{0}\": \n{1}".format(
-                    instance.data["name"], json.dumps(instance.data, indent=4)
-                )
+        # Produce diagnostic message for any graphical
+        # user interface interested in visualising it.
+        self.log.info(
+            "Processed: \"{0}\": \n{1}".format(
+                instance.data["name"], json.dumps(instance.data, indent=4)
             )
+        )
