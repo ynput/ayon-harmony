@@ -12,7 +12,7 @@ from .pipeline import (
     ensure_scene_settings,
     check_inventory,
     application_launch,
-    export_template,
+    export_backdrop_as_template,
     inject_ayon_js,
 )
 
@@ -28,6 +28,7 @@ from .lib import (
     remove,
     delete_node,
     find_node_by_name,
+    find_backdrop_by_name,
     signature,
     select_nodes,
     get_scene_data
@@ -52,7 +53,7 @@ __all__ = [
     "ensure_scene_settings",
     "check_inventory",
     "application_launch",
-    "export_template",
+    "export_backdrop_as_template",
     "inject_ayon_js",
 
     # lib
@@ -67,6 +68,7 @@ __all__ = [
     "remove",
     "delete_node",
     "find_node_by_name",
+    "find_backdrop_by_name",
     "signature",
     "select_nodes",
     "get_scene_data",

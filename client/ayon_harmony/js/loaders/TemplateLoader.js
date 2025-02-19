@@ -23,156 +23,32 @@ var TemplateLoader = function() {};
 /**
  * Load template as container.
  * @function
- * @param {array} args Arguments, see example.
- * @return {string} Name of container.
- *
- * @example
- * // arguments are in following order:
- * var args = [
- *  templatePath, // Path to tpl file.
- *  folderName,    // Folder name.
- *  productName,  // Product name.
- *  groupId       // unique ID (uuid4)
- * ];
+ * @param {string} templatePath Path to tpl file.
+ * @return {string} Name of backdrop container.
  */
-TemplateLoader.prototype.loadContainer = function(args) {
-    var doc = $.scn;
-    var templatePath = args[0];
-    var folderName = args[1];
-    var productName = args[2];
-    var groupId = args[3];
+TemplateLoader.prototype.loadContainer = function(templatePath) {
+    // Copy from template file
+    var _copyOptions = copyPaste.getCurrentCreateOptions();
+    var _tpl = copyPaste.copyFromTemplate(templatePath, 0, 999, _copyOptions);
 
-    // Get the current group
-    var nodeViewWidget = $.app.getWidgetByName('Node View');
-    if (!nodeViewWidget) {
-        $.alert('You must have a Node View open!', 'No Node View!', 'OK!');
-        return;
-    }
+    // Paste into scene
+    var pasteOptions = copyPaste.getCurrentPasteOptions();
+    pasteOptions.extendScene = true; // TODO does this work?
+    copyPaste.pasteNewNodes(_tpl, "Top", pasteOptions);
 
-    nodeViewWidget.setFocus();
-    var currentGroup;
-    var nodeView = view.currentView();
-    if (!nodeView) {
-        currentGroup = doc.root;
-    } else {
-        currentGroup = doc.$node(view.group(nodeView));
-    }
-
-    // Get a unique iterative name for the container group
-    var num = 0;
-    var containerGroupName = '';
-    do {
-        containerGroupName = folderName + '_' + (num++) + '_' + productName;
-    } while (currentGroup.getNodeByName(containerGroupName) != null);
-
-    // import the template
-    var tplNodes = currentGroup.importTemplate(templatePath);
-    MessageLog.trace(tplNodes);
-    // Create the container group
-    var groupNode = currentGroup.addGroup(
-        containerGroupName, false, false, tplNodes);
-
-    // Add uuid to attribute of the container group
-    node.createDynamicAttr(groupNode, 'STRING', 'uuid', 'uuid', false);
-    node.setTextAttr(groupNode, 'uuid', 1.0, groupId);
-
-    return String(groupNode);
-};
-
-
-/**
- * Replace existing node container.
- * @function
- * @param  {string}  dstNodePath Harmony path to destination Node.
- * @param  {string}  srcNodePath Harmony path to source Node.
- * @param  {string}  renameSrc   ...
- * @param  {boolean} cloneSrc    ...
- * @return {boolean}             Success
- * @todo   This is work in progress.
- */
-TemplateLoader.prototype.replaceNode = function(
-    dstNodePath, srcNodePath, renameSrc, cloneSrc) {
-    var doc = $.scn;
-    var srcNode = doc.$node(srcNodePath);
-    var dstNode = doc.$node(dstNodePath);
-    // var dstNodeName = dstNode.name;
-    var replacementNode = srcNode;
-    // var dstGroup = dstNode.group;
-    $.beginUndo();
-    if (cloneSrc) {
-        replacementNode = doc.$node(
-            $.nodeTools.copy_paste_node(
-                srcNodePath, dstNode.name + '_CLONE', dstNode.group.path));
-    } else {
-        if (replacementNode.group.path != srcNode.group.path) {
-            replacementNode.moveToGroup(dstNode);
+    // Find main backdrop name
+    // The main backdrop is the one with the smallest x + y value (top left corner)
+    var selectedBackdrops = selection.selectedBackdrops();
+    var mainBackdropName = selectedBackdrops[0].title.text;
+    var mainAnchorValue = selectedBackdrops[0].position.x + selectedBackdrops[0].position.y;
+    selectedBackdrops.slice(1).forEach(function(backdrop) {
+        var anchor = backdrop.position.x + backdrop.position.y;
+        if (mainAnchorValue > anchor) {
+            mainBackdropName = backdrop.title.text;
+            mainAnchorValue = anchor;
         }
-    }
-    var inLinks = dstNode.getInLinks();
-    var link, inNode, inPort, outPort, outNode, success;
-    for (var l in inLinks) {
-        if (Object.prototype.hasOwnProperty.call(inLinks, l)) {
-            link = inLinks[l];
-            inPort = Number(link.inPort);
-            outPort = Number(link.outPort);
-            outNode = link.outNode;
-            success = replacementNode.linkInNode(outNode, inPort, outPort);
-            if (success) {
-                $.log('Successfully connected ' + outNode + ' : ' +
-            outPort + ' -> ' + replacementNode + ' : ' + inPort);
-            } else {
-                $.alert('Failed to connect ' + outNode + ' : ' +
-            outPort + ' -> ' + replacementNode + ' : ' + inPort);
-            }
-        }
-    }
-
-    var outLinks = dstNode.getOutLinks();
-    for (l in outLinks) {
-        if (Object.prototype.hasOwnProperty.call(outLinks, l)) {
-            link = outLinks[l];
-            inPort = Number(link.inPort);
-            outPort = Number(link.outPort);
-            inNode = link.inNode;
-            // first we must disconnect the port from the node being
-            // replaced to this links inNode port
-            inNode.unlinkInPort(inPort);
-            success = replacementNode.linkOutNode(inNode, outPort, inPort);
-            if (success) {
-                $.log('Successfully connected ' + inNode + ' : ' +
-              inPort + ' <- ' + replacementNode + ' : ' + outPort);
-            } else {
-                if (inNode.type == 'MultiLayerWrite') {
-                    $.log('Attempting standard api to connect the nodes...');
-                    success = node.link(
-                        replacementNode, outPort, inNode,
-                        inPort, node.numberOfInputPorts(inNode) + 1);
-                    if (success) {
-                        $.log('Successfully connected ' + inNode + ' : ' +
-                inPort + ' <- ' + replacementNode + ' : ' + outPort);
-                    }
-                }
-            }
-            if (!success) {
-                $.alert('Failed to connect ' + inNode + ' : ' +
-            inPort + ' <- ' + replacementNode + ' : ' + outPort);
-                return false;
-            }
-        }
-    }
-};
-
-
-TemplateLoader.prototype.askForColumnsUpdate = function() {
-    // Ask user if they want to also update columns and
-    // linked attributes here
-    return ($.confirm(
-        'Would you like to update in place and reconnect all \n' +
-      'ins/outs, attributes, and columns?',
-        'Update & Replace?\n' +
-      'If you choose No, the version will only be loaded.',
-        'Yes',
-        'No'));
+    });
+    return mainBackdropName;
 };
 
 // add self to AYON Loaders
