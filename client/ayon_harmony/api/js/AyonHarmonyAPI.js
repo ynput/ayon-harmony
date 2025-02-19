@@ -80,8 +80,8 @@ AyonHarmonyAPI.selectNodes = function(nodes) {
  * @param {string} node Node path.
  * @return {boolean} state
  */
-AyonHarmonyAPI.isEnabled = function(node) {
-    return node.getEnable(node);
+AyonHarmonyAPI.isEnabled = function(nodeName) {
+    return node.getEnable(nodeName);
 };
 
 
