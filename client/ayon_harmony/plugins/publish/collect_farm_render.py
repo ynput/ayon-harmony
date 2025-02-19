@@ -101,25 +101,14 @@ class CollectFarmRender(publish.AbstractCollectRender):
 
         folder_path = context.data["folderPath"]
 
-        for node in context.data["allNodes"]:
-            data = harmony.read(node)
-
-            # Skip non-tagged nodes.
-            if not data:
+        for inst in context:
+            if not inst.data.get("active", True):
+                continue
+            creator_attributes = inst.data.get("creator_attributes", {})
+            if creator_attributes.get("render_target") != "farm":
                 continue
 
-            # Skip containers.
-            if is_container_data(data):
-                continue
-
-            product_type = data.get("productType")
-            if product_type is None:
-                product_type = data.get("family")
-
-            creator_attributes = data["creator_attributes"]
-            if creator_attributes["render_target"] == "local":
-                continue
-
+            node = inst.data["transientData"]["node"]
             # 0 - filename / 1 - type / 2 - zeros / 3 - start / 4 - enabled
             info = harmony.send(
                 {
@@ -129,24 +118,23 @@ class CollectFarmRender(publish.AbstractCollectRender):
                 })["result"]
 
             # TODO: handle pixel aspect and frame step
-            # TODO: set Deadline stuff (pools, priority, etc. by presets)
-            # because of using 'renderFarm' as a product type, replace 'Farm'
-            # with capitalized task name - issue of Creator tool
-            product_name = node.split("/")[1]
-            task_name = context.data["task"].capitalize()
-            replace_str = ""
-            if task_name.lower() not in product_name.lower():
-                replace_str = task_name
-            product_name = product_name.replace(
-                'Farm',
-                replace_str)
+            product_name = inst.data["productName"]
+            task_name = inst.data.get("task")
+
+            product_type = inst.data("productType")
+            instance_families = inst.data.get("families", [])
 
             render_instance = HarmonyRenderInstance(
                 version=version,
                 time=get_formatted_current_time(),
                 source=context.data["currentFile"],
-                label=node.split("/")[1],
+                name=product_name,
+                label="{} - {}".format(product_name, product_type),
                 productName=product_name,
+                productType=product_type,
+                family=product_type,
+                families=instance_families,
+                farm=True,
                 folderPath=folder_path,
                 task=task_name,
                 attachTo=False,
@@ -154,13 +142,6 @@ class CollectFarmRender(publish.AbstractCollectRender):
                 publish=info[4],
                 renderer=None,
                 priority=50,
-                name=node.split("/")[1],
-
-                productType="render.farm",
-                family="render.farm",
-                families=["render.farm"],
-                farm=True,
-
                 resolutionWidth=context.data["resolutionWidth"],
                 resolutionHeight=context.data["resolutionHeight"],
                 pixelAspect=1.0,
@@ -181,10 +162,8 @@ class CollectFarmRender(publish.AbstractCollectRender):
                 outputStartFrame=info[3],
                 leadingZeros=info[2],
                 ignoreFrameHandleCheck=True,
-                #todo: inst is not available, must be determined, fix when
-                #reworking to Publisher
-                # deadline=inst.data.get("deadline")
-
+                # The source instance this render instance replaces
+                source_instance=inst
             )
             render_instance.context = context
             self.log.debug(render_instance)
