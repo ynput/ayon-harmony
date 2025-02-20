@@ -185,9 +185,14 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
 
 class HarmonyRenderCreator(HarmonyCreator):
+    """Creator plugin to create render instances in Harmony.
 
+    It creates new Composite type node from which it is rendered.
+    """
     node_type = "COMPOSITE"
+    # should node be auto connected to main Composite node for Harmony Advanced
     auto_connect = False
+    # regex to find main Composite node
     composition_node_pattern = ""
 
     rendering_targets = {
