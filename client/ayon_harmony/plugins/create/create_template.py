@@ -28,10 +28,7 @@ class CreateTemplate(plugin.HarmonyCreator):
     def remove_instances(self, instances):
         for instance in instances:
             container_name = instance.transient_data["node"]
-            self.log.info(f"container_name;:{container_name}")
-            print(f"p container_name;:{container_name}")
             container_backdrop = harmony.find_backdrop_by_name(container_name)
-            self.log.info(f"container_backdrop;:{container_backdrop}")
             harmony.send(
                 {"function": "AyonHarmony.removeBackdropWithContents", "args": container_backdrop}
             )
