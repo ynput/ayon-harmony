@@ -243,7 +243,7 @@ class HarmonyRenderCreator(HarmonyCreator):
 
             node = harmony.send(
                 {
-                    "function": "AyonHarmonyAPI.createContainer",
+                    "function": "AyonHarmonyAPI.createNodeContainer",
                     "args": args
                 }
             )["result"]

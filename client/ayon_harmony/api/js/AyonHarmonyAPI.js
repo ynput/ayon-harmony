@@ -209,7 +209,7 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
  *  selection
  * ];
  */
-AyonHarmonyAPI.createContainer = function(args) {
+AyonHarmonyAPI.createNodeContainer = function(args) {
     var nodeName = args[0];
     var nodeType = args[1];
     var resultNode = node.add('Top', nodeName, nodeType, 0, 0, 0);
