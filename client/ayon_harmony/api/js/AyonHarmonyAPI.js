@@ -64,7 +64,7 @@ AyonHarmonyAPI.getSelectedNodes = function () {
 /**
  * Set selection of nodes.
  * @function
- * @param {array} nodes Arrya containing node paths to add to selection.
+ * @param {array} nodes Array containing node paths to add to selection.
  */
 AyonHarmonyAPI.selectNodes = function(nodes) {
     selection.clearSelection();
@@ -206,19 +206,35 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
  * var args = [
  *  nodeName,
  *  nodeType,
- *  selection
+ *  useSelection
  * ];
  */
 AyonHarmonyAPI.createNodeContainer = function(args) {
     var nodeName = args[0];
     var nodeType = args[1];
+    var useSelection = args[2];
+
     var resultNode = node.add('Top', nodeName, nodeType, 0, 0, 0);
-    if (args.length > 2) {
-        var selectedNode = args[2];
-        node.link(selectedNode, 0, resultNode, 0, false, true);
-        node.setCoord(resultNode,
-            node.coordX(selectedNode),
-            node.coordY(selectedNode) + 70);
+
+    if (useSelection) {
+        var selectedNodes = selection.selectedNodes();
+        var compositeNodes = [];
+        for (var i = 0; i < selectedNodes.length; i++) {
+            var node = selectedNodes[i];
+
+            // Check if the node is a composite node
+            if (node.getType() === "composite") { // Make sure to use the correct method to check type
+                compositeNodes.push(node);
+            }
+        }
+
+        if (compositeNodes.length > 0){
+            var selectedNode = compositeNodes[-1];
+            node.link(selectedNode, 0, resultNode, 0, false, true);
+            node.setCoord(resultNode,
+                node.coordX(selectedNode),
+                node.coordY(selectedNode) + 70);
+        }
     }
     return resultNode;
 };
