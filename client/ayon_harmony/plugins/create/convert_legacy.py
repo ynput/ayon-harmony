@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Converter for legacy Harmony products."""
+from ayon_core.pipeline import AYON_INSTANCE_ID
 from ayon_core.pipeline.create.creator_plugins import ProductConvertorPlugin
 import ayon_harmony.api as harmony
 
@@ -73,7 +74,7 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
                     )
                     changed_data = {
                         "creator_identifier": creator_identifier,
-                        "id": "ayon.create.instance",
+                        "id": AYON_INSTANCE_ID,
                         "creator_attributes": {"render_target": "local"}
                     }
                     if product_type == "renderFarm":
