@@ -130,6 +130,12 @@ AyonHarmony.exportBackdropAsTemplate = function(args) {
     copyPaste.createTemplateFromSelection(args[1], args[2]);
 };
 
+/**
+ * Returns Backdrop item for its name
+ * @function
+ * @param {string} backdropName
+ * @return {obj} Backdrop item
+ */
 AyonHarmony._getBackdropByName = function(backdropName){
     var groupPath = "Top";
     var backdrops = Backdrop.backdrops(groupPath);
