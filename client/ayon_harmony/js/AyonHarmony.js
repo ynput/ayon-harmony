@@ -114,7 +114,6 @@ AyonHarmony.exportBackdropAsTemplate = function(args) {
     var backdropName = args[0];
     var backdrop = AyonHarmony._getBackdropByName(backdropName);
     if (!backdrop){
-        MessageLog.trace("Cannot find::", backdropName);
         throw new Error("Cannot find::", backdropName);
     }
     // Select backdrop and all nodes in it
