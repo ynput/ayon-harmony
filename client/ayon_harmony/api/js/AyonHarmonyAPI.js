@@ -220,20 +220,21 @@ AyonHarmonyAPI.createNodeContainer = function(args) {
         var selectedNodes = selection.selectedNodes();
         var compositeNodes = [];
         for (var i = 0; i < selectedNodes.length; i++) {
-            var node = selectedNodes[i];
+            var selectedNodeName = selectedNodes[i];
+            var selectedNode = node.type(selectedNodeName);
 
             // Check if the node is a composite node
-            if (node.getType() === "composite") { // Make sure to use the correct method to check type
-                compositeNodes.push(node);
+            if (node.type(selectedNodeName) === "COMPOSITE") { // Make sure to use the correct method to check type
+                compositeNodes.push(selectedNodeName);
             }
         }
 
         if (compositeNodes.length > 0){
-            var selectedNode = compositeNodes[-1];
-            node.link(selectedNode, 0, resultNode, 0, false, true);
+            var lastSelectedNode = compositeNodes[compositeNodes.length-1];
+            node.link(lastSelectedNode, 0, resultNode, 0, false, true);
             node.setCoord(resultNode,
-                node.coordX(selectedNode),
-                node.coordY(selectedNode) + 70);
+                node.coordX(lastSelectedNode),
+                node.coordY(lastSelectedNode) + 70);
         }
     }
     return resultNode;
