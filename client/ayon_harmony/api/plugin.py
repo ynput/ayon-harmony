@@ -43,7 +43,7 @@ class HarmonyCreatorBase:
             # Collect scene data once instead of calling `read()` per node
             scene_data = harmony.get_scene_data()
             cleaned_scene_data = False
-            for entity_name, entity_data  in reversed(scene_data.copy().items()):
+            for entity_name, entity_data in reversed(scene_data.copy().items()):
                 # Filter orphaned instances
                 if entity_name not in all_top_names:
                     del scene_data[entity_name]
