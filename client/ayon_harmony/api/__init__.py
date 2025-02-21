@@ -32,6 +32,7 @@ from .lib import (
     select_nodes,
     get_scene_data,
     set_scene_data,
+    get_all_top_names,
 )
 
 from .workio import (
@@ -72,6 +73,7 @@ __all__ = [
     "select_nodes",
     "get_scene_data",
     "set_scene_data",
+    "get_all_top_names",
 
     # Workfiles API
     "open_file",

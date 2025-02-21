@@ -29,19 +29,9 @@ class HarmonyCreatorBase:
             cache = dict()
             cache_legacy = dict()
 
-            node_names = harmony.send(
-                {"function": "node.subNodes", "args": ["Top"]}
-            )["result"]
-            backdrops = harmony.send(
-                {"function": "Backdrop.backdrops", "args": ["Top"]}
-            )["result"]
-            backdrop_names = [
-                backdrop["title"]["text"]
-                for backdrop in backdrops
-            ]
-            all_top_names = set(node_names) | set(backdrop_names)
             # Collect scene data once instead of calling `read()` per node
             scene_data = harmony.get_scene_data()
+            all_top_names = harmony.get_all_top_names()
             cleaned_scene_data = False
             for entity_name, entity_data in reversed(scene_data.copy().items()):
                 # Filter orphaned instances
