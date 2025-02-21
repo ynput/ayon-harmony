@@ -25,17 +25,6 @@ class HarmonyCreatorBase:
             Dict[str, Any]: Shared data.
 
         """
-
-        # TODO: We should find a time and place to 'clean up' orphaned data
-        #  of nodes that do not actually exist in the scene anymore.
-        #  Consider this pseudocode based on the legacy creators:
-        # if remove_orphaned:
-        #     node_name = key.split("/")[-1]
-        #     located_node = harmony.find_node_by_name(node_name, 'WRITE')
-        #     if not located_node:
-        #         print("Removing orphaned instance {}".format(key))
-        #         harmony.remove(key)
-        #         continue
         if shared_data.get("harmony_cached_instance_data") is None:
             cache = dict()
             cache_legacy = dict()
@@ -50,38 +39,45 @@ class HarmonyCreatorBase:
                 backdrop["title"]["text"]
                 for backdrop in backdrops
             ]
-            all_top_names = list(set(node_names) | set(backdrop_names))
+            all_top_names = set(node_names) | set(backdrop_names)
             # Collect scene data once instead of calling `read()` per node
             scene_data = harmony.get_scene_data()
-            for node_name in all_top_names:
-                # Skip non-tagged nodes.
-                if node_name not in scene_data:
+            cleaned_scene_data = False
+            for entity_name, entity_data in reversed(scene_data.copy().items()):
+                # Filter orphaned instances
+                if entity_name not in all_top_names:
+                    del scene_data[entity_name]
+                    cleaned_scene_data = True
                     continue
 
-                node_data = scene_data[node_name]
-                if node_data.get("id") not in {
+                if entity_data.get("id") not in {
                     AYON_INSTANCE_ID, AVALON_INSTANCE_ID
                 }:
                     continue
 
-                creator_id = node_data.get("creator_identifier")
+                creator_id = entity_data.get("creator_identifier")
                 if creator_id is not None:
                     # creator instance
-                    cache.setdefault(creator_id, []).append(node_name)
+                    cache.setdefault(creator_id, []).append(entity_name)
                 else:
                     # legacy instance
-                    product_type = node_data.get(
-                        "productType") or node_data.get("family")
+                    product_type = entity_data.get(
+                        "productType") or entity_data.get("family")
 
                     if product_type is None:
                         # must be a broken instance
                         continue
 
-                    cache_legacy.setdefault(product_type, []).append(node_name)
+                    cache_legacy.setdefault(product_type, []).append(entity_name)
 
             shared_data["harmony_cached_scene_data"] = scene_data
             shared_data["harmony_cached_instance_data"] = cache
             shared_data["harmony_cached_legacy_instances_names"] = cache_legacy
+
+            # Update scene data if cleaned
+            if cleaned_scene_data:
+                harmony.set_scene_data(scene_data)
+
         return shared_data
 
 

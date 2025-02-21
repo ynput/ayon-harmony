@@ -30,7 +30,8 @@ from .lib import (
     find_backdrop_by_name,
     signature,
     select_nodes,
-    get_scene_data
+    get_scene_data,
+    set_scene_data,
 )
 
 from .workio import (
@@ -70,6 +71,7 @@ __all__ = [
     "signature",
     "select_nodes",
     "get_scene_data",
+    "set_scene_data",
 
     # Workfiles API
     "open_file",
