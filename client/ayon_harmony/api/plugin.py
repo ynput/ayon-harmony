@@ -46,7 +46,7 @@ class HarmonyCreatorBase:
             for entity_name, entity_data  in reversed(scene_data.copy().items()):
                 # Filter orphaned instances
                 if entity_name not in all_top_names:
-                    scene_data.pop(entity_name)
+                    del scene_data[entity_name]
                     cleaned_scene_data = True
                     continue
 
