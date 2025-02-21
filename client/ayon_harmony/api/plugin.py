@@ -219,7 +219,7 @@ class HarmonyRenderCreator(HarmonyCreator):
             existing_comp_names = harmony.send(
                 {
                     "function": "AyonHarmonyAPI.getNodesNamesByType",
-                    "args": "COMPOSITE"
+                    "args": ["COMPOSITE"]
                 })["result"]
             name_pattern = self.composition_node_pattern
             if not name_pattern:
