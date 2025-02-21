@@ -81,7 +81,18 @@ AyonHarmonyAPI.selectNodes = function(nodes) {
  * @return {boolean} state
  */
 AyonHarmonyAPI.isEnabled = function(nodeName) {
-    return node.getEnable(nodeName);
+    var backdrop = AyonHarmony._getBackdropByName(nodeName);
+    if (backdrop){
+        var nodes = []
+        nodes = Backdrop.nodes(backdrop);
+        if (nodes){
+            // check only first node, all should be same
+            return node.getEnable(nodes[0]);
+        }
+    }else{
+        return node.getEnable(nodeName);
+    }
+    return false;
 };
 
 
@@ -94,7 +105,7 @@ AyonHarmonyAPI.isEnabled = function(nodeName) {
 AyonHarmonyAPI.areEnabled = function(nodes) {
     var states = [];
     for (var i = 0 ; i < nodes.length; i++) {
-        states.push(node.getEnable(nodes[i]));
+        states.push(AyonHarmonyAPI.isEnabled(nodes[i]));
     }
     return states;
 };
@@ -102,6 +113,8 @@ AyonHarmonyAPI.areEnabled = function(nodes) {
 
 /**
  * Set state on nodes.
+ *
+ * If node is Backdrop it sets same state on all nodes inside
  * @function
  * @param {array} args Array of nodes array and states array.
  */
@@ -113,7 +126,16 @@ AyonHarmonyAPI.setState = function(args) {
         return false;
     }
     for (var i = 0 ; i < nodes.length; i++) {
-        node.setEnable(nodes[i], states[i]);
+        var nodeName = nodes[i];
+	    var backdrop = AyonHarmony._getBackdropByName(nodeName);
+        if (backdrop){
+        	var backdropNodes = Backdrop.nodes(backdrop);
+        	for (var j=0; j < backdropNodes.length; j++){
+				node.setEnable(backdropNodes[j], states[i]);
+			}
+		}else{
+            node.setEnable(nodes[i], states[i]);
+        }
     }
     return true;
 };
@@ -127,7 +149,7 @@ AyonHarmonyAPI.setState = function(args) {
 AyonHarmonyAPI.disableNodes = function(nodes) {
     for (var i = 0 ; i < nodes.length; i++)
     {
-        node.setEnable(nodes[i], false);
+        AyonHarmonyAPI.setState(nodes[i], false);
     }
 };
 
