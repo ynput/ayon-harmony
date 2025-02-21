@@ -131,9 +131,9 @@ AyonHarmonyAPI.setState = function(args) {
         if (backdrop){
         	var backdropNodes = Backdrop.nodes(backdrop);
         	for (var j=0; j < backdropNodes.length; j++){
-				node.setEnable(backdropNodes[j], states[i]);
-			}
-		}else{
+			node.setEnable(backdropNodes[j], states[i]);
+		}
+	}else{
             node.setEnable(nodes[i], states[i]);
         }
     }
