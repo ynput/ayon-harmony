@@ -13,16 +13,10 @@ import ayon_harmony.api as harmony
 
 
 class TemplateLoader(load.LoaderPlugin):
-    """Load Harmony template as container.
-
-    .. todo::
-
-        This must be implemented properly.
-
-    """
+    """Load Harmony template as Backdrop container."""
 
     product_types = {"harmony.template"}
-    representations = {"*"}
+    representations = {"tpl"}
     label = "Load Template"
     icon = "gift"
 
