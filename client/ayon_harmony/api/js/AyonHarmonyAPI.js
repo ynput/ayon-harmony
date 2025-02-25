@@ -64,7 +64,7 @@ AyonHarmonyAPI.getSelectedNodes = function () {
 /**
  * Set selection of nodes.
  * @function
- * @param {array} nodes Arrya containing node paths to add to selection.
+ * @param {array} nodes Array containing node paths to add to selection.
  */
 AyonHarmonyAPI.selectNodes = function(nodes) {
     selection.clearSelection();
@@ -80,8 +80,19 @@ AyonHarmonyAPI.selectNodes = function(nodes) {
  * @param {string} node Node path.
  * @return {boolean} state
  */
-AyonHarmonyAPI.isEnabled = function(node) {
-    return node.getEnable(node);
+AyonHarmonyAPI.isEnabled = function(nodeName) {
+    var backdrop = AyonHarmony._getBackdropByName(nodeName);
+    if (backdrop){
+        var nodes = []
+        nodes = Backdrop.nodes(backdrop);
+        if (nodes){
+            // check only first node, all should be same
+            return node.getEnable(nodes[0]);
+        }
+    }else{
+        return node.getEnable(nodeName);
+    }
+    return false;
 };
 
 
@@ -94,7 +105,7 @@ AyonHarmonyAPI.isEnabled = function(node) {
 AyonHarmonyAPI.areEnabled = function(nodes) {
     var states = [];
     for (var i = 0 ; i < nodes.length; i++) {
-        states.push(node.getEnable(nodes[i]));
+        states.push(AyonHarmonyAPI.isEnabled(nodes[i]));
     }
     return states;
 };
@@ -102,6 +113,8 @@ AyonHarmonyAPI.areEnabled = function(nodes) {
 
 /**
  * Set state on nodes.
+ *
+ * If node is Backdrop it sets same state on all nodes inside
  * @function
  * @param {array} args Array of nodes array and states array.
  */
@@ -113,7 +126,16 @@ AyonHarmonyAPI.setState = function(args) {
         return false;
     }
     for (var i = 0 ; i < nodes.length; i++) {
-        node.setEnable(nodes[i], states[i]);
+        var nodeName = nodes[i];
+	    var backdrop = AyonHarmony._getBackdropByName(nodeName);
+        if (backdrop){
+        	var backdropNodes = Backdrop.nodes(backdrop);
+        	for (var j=0; j < backdropNodes.length; j++){
+			node.setEnable(backdropNodes[j], states[i]);
+		}
+	}else{
+            node.setEnable(nodes[i], states[i]);
+        }
     }
     return true;
 };
@@ -127,7 +149,7 @@ AyonHarmonyAPI.setState = function(args) {
 AyonHarmonyAPI.disableNodes = function(nodes) {
     for (var i = 0 ; i < nodes.length; i++)
     {
-        node.setEnable(nodes[i], false);
+        AyonHarmonyAPI.setState(nodes[i], false);
     }
 };
 
@@ -196,6 +218,52 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
 
 
 /**
+ * Create new Composite node in Harmony.
+ * @function
+ * @param {array} args Arguments, see example.
+ * @return {string} Resulting node.
+ *
+ * @example
+ * // arguments are in following order:
+ * var args = [
+ *  nodeName,
+ *  nodeType,
+ *  useSelection
+ * ];
+ */
+AyonHarmonyAPI.createNodeContainer = function(args) {
+    var nodeName = args[0];
+    var nodeType = args[1];
+    var useSelection = args[2];
+
+    var resultNode = node.add('Top', nodeName, nodeType, 0, 0, 0);
+
+    if (useSelection) {
+        var selectedNodes = selection.selectedNodes();
+        var compositeNodes = [];
+        for (var i = 0; i < selectedNodes.length; i++) {
+            var selectedNodeName = selectedNodes[i];
+            var selectedNode = node.type(selectedNodeName);
+
+            // Check if the node is a composite node
+            if (node.type(selectedNodeName) === "COMPOSITE") { // Make sure to use the correct method to check type
+                compositeNodes.push(selectedNodeName);
+            }
+        }
+
+        if (compositeNodes.length > 0){
+            var lastSelectedNode = compositeNodes[compositeNodes.length-1];
+            node.link(lastSelectedNode, 0, resultNode, 0, false, true);
+            node.setCoord(resultNode,
+                node.coordX(lastSelectedNode),
+                node.coordY(lastSelectedNode) + 70);
+        }
+    }
+    return resultNode;
+};
+
+
+/**
  * Create container backdrop in Harmony.
  * @function
  * @param {array} args Arguments, see example.
@@ -208,7 +276,7 @@ AyonHarmonyAPI.getNodesNamesByType = function(nodeType) {
  *  useSelection
  * ];
  */
-AyonHarmonyAPI.createContainer = function(args) {
+AyonHarmonyAPI.createBackdropContainer = function(args) {
     var backdropName = args[0];
     var useSelection = args[1];
     var selectedBackdrops = selection.selectedBackdrops();

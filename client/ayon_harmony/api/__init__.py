@@ -6,9 +6,6 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 from .pipeline import (
     ls,
     HarmonyHost,
-    list_instances,
-    remove_instance,
-    select_instance,
     containerise,
     set_scene_settings,
     get_current_context_settings,
@@ -33,7 +30,9 @@ from .lib import (
     find_backdrop_by_name,
     signature,
     select_nodes,
-    get_scene_data
+    get_scene_data,
+    set_scene_data,
+    get_all_top_names,
 )
 
 from .workio import (
@@ -49,9 +48,6 @@ __all__ = [
     # pipeline
     "ls",
     "HarmonyHost",
-    "list_instances",
-    "remove_instance",
-    "select_instance",
     "containerise",
     "set_scene_settings",
     "get_current_context_settings",
@@ -76,6 +72,8 @@ __all__ = [
     "signature",
     "select_nodes",
     "get_scene_data",
+    "set_scene_data",
+    "get_all_top_names",
 
     # Workfiles API
     "open_file",

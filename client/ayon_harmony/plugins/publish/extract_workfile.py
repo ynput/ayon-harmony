@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Extract work file."""
 import os
+import platform
 import shutil
 from zipfile import ZipFile
 
@@ -19,7 +20,12 @@ class ExtractWorkfile(publish.Extractor):
         staging_dir = self.staging_dir(instance)
         filepath = os.path.join(staging_dir, "{}.tpl".format(instance.name))
         src = os.path.dirname(instance.context.data["currentFile"])
-        self.log.info("Copying to {}".format(filepath))
+        # handle too long paths on windows
+        current_platform = platform.system().lower()
+        if current_platform == "windows":
+            src = fr"\\?\{src}"
+            filepath = fr"\\?\{filepath}"
+        self.log.info(f"Copying to {filepath}")
         shutil.copytree(src, filepath)
 
         # Prep representation.
