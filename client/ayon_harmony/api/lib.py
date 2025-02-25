@@ -481,6 +481,19 @@ def delete_node(node):
         }
     )
 
+def get_all_top_names() -> set:
+    """Get all top node and backdrop names in the scene.
+
+    Returns:
+        set: Set of top node names.
+    """
+    return set(send({"function": "node.subNodes", "args": ["Top"]})["result"]) | {
+        backdrop["title"]["text"]
+        for backdrop in send({"function": "Backdrop.backdrops", "args": ["Top"]})[
+            "result"
+        ]
+    }
+
 
 def imprint(node_id, data, remove=False):
     """Write `data` to the `node` as json.

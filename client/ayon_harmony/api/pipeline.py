@@ -246,17 +246,31 @@ def is_container_data(data: dict) -> bool:
 def ls():
     """Yields containers from Harmony scene.
 
+    Clean up scene data from orphaned containers.
+
     Yields:
         dict: container
     """
-    objects = harmony.get_scene_data() or {}
-    for _, data in objects.items():
-        if not is_container_data(data):
+    scene_data = harmony.get_scene_data() or dict()
+    all_top_names = harmony.get_all_top_names()
+    cleaned_scene_data = True
+    for entity_name, entity_data in scene_data.copy().items():
+        if not is_container_data(entity_data):
             continue
 
-        if not data.get("objectName"):  # backward compatibility
-            data["objectName"] = data["name"]
-        yield data
+        # Filter orphaned containers
+        if entity_name not in all_top_names:
+            del scene_data[entity_name]
+            cleaned_scene_data = True
+            continue
+
+        if not entity_data.get("objectName"):  # backward compatibility
+            entity_data["objectName"] = entity_data["name"]
+        yield entity_data
+
+    # Update scene data if cleaned
+    if cleaned_scene_data:
+        harmony.set_scene_data(scene_data)
 
 
 def containerise(name,
