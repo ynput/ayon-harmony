@@ -28,6 +28,19 @@ var TemplateLoader = function() {};
  */
 TemplateLoader.prototype.loadContainer = function(templatePath) {
     // Copy from template file
+    MessageLog.trace("loadContainer:: ");
+
+    function splitByLastDelimiter(str, delimiter) {
+        var lastIndex = str.lastIndexOf(delimiter);
+
+        if (lastIndex === -1) {
+            return [str]; // Return the original string if delimiter is not found
+        }
+
+        return [str.substring(0, lastIndex), str.substring(lastIndex + 1)];
+    }
+
+
     var _copyOptions = copyPaste.getCurrentCreateOptions();
     var _tpl = copyPaste.copyFromTemplate(templatePath, 0, 999, _copyOptions);
 
@@ -36,7 +49,7 @@ TemplateLoader.prototype.loadContainer = function(templatePath) {
     pasteOptions.extendScene = true; // TODO does this work?
     copyPaste.pasteNewNodes(_tpl, "Top", pasteOptions);
 
-    // Find main backdrop name
+     // Find main backdrop name
     // The main backdrop is the one with the smallest x + y value (top left corner)
     var selectedBackdrops = selection.selectedBackdrops();
     var mainBackdropName = selectedBackdrops[0].title.text;
@@ -48,6 +61,37 @@ TemplateLoader.prototype.loadContainer = function(templatePath) {
             mainAnchorValue = anchor;
         }
     });
+
+    var allBackdrops = Backdrop.backdrops("Top");
+    var backdropCounts = {};
+    for (var i = 0; i < allBackdrops.length; i++) {
+        var backdropName = allBackdrops[i].title.text;
+        // templateMain > ["templateMain"]
+        // "templateMain_1" > ["templateMain", 1]
+        var splitted = splitByLastDelimiter(backdropName, '_');
+        var count = splitted[1] !== undefined ? splitted[1] : 1;
+        backdropName = splitted[0];
+
+        // If the backdrop name is already in the object, increment its count
+        if (backdropCounts[backdropName]) {
+            backdropCounts[backdropName]++;
+        }
+        // Otherwise, add it to the object with a count of 1
+        else {
+            backdropCounts[backdropName] = count;
+        }
+    }
+	count = backdropCounts[backdropName] !== undefined ? backdropCounts[backdropName] : 1;
+
+    if (count > 1){
+        // count -1 to match imported nodes which start from _1
+        mainBackdropName = mainBackdropName + "_" + (count - 1);
+
+        // new backdrop always at 0
+        allBackdrops[0].title.text = mainBackdropName;
+        Backdrop.setBackdrops("Top", allBackdrops);
+    }
+
     return mainBackdropName;
 };
 
