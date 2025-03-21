@@ -331,3 +331,34 @@ AyonHarmony.getVersion = function() {
         about.getMinorVersion()
     ];
 };
+
+
+/**
+ * Get all palettes in scene.
+ * @function
+ * @return {array} List of palettes paths.
+ */
+AyonHarmony.getAllPalettesPaths = function() {
+    var palettes = $.scene.palettes;
+    var palettesPaths = [];
+    for (var i = 0; i < palettes.length; i++) {
+        palettesPaths.push(palettes[i].path);
+    }
+    return palettesPaths;
+}
+
+/**
+ * Remove palette from scene matching its path.
+ * @function
+ * @param {string} palettePath Path to tpl file.
+ */
+AyonHarmony.removePaletteByPath = function(palettePath) {
+    var palettes = $.scene.palettes;
+    for (var i = 0; i < palettes.length; i++) {
+        MessageLog.trace("Palette path::" + palettes[i].path + " == " + palettePath);
+        if (palettes[i].path == palettePath) {
+            PaletteObjectManager.getScenePaletteList().removePaletteById(palettes[i].id);
+            break;
+        }
+    }
+}

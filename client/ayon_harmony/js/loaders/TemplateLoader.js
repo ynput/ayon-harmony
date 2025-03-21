@@ -66,8 +66,6 @@ TemplateLoader.prototype.loadContainer = function(templatePath) {
     var backdropCounts = {};
     for (var i = 0; i < allBackdrops.length; i++) {
         var backdropName = allBackdrops[i].title.text;
-        // templateMain > ["templateMain"]
-        // "templateMain_1" > ["templateMain", 1]
         var splitted = splitByLastDelimiter(backdropName, '_');
         var count = splitted[1] !== undefined ? splitted[1] : 1;
         backdropName = splitted[0];
