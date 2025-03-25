@@ -334,7 +334,7 @@ AyonHarmony.getVersion = function() {
 
 
 /**
- * Get all palettes in scene.
+ * Get all paths of palettes in scene.
  * @function
  * @return {array} List of palettes paths.
  */
@@ -348,17 +348,62 @@ AyonHarmony.getAllPalettesPaths = function() {
 }
 
 /**
- * Remove palette from scene matching its path.
+ * Get palette by path.
  * @function
- * @param {string} palettePath Path to tpl file.
+ * @param {string} palettePath Path to palette file.
+ * @return {object} Palette object.
  */
-AyonHarmony.removePaletteByPath = function(palettePath) {
+AyonHarmony.getPaletteByPath = function(palettePath) {
     var palettes = $.scene.palettes;
     for (var i = 0; i < palettes.length; i++) {
-        MessageLog.trace("Palette path::" + palettes[i].path + " == " + palettePath);
         if (palettes[i].path == palettePath) {
-            PaletteObjectManager.getScenePaletteList().removePaletteById(palettes[i].id);
-            break;
+            return palettes[i];
         }
     }
 }
+
+/**
+ * Remove palette from scene matching its path.
+ * @function
+ * @param {string} palettePath Path to palette file.
+ * @return {int} Index of removed palette.
+ */
+AyonHarmony.removePaletteByPath = function(palettePath) {
+    var palette = AyonHarmony.getPaletteByPath(palettePath);
+    var paletteIndex = palette.index;
+    if (palette) {
+        PaletteObjectManager.getScenePaletteList().removePaletteById(palette.id);
+    }
+    return paletteIndex;
+}
+
+
+/**
+ * Move palette to index.
+ * @function
+ * @param {array} args  Arguments for template extraction.
+ *
+ * @example
+ * // arguments are in this order:
+ * var args = [palettePath, toIndex];
+ */
+AyonHarmony.movePaletteToIndex = function(args) {
+    var palettePath = args[0];
+    var palette = AyonHarmony.getPaletteByPath(palettePath);
+    var toIndex = args[1];
+    MessageLog.trace("zozo");
+    MessageLog.trace(toIndex + " " + palette.index);
+
+    // Move down
+    if (toIndex < palette.index) {
+        for (var i = palette.index; i > toIndex; i--) {
+            PaletteObjectManager.getScenePaletteList().movePaletteUp(palette.id);
+        }
+    }
+    // Move up
+    else if (toIndex > palette.index) {
+        for (var i = palette.index; i < toIndex; i++) {
+            PaletteObjectManager.getScenePaletteList().movePaletteDown(palette.id);
+        }
+    }
+}   

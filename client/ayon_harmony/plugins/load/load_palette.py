@@ -54,16 +54,31 @@ class LinkPaletteLoader(load.LoaderPlugin):
         )["result"]
         return palette_path
 
-    def remove(self, container):
-        for palette_path in container["nodes"]:
-            harmony.send(
-                {"function": "AyonHarmony.removePaletteByPath", "args": palette_path}
-            )
-            harmony.remove(palette_path)
+    def remove(self, container)->int:
+        """Remove the palette from the scene.
+        
+        Args:
+            container (dict): Container data.
+            
+        Returns:
+            int: Removed palette index.
+        """
+        palette_path = container["nodes"][0]
+        removed_idx = harmony.send(
+            {"function": "AyonHarmony.removePaletteByPath", "args": palette_path}
+        )["result"]
+        harmony.remove(palette_path)
 
+        return removed_idx
+        
     def switch(self, container, context):
-        self.remove(container)
-        self.load(context)
+        palette_idx = self.remove(container)
+        palette_path = self.load(context)
+
+        # Move loaded palette to the index of the removed one
+        harmony.send(
+            {"function": "AyonHarmony.movePaletteToIndex", "args": [palette_path, palette_idx]}
+        )
 
     def update(self, container, context):
         self.switch(container, context)
