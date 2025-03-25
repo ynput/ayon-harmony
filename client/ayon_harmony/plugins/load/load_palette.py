@@ -8,7 +8,7 @@ from ayon_core.pipeline import (
 import ayon_harmony.api as harmony
 
 
-class LinkPalette(load.LoaderPlugin):
+class LinkPaletteLoader(load.LoaderPlugin):
     """Link a palette.
 
     Link the palette to the scene.
@@ -69,7 +69,7 @@ class LinkPalette(load.LoaderPlugin):
         self.switch(container, context)
 
 
-class ImportPalette(LinkPalette):
+class ImportPaletteLoader(LinkPaletteLoader):
     """Import a palette.
 
     Copy the palette to the scene directory and link it.
