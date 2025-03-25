@@ -252,15 +252,14 @@ def ls():
         dict: container
     """
     scene_data = harmony.get_scene_data() or dict()
-    all_top_names = harmony.get_all_top_names()
-    palettes_paths = harmony.get_palettes_paths()
+    containers_names = harmony.get_all_top_names() | harmony.get_palettes_paths()
     cleaned_scene_data = True
     for entity_name, entity_data in scene_data.copy().items():
         if not is_container_data(entity_data):
             continue
 
         # Filter orphaned containers
-        if entity_name not in all_top_names | palettes_paths:
+        if entity_name not in containers_names:
             del scene_data[entity_name]
             cleaned_scene_data = True
             continue
