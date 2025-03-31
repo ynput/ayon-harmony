@@ -3,7 +3,6 @@
 from pathlib import Path
 import tempfile
 import zipfile
-import os
 import shutil
 
 from ayon_core.pipeline import (
