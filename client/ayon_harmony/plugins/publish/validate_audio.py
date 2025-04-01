@@ -4,10 +4,10 @@ import pyblish.api
 
 import ayon_harmony.api as harmony
 
-from ayon_core.pipeline import PublishXmlValidationError
+from ayon_core.pipeline import OptionalPyblishPluginMixin, PublishXmlValidationError
 
 
-class ValidateAudio(pyblish.api.InstancePlugin):
+class ValidateAudio(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
     """Ensures that there is an audio file in the scene.
 
     If you are sure that you want to send render without audio, you can
@@ -22,32 +22,20 @@ class ValidateAudio(pyblish.api.InstancePlugin):
     optional = True
 
     def process(self, instance):
+        if not self.is_active(instance.data):
+            return
+
         node = None
         if instance.data.get("setMembers"):
             node = instance.data["setMembers"][0]
 
         if not node:
             return
-        # Collect scene data.
-        func = """function func(write_node)
-        {
-            return [
-                sound.getSoundtrackAll().path()
-            ]
-        }
-        func
-        """
-        result = harmony.send(
-            {"function": func, "args": [node]}
+        
+        audio_path = harmony.send(
+            {"function": "AyonHarmony.getSceneSoundtrackPath"}
         )["result"]
 
-        audio_path = result[0]
-
-        msg = "You are missing audio file:\n{}".format(audio_path)
-
-        formatting_data = {
-            "audio_url": audio_path
-        }
         if not os.path.isfile(audio_path):
-            raise PublishXmlValidationError(self, msg,
-                                            formatting_data=formatting_data)
+            raise PublishXmlValidationError(self, "No sound file found in the scene.")
+        

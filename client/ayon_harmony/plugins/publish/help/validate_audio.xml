@@ -3,13 +3,14 @@
 <error id="main">
 <title>Missing audio file</title>
 <description>
-## Cannot locate linked audio file
+## No audio file found in scene
 
-Audio file at {audio_url} cannot be found.
+The scene doesn't contain any audio file.
 
 ### How to repair?
 
-Copy audio file to the highlighted location or remove audio link in the workfile.
+Load or import sound file in scene.
+
 </description>
 </error>
 </root>
