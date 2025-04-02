@@ -1,5 +1,3 @@
-import os
-
 import pyblish.api
 
 import ayon_harmony.api as harmony
