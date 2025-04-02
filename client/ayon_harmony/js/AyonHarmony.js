@@ -331,20 +331,3 @@ AyonHarmony.getVersion = function() {
         about.getMinorVersion()
     ];
 };
-
-
-/**
- * Get sound track path of scene.
- * @function
- * @return {string} Sound track path.
- * 
- * If any sound column, it will export the sound track mixdown.
- */
-AyonHarmony.getSceneSoundtrackPath = function() {
-    var soundcols = column.getColumnListOfType("SOUND");
-    if (soundcols.length > 0) {
-        return sound.getSoundtrackAll().path();
-    } else {
-        return "";
-    }
-}

@@ -3,9 +3,9 @@
 <error id="main">
 <title>Missing audio file</title>
 <description>
-## No audio file found in scene
+## No audio file imported in scene
 
-The scene doesn't contain any audio file.
+The scene doesn't contain any sound column.
 
 ### How to repair?
 

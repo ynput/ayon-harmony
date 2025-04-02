@@ -32,10 +32,10 @@ class ValidateAudio(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
         if not node:
             return
         
-        audio_path = harmony.send(
-            {"function": "AyonHarmony.getSceneSoundtrackPath"}
+        sound_cols = harmony.send(
+            {"function": "column.getColumnListOfType", "args": "SOUND"}
         )["result"]
 
-        if not os.path.isfile(audio_path):
-            raise PublishXmlValidationError(self, "No sound file found in the scene.")
+        if not sound_cols:
+            raise PublishXmlValidationError(self, "No sound file imported in scene.")
         
