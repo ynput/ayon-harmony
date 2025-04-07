@@ -45,6 +45,8 @@ from .workio import (
     work_root
 )
 
+from .base_loaders import BackdropBaseLoader
+
 __all__ = [
     # pipeline
     "ls",
@@ -84,5 +86,8 @@ __all__ = [
     "has_unsaved_changes",
     "file_extensions",
     "work_root",
+
+    # Loaders
+    "BackdropBaseLoader",
 ]
 
