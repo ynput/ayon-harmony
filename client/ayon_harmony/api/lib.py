@@ -495,6 +495,15 @@ def get_all_top_names() -> set:
     }
 
 
+def get_palettes_paths() -> set:
+    """Get all palettes paths in the scene.
+
+    Returns:
+        set: Set of palettes paths.
+    """
+    return {pal["_path"] for pal in send({"function": "AyonHarmony.getAllPalettesPaths"})["result"]}
+
+
 def imprint(node_id, data, remove=False):
     """Write `data` to the `node` as json.
 
