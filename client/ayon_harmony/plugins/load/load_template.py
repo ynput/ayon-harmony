@@ -106,19 +106,3 @@ class TemplateLoader(load.LoaderPlugin):
         )
 
         return container
-
-    def _set_green(self, node): # TODO refactor for backdrop
-        """Set node color to green `rgba(0, 255, 0, 255)`."""
-        harmony.send(
-            {
-                "function": "AyonHarmony.setColor",
-                "args": [node, [0, 255, 0, 255]]
-            })
-
-    def _set_red(self, node): # TODO refactor for backdrop
-        """Set node color to red `rgba(255, 0, 0, 255)`."""
-        harmony.send(
-            {
-                "function": "AyonHarmony.setColor",
-                "args": [node, [255, 0, 0, 255]]
-            })
