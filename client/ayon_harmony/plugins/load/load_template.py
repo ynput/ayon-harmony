@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Load template."""
+from pathlib import Path
 import tempfile
 import zipfile
-import os
 import shutil
 
 from ayon_core.pipeline import (
@@ -34,14 +34,15 @@ class TemplateLoader(load.LoaderPlugin):
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
         zip_file = get_representation_path(context["representation"])
-        template_path = os.path.join(temp_dir)
+
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
-            zip_ref.extractall(template_path)
+            zip_ref.extractall(temp_dir)
 
         backdrop_name = harmony.send(
             {
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
-                "args": os.path.join(template_path, "harmony.tpl")
+                # Published tpl name is not consistent, use first found, must be only one
+                "args": next(Path(temp_dir).glob("*.tpl")).as_posix(),
             }
         )["result"]
 
