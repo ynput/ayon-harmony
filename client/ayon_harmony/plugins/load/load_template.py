@@ -6,13 +6,12 @@ import zipfile
 import shutil
 
 from ayon_core.pipeline import (
-    load,
     get_representation_path,
 )
 import ayon_harmony.api as harmony
 
 
-class TemplateLoader(load.LoaderPlugin):
+class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
 
     product_types = {"harmony.template"}
@@ -57,52 +56,3 @@ class TemplateLoader(load.LoaderPlugin):
             context,
             self_name
         )
-    
-    def remove(self, container):
-        """Remove container.
-
-        Args:
-            container (dict): container definition.
-        """
-        container_backdrop = harmony.find_backdrop_by_name(container["name"])
-        harmony.send(
-            {"function": "AyonHarmony.removeBackdropWithContents", "args": container_backdrop}
-        )
-        harmony.remove(container["name"])
-
-    def update(self, container, context):
-        """Update loaded containers.
-
-        Args:
-            container (dict): Container data.
-            context (dict): Representation context data.
-
-        """
-        return self.switch(container, context)
-
-    def switch(self, container, context):
-        """Switch representation containers."""
-        backdrop_name = container["name"]
-        backdrop = harmony.find_backdrop_by_name(backdrop_name)
-
-        # Keep backdrop links
-        backdrop_links = harmony.send(
-            {
-                "function": "AyonHarmony.getBackdropLinks",
-                "args": backdrop,
-            }
-        )["result"]
-
-        # Replace template container
-        self.remove(container)  # Before load to avoid node name incrementation
-        container = self.load(context, container["name"], container["namespace"])
-
-        # Restore backdrop links
-        harmony.send(
-            {
-                "function": "AyonHarmony.setNodesLinks",
-                "args": backdrop_links
-            }
-        )
-
-        return container
