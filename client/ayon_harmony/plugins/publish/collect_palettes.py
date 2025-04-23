@@ -25,6 +25,7 @@ class CollectPalettes(pyblish.api.ContextPlugin):
         palettes = harmony.send(
             {
                 "function": f"AyonHarmony.Publish.{self_name}.getPalettes",
+                "args": True,
             })["result"]
 
         # skip collecting if not in allowed task
@@ -32,6 +33,10 @@ class CollectPalettes(pyblish.api.ContextPlugin):
             task_name = context.data["anatomyData"]["task"]["name"].lower()
             if (not any([re.search(pattern, task_name)
                          for pattern in self.allowed_tasks])):
+                self.log.info(
+                    "Skipping collecting palettes, task is not in allowed tasks: "
+                    f"{self.allowed_tasks}"
+                )
                 return
         folder_path = context.data["folderPath"]
 
