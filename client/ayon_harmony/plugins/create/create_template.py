@@ -18,7 +18,7 @@ class CreateTemplate(plugin.HarmonyCreator):
         args = [name, pre_create_data.get("use_selection") ]
         backdrop = harmony.send(
             {
-                "function": "AyonHarmonyAPI.createBackdropContainer",
+                "function": "AyonHarmony.createBackdropContainer",
                 "args": args
             }
         )["result"]
