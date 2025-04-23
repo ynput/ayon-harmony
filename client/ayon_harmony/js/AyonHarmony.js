@@ -221,6 +221,69 @@ AyonHarmony.getBackdropLinks = function(backdrop) {
     return nodesLinks;
 };
 
+
+/**
+ * Create container backdrop in Harmony.
+ * @function
+ * @param {array} args Arguments, see example.
+ * @return {string} Resulting backdrop.
+ *
+ * @example
+ * // arguments are in following order:
+ * var args = [
+ *  backdropName,
+ *  useSelection
+ * ];
+ */
+AyonHarmony.createBackdropContainer = function(args) {
+    var backdropName = args[0];
+    var useSelection = args[1];
+    var selectedBackdrops = selection.selectedBackdrops();
+
+    if (useSelection && selectedBackdrops.length > 0) {
+        // Rename root backdrop of selection
+        // Sh*tty harmony API forces to rewrite all backdrops
+        var rootBackdrop = AyonHarmony.getRootBackdrop(selectedBackdrops);
+        var allBackdrops = Backdrop.backdrops("Top");
+        var selectedBackdropIdx = allBackdrops.map(function(b) { return b.title.text; }).indexOf(rootBackdrop.title.text);
+        allBackdrops[selectedBackdropIdx].title.text = backdropName;
+        Backdrop.setBackdrops("Top", allBackdrops);
+        return allBackdrops[selectedBackdropIdx];
+    } else {
+        // Create new backdrop
+        return Backdrop.addBackdrop(
+            "Top",
+            {
+                "position"    : {"x": 0, "y" :0, "w":300, "h":300},
+                "title"       : {"text" : backdropName, "size" : 14, "font" : "Arial"},
+                // "color"       : TODO
+            }
+        );
+    }
+};
+
+
+/**
+ * Get root backdrop.
+ * The root backdrop is the backdrop that contains all other backdrops.
+ * @function
+ * @param {array} backdrops List of backdrops.
+ * @return {object} Root backdrop.
+ */
+AyonHarmony.getRootBackdrop = function(backdrops) {
+    // Sort backdrops by x, y position and width, height
+    backdrops.sort(function(a, b) {
+        if (a.position.x != b.position.x) return a.position.x - b.position.x;
+        if (a.position.y != b.position.y) return a.position.y - b.position.y;
+        if (a.position.w != b.position.w) return a.position.w - b.position.w;
+        if (a.position.h != b.position.h) return a.position.h - b.position.h;
+        return 0;
+    });
+
+    return backdrops[0];
+}
+
+
 /**
  * Set nodes links.
  * @function

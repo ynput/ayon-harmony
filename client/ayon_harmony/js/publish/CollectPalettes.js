@@ -13,16 +13,30 @@ if (typeof AyonHarmony === 'undefined') {
 
 /**
  * @namespace
- * @classdesc Image Sequence loader JS code.
+ * @classdesc CollectPalettes JS code.
  */
 var CollectPalettes = function() {};
 
-CollectPalettes.prototype.getPalettes = function() {
+/**
+ * Get palettes from Harmony.
+ * @function
+ * @param {boolean} [local_only=false] If true, only local palettes will be returned.
+ * @return {object} Object with palette names and ids.
+ */
+CollectPalettes.prototype.getPalettes = function(local_only) {
+    if (typeof local_only === 'undefined') var local_only = false;
+
     var palette_list = PaletteObjectManager.getScenePaletteList();
 
     var palettes = {};
     for(var i=0; i < palette_list.numPalettes; ++i) {
         var palette = palette_list.getPaletteByIndex(i);
+        
+        // if local_only is true, skip external palettes
+        if (local_only && palette.location == PaletteObjectManager.Constants.Location.EXTERNAL) {
+            continue;
+        }
+        
         palettes[palette.getName()] = palette.id;
     }
 
