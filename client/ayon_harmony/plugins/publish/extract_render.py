@@ -118,23 +118,30 @@ class ExtractRender(pyblish.api.InstancePlugin):
 
         # Generate representations.
         extension = collection.tail[1:]
+        files = list(collection)
+        is_image_sequence = len(files) > 1
         representation = {
             "name": extension,
             "ext": extension,
-            "files": list(collection),
+            "files": files if is_image_sequence else files[0],
             "stagingDir": path,
             "tags": ["review"],
             "fps": frame_rate
         }
+        representations = [representation]
 
-        thumbnail = {
-            "name": "thumbnail",
-            "ext": "png",
-            "files": os.path.basename(thumbnail_path),
-            "stagingDir": path,
-            "tags": ["thumbnail"]
-        }
-        instance.data["representations"] = [representation, thumbnail]
+        # Add thumbnail if it's an image sequence
+        if is_image_sequence:
+            thumbnail = {
+                "name": "thumbnail",
+                "ext": "png",
+                "files": os.path.basename(thumbnail_path),
+                "stagingDir": path,
+                "tags": ["thumbnail"]
+            }
+            representations.append(thumbnail)
+        
+        instance.data["representations"] = representations
 
         if audio_path and os.path.exists(audio_path):
             instance.data["audio"] = [{"filename": audio_path}]
