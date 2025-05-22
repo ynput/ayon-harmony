@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Base collector for Harmony renders."""
-import attr
 from pathlib import Path
 
 from ayon_core.lib.dateutils import get_formatted_current_time
