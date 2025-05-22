@@ -41,6 +41,7 @@ class ValidateInstance(pyblish.api.InstancePlugin):
     hosts = ["harmony"]
     actions = [ValidateInstanceRepair]
     order = ValidateContentsOrder
+    optional = True
 
     def process(self, instance):
         instance_folder_path = instance.data["folderPath"]
