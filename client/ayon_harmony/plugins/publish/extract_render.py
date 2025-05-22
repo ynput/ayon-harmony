@@ -25,9 +25,8 @@ class ExtractRender(pyblish.api.InstancePlugin):
         application_path = instance.context.data.get("applicationPath")
         scene_path = instance.context.data.get("scenePath")
         frame_rate = instance.context.data.get("frameRate")
-        # real value from timeline
-        frame_start = instance.context.data.get("frameStartHandle")
-        frame_end = instance.context.data.get("frameEndHandle")
+        frame_start = instance.data.get("frameStart")
+        frame_end = instance.data.get("frameEnd")
         audio_path = instance.context.data.get("audioPath")
 
         if audio_path and os.path.exists(audio_path):
@@ -84,13 +83,6 @@ class ExtractRender(pyblish.api.InstancePlugin):
                 instance.data["setMembers"][0], remainder
             )
         )
-        self.log.debug(collections)
-        if len(collections) > 1:
-            for col in collections:
-                if len(list(col)) > 1:
-                    collection = col
-        else:
-            collection = collections[0]
 
         # Generate thumbnail.
         thumbnail_path = os.path.join(path, "thumbnail.png")
@@ -116,7 +108,22 @@ class ExtractRender(pyblish.api.InstancePlugin):
 
         self.log.debug(output.decode("utf-8", errors="backslashreplace"))
 
-        # Generate representations.
+        # Consider the collection with the most files as the render
+        # Others could be thumbnails
+        self.log.debug(f"collections: {collections}")
+        if len(collections) > 1:
+            for col in reversed(collections):
+                if len(list(col)) > 1:
+                    collection = col
+                    break
+            else:
+                # If no collection has more than 1 file, use the last one
+                collection = collections[-1]
+        else:
+            # If there is only one collection, use it
+            collection = collections[0]
+
+        # Generate representations
         extension = collection.tail[1:]
         representation = {
             "name": extension,
