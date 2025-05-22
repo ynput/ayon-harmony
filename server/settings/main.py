@@ -59,6 +59,11 @@ DEFAULT_HARMONY_SETTING = {
             "frame_check_filter": [],
             "skip_resolution_check": [],
             "skip_timelines_check": []
+        },
+        "ValidateInstances": {
+            "enabled": True,
+            "optional": True,
+            "active": True
         }
     }
 }
