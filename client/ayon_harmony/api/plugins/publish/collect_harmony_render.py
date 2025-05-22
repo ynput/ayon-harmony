@@ -67,7 +67,7 @@ class CollectHarmonyRender(publish.AbstractCollectRender):
                 continue
 
             info = harmony.send(
-                {"function": f"AyonHarmony.getRenderNodeSettings", "args": node}
+                {"function": "AyonHarmony.getRenderNodeSettings", "args": node}
             )["result"]
 
             render_instance = self.create_render_instance(
