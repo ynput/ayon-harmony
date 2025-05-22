@@ -201,7 +201,7 @@ class CollectHarmonyRender(publish.AbstractCollectRender):
 
         # 0 - filename / 1 - type / 2 - zeros / 3 - start
         info = harmony.send(
-            {"function": f"AyonHarmony.getRenderNodeSettings", "args": node}
+            {"function": "AyonHarmony.getRenderNodeSettings", "args": node}
         )["result"]
 
         ext = None
