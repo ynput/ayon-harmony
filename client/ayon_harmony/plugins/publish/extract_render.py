@@ -108,9 +108,12 @@ class ExtractRender(pyblish.api.InstancePlugin):
 
         self.log.debug(output.decode("utf-8", errors="backslashreplace"))
 
-        # Consider the collection with the most files as the render
-        # Others could be thumbnails
-        self.log.debug(f"collections: {collections}")
+        # Select the main render collection:
+        # 1. Iterate collections in reverse order (prioritizes later outputs)
+        # 2. Choose first collection with multiple files
+        # 3. If none have multiple files, use the last collection
+        # This ensures thumbnails/previews don't override main renders
+        self.log.debug(f"available collections: {collections}")
         if len(collections) > 1:
             for col in reversed(collections):
                 if len(col.indexes) > 1:
@@ -122,6 +125,8 @@ class ExtractRender(pyblish.api.InstancePlugin):
         else:
             # If there is only one collection, use it
             collection = collections[0]
+
+        self.log.debug(f"Selected collection: {collection} with {len(collection.indexes)} files")
 
         # Generate representations
         extension = collection.tail[1:]
