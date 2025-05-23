@@ -49,47 +49,44 @@ class CollectHarmonyRender(publish.AbstractCollectRender):
         folder_path = context.data["folderPath"]
         instances = []
 
-        for inst in context:
+        for instance in context:
             # Check if instance should be processed
-            if not self.check_process_instance(inst):
+            if not self.check_process_instance(instance):
                 continue
 
-            # Get node from either transientData or setMembers
-            node = None
-            if "transientData" in inst.data:
-                node = inst.data["transientData"]["node"]
-            elif "setMembers" in inst.data and inst.data["setMembers"]:
-                node = inst.data["setMembers"][0]
+            # Get creator attributes for render target
+            creator_attributes = instance.data.get("creator_attributes", {})
+            render_target = creator_attributes.get("render_target", "default")
 
-            if not node:
-                self.log.warning(f"Instance {inst.name} has no node data, skipping...")
-                continue
+            # Create families list
+            families = ["render", f"render.{render_target}", "review"]
 
-            info = harmony.send(
-                {"function": "AyonHarmony.getRenderNodeSettings", "args": node}
-            )["result"]
-
+            # Create render instance
             render_instance = self.create_render_instance(
                 context=context,
-                source_instance=inst,
-                node=node,
+                source_instance=instance,
+                node=instance.data["transientData"]["node"],
                 version=version,
                 folder_path=folder_path,
-                frame_start=inst.data.get("frameStart"),
-                frame_end=inst.data.get("frameEnd"),
-                handle_start=inst.data.get("handleStart", 0),
-                handle_end=inst.data.get("handleEnd", 0),
-                product_name=inst.data["name"],
-                product_type=inst.data["productType"],
-                task=inst.data.get("task"),
-                families=inst.data.get("families"),
-                output_format=info[1],
-                leading_zeros=info[2],
-                output_start_frame=info[3],
-                enable=info[4],
+                frame_start=instance.data.get(
+                    "frameStart", context.data.get("frameStart")
+                ),
+                frame_end=instance.data.get("frameEnd", context.data.get("frameEnd")),
+                handle_start=instance.data.get(
+                    "handleStart", context.data.get("handleStart")
+                ),
+                handle_end=instance.data.get(
+                    "handleEnd", context.data.get("handleEnd")
+                ),
+                product_name=instance.data["productName"],
+                product_type="render",
+                task=instance.data.get("task"),
+                families=families,
             )
 
             if render_instance:
+                self.log.debug(f"Creating render instance: {render_instance}")
+
                 instances.append(render_instance)
 
         return instances
