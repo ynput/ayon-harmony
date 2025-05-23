@@ -14,7 +14,7 @@ class ValidateAudioPlugin(BaseSettingsModel):
     """Check if scene contains audio track."""  #
     _isGroup = True
     enabled: bool = True
-    optional: bool = SettingsField(False, title="Optional")
+    optional: bool = SettingsField(True, title="Optional")
     active: bool = SettingsField(True, title="Active")
 
 

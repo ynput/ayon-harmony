@@ -48,17 +48,17 @@ class ValidateInstance(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
             return
 
         instance_folder_path = instance.data["folderPath"]
-        current_colder_path = get_current_folder_path()
+        current_folder_path = get_current_folder_path()
         msg = (
             "Instance folder is not the same as current folder:"
             f"\nInstance: {instance_folder_path}]"
-            f"\nCurrent: {current_colder_path}"
+            f"\nCurrent: {current_folder_path}"
         )
 
         formatting_data = {
             "found": instance_folder_path,
-            "expected": current_colder_path
+            "expected": current_folder_path
         }
-        if instance_folder_path != current_colder_path:
+        if instance_folder_path != current_folder_path:
             raise PublishXmlValidationError(self, msg,
                                             formatting_data=formatting_data)
