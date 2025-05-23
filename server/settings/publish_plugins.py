@@ -14,7 +14,7 @@ class ValidateAudioPlugin(BaseSettingsModel):
     """Check if scene contains audio track."""  #
     _isGroup = True
     enabled: bool = True
-    optional: bool = SettingsField(False, title="Optional")
+    optional: bool = SettingsField(True, title="Optional")
     active: bool = SettingsField(True, title="Active")
 
 
@@ -43,6 +43,13 @@ class ValidateSceneSettingsPlugin(BaseSettingsModel):
     )
 
 
+class ValidateInstancePlugin(BaseSettingsModel):
+    """Validate if instance folder is the current folder."""
+    enabled: bool = True
+    optional: bool = SettingsField(False, title="Optional")
+    active: bool = SettingsField(True, title="Active")
+
+
 class HarmonyPublishPlugins(BaseSettingsModel):
 
     CollectPalettes: CollectPalettesPlugin = SettingsField(
@@ -58,4 +65,9 @@ class HarmonyPublishPlugins(BaseSettingsModel):
     ValidateSceneSettings: ValidateSceneSettingsPlugin = SettingsField(
         title="Validate Scene Settings",
         default_factory=ValidateSceneSettingsPlugin,
+    )
+
+    ValidateInstance: ValidateInstancePlugin = SettingsField(
+        title="Validate Instance",
+        default_factory=ValidateInstancePlugin,
     )
