@@ -113,7 +113,7 @@ class ExtractRender(pyblish.api.InstancePlugin):
         self.log.debug(f"collections: {collections}")
         if len(collections) > 1:
             for col in reversed(collections):
-                if len(list(col)) > 1:
+                if len(col.indexes) > 1:
                     collection = col
                     break
             else:
