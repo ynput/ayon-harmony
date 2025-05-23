@@ -1,7 +1,7 @@
 import pyblish.api
 
 import ayon_harmony.api as harmony
-from ayon_core.pipeline import get_current_folder_path
+from ayon_core.pipeline import get_current_folder_path, OptionalPyblishPluginMixin
 from ayon_core.pipeline.publish import (
     ValidateContentsOrder,
     PublishXmlValidationError,
@@ -34,7 +34,7 @@ class ValidateInstanceRepair(pyblish.api.Action):
             harmony.imprint(instance.data["setMembers"][0], data)
 
 
-class ValidateInstance(pyblish.api.InstancePlugin):
+class ValidateInstance(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
     """Validate the instance folder is the current folder."""
 
     label = "Validate Instance"
@@ -44,6 +44,9 @@ class ValidateInstance(pyblish.api.InstancePlugin):
     optional = True
 
     def process(self, instance):
+        if not self.is_active(instance.data):
+            return
+
         instance_folder_path = instance.data["folderPath"]
         current_colder_path = get_current_folder_path()
         msg = (
