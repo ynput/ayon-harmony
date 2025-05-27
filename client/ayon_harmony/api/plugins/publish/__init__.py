@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Publish plugins package.""" 
 
-from .collect_harmony_render import CollectHarmonyRender
+from .render import CollectRenderBase
 
 __all__ = [
-    "CollectHarmonyRender",
+    "CollectRenderBase",
 ]

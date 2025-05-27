@@ -7,7 +7,7 @@ from ayon_core.pipeline import publish
 import ayon_harmony.api as harmony
 
 
-class CollectHarmonyRender(publish.AbstractCollectRender):
+class CollectRenderBase(publish.AbstractCollectRender):
     """Base collector for Harmony renders."""
 
     # https://docs.toonboom.com/help/harmony-17/premium/reference/node/output/write-node-image-formats.html

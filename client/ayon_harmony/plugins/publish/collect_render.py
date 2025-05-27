@@ -6,7 +6,7 @@ import pyblish.api
 from ayon_harmony.api.plugins import publish
 
 
-class CollectRender(publish.CollectHarmonyRender):
+class CollectRender(publish.CollectRenderBase):
     """Collect render instances from Harmony.
 
     Create regular render instances based on the ones created within the publisher.
@@ -18,7 +18,7 @@ class CollectRender(publish.CollectHarmonyRender):
     families = ["render"]
 
 
-class CollectFarmRender(publish.CollectHarmonyRender):
+class CollectFarmRender(publish.CollectRenderBase):
     """Collect farm renders."""
 
     label = "Collect Farm Render"
