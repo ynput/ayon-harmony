@@ -15,7 +15,7 @@ class CollectRender(publish.CollectHarmonyRender):
     label = "Collect Render Instances"
     order = pyblish.api.CollectorOrder + 0.01
     hosts = ["harmony"]
-    families = ["render"]
+    families = ["render.local"]
 
 
 class CollectFarmRender(publish.CollectHarmonyRender):
