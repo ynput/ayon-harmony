@@ -14,7 +14,7 @@ class ValidateAudio(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
 
     order = pyblish.api.ValidatorOrder
     label = "Validate Audio"
-    families = ["render"]
+    families = ["render.local", "render.farm"]
     hosts = ["harmony"]
     settings_category = "harmony"
     optional = True

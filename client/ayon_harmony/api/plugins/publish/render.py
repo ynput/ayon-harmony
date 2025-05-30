@@ -65,7 +65,7 @@ class CollectRenderBase(publish.AbstractCollectRender):
             render_instance = self.create_render_instance(
                 context=context,
                 source_instance=instance,
-                node=instance.data["transientData"]["node"],
+                node=instance.data["setMembers"][0],
                 version=version,
                 folder_path=folder_path,
                 frame_start=instance.data.get(
@@ -148,9 +148,6 @@ class CollectRenderBase(publish.AbstractCollectRender):
         Returns:
             RenderInstance: Created render instance
         """
-        self.log.debug(
-            f"Creating render instance for {product_name} with frame_start: {frame_start}, frame_end: {frame_end}, handle_start: {handle_start}, handle_end: {handle_end}"
-        )
         return publish.RenderInstance(
             version=version,
             time=get_formatted_current_time(),
