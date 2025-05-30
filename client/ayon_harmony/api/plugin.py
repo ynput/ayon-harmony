@@ -175,6 +175,8 @@ class HarmonyRenderCreator(HarmonyCreator):
 
     It creates new Composite type node from which it is rendered.
     """
+    product_type = "render"
+    
     node_type = "COMPOSITE"
     # should node be auto connected to main Composite node for Harmony Advanced
     auto_connect = False
@@ -185,6 +187,12 @@ class HarmonyRenderCreator(HarmonyCreator):
         "local": "Local machine rendering",
         "farm": "Farm rendering",
     }
+
+    def create(self, product_name, instance_data, pre_create_data):
+        # Specify product type from render target
+        self.product_type = f"render.{pre_create_data['render_target']}"
+
+        super().create(product_name, instance_data, pre_create_data)
 
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         existing_node_names = harmony.send(
