@@ -15,13 +15,13 @@ class ExtractRender(pyblish.api.InstancePlugin):
     """
 
     label = "Extract Render"
-    order = pyblish.api.ExtractorOrder
+    order = order = pyblish.api.ExtractorOrder - 0.0001 # TODO remove decrement after ayon-core ExtractThumbnailFromSource is set later
     hosts = ["harmony"]
     families = ["render.local"]
 
     def process(self, instance):
         # Collect scene data.
-
+        self.log.info("updat")
         application_path = instance.context.data.get("applicationPath")
         scene_path = instance.context.data.get("scenePath")
         frame_rate = instance.context.data.get("frameRate")
@@ -92,29 +92,8 @@ class ExtractRender(pyblish.api.InstancePlugin):
         else:
             collection = collections[0]
 
-        # Generate thumbnail.
-        thumbnail_path = os.path.join(path, "thumbnail.png")
-        args = ayon_core.lib.get_ffmpeg_tool_args(
-            "ffmpeg",
-            "-y",
-            "-i", os.path.join(path, list(collections[0])[0]),
-            "-vf", "scale=300:-1",
-            "-vframes", "1",
-            thumbnail_path
-        )
-        process = subprocess.Popen(
-            args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            stdin=subprocess.PIPE
-        )
-
-        output = process.communicate()[0]
-
-        if process.returncode != 0:
-            raise ValueError(output.decode("utf-8", errors="backslashreplace"))
-
-        self.log.debug(output.decode("utf-8", errors="backslashreplace"))
+        thumbnail_source = os.path.join(path, list(collections[0])[0])
+        instance.data["thumbnailSource"] = thumbnail_source
 
         # Generate representations.
         extension = collection.tail[1:]
@@ -128,17 +107,6 @@ class ExtractRender(pyblish.api.InstancePlugin):
             "fps": frame_rate
         }
         representations = [representation]
-
-        # Add thumbnail if it's an image sequence
-        thumbnail = {
-            "name": "thumbnail",
-            "ext": "png",
-            "files": os.path.basename(thumbnail_path),
-            "stagingDir": path,
-            "tags": ["thumbnail"],
-            "outputName": "thumbnail"
-        }
-        representations.append(thumbnail)
         
         instance.data["representations"] = representations
 
