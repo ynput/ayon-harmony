@@ -21,7 +21,6 @@ class ExtractRender(pyblish.api.InstancePlugin):
 
     def process(self, instance):
         # Collect scene data.
-        self.log.info("updat")
         application_path = instance.context.data.get("applicationPath")
         scene_path = instance.context.data.get("scenePath")
         frame_rate = instance.context.data.get("frameRate")
