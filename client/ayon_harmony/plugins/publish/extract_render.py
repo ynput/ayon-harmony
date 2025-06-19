@@ -15,13 +15,12 @@ class ExtractRender(pyblish.api.InstancePlugin):
     """
 
     label = "Extract Render"
-    order = pyblish.api.ExtractorOrder
+    order = pyblish.api.ExtractorOrder - 0.0001 # TODO remove decrement after ayon-core ExtractThumbnailFromSource is set later
     hosts = ["harmony"]
     families = ["render.local"]
 
     def process(self, instance):
         # Collect scene data.
-
         application_path = instance.context.data.get("applicationPath")
         scene_path = instance.context.data.get("scenePath")
         frame_rate = instance.context.data.get("frameRate")
@@ -92,49 +91,23 @@ class ExtractRender(pyblish.api.InstancePlugin):
         else:
             collection = collections[0]
 
-        # Generate thumbnail.
-        thumbnail_path = os.path.join(path, "thumbnail.png")
-        args = ayon_core.lib.get_ffmpeg_tool_args(
-            "ffmpeg",
-            "-y",
-            "-i", os.path.join(path, list(collections[0])[0]),
-            "-vf", "scale=300:-1",
-            "-vframes", "1",
-            thumbnail_path
-        )
-        process = subprocess.Popen(
-            args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            stdin=subprocess.PIPE
-        )
-
-        output = process.communicate()[0]
-
-        if process.returncode != 0:
-            raise ValueError(output.decode("utf-8", errors="backslashreplace"))
-
-        self.log.debug(output.decode("utf-8", errors="backslashreplace"))
+        thumbnail_source = os.path.join(path, list(collections[0])[0])
+        instance.data["thumbnailSource"] = thumbnail_source
 
         # Generate representations.
         extension = collection.tail[1:]
+        files = list(collection)
         representation = {
             "name": extension,
             "ext": extension,
-            "files": list(collection),
+            "files": files if len(files) > 1 else files[0],
             "stagingDir": path,
             "tags": ["review"],
             "fps": frame_rate
         }
-
-        thumbnail = {
-            "name": "thumbnail",
-            "ext": "png",
-            "files": os.path.basename(thumbnail_path),
-            "stagingDir": path,
-            "tags": ["thumbnail"]
-        }
-        instance.data["representations"] = [representation, thumbnail]
+        representations = [representation]
+        
+        instance.data["representations"] = representations
 
         if audio_path and os.path.exists(audio_path):
             instance.data["audio"] = [{"filename": audio_path}]
