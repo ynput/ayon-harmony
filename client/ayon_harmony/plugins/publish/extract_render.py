@@ -24,9 +24,8 @@ class ExtractRender(pyblish.api.InstancePlugin):
         application_path = instance.context.data.get("applicationPath")
         scene_path = instance.context.data.get("scenePath")
         frame_rate = instance.context.data.get("frameRate")
-        # real value from timeline
-        frame_start = instance.context.data.get("frameStartHandle")
-        frame_end = instance.context.data.get("frameEndHandle")
+        frame_start = instance.data.get("frameStart")
+        frame_end = instance.data.get("frameEnd")
         audio_path = instance.context.data.get("audioPath")
 
         if audio_path and os.path.exists(audio_path):
@@ -83,18 +82,31 @@ class ExtractRender(pyblish.api.InstancePlugin):
                 instance.data["setMembers"][0], remainder
             )
         )
-        self.log.debug(collections)
-        if len(collections) > 1:
-            for col in collections:
-                if len(list(col)) > 1:
-                    collection = col
-        else:
-            collection = collections[0]
 
         thumbnail_source = os.path.join(path, list(collections[0])[0])
         instance.data["thumbnailSource"] = thumbnail_source
 
-        # Generate representations.
+        # Select the main render collection:
+        # 1. Iterate collections in reverse order (prioritizes later outputs)
+        # 2. Choose first collection with multiple files
+        # 3. If none have multiple files, use the last collection
+        # This ensures thumbnails/previews don't override main renders
+        self.log.debug(f"available collections: {collections}")
+        if len(collections) > 1:
+            for col in reversed(collections):
+                if len(col.indexes) > 1:
+                    collection = col
+                    break
+            else:
+                # If no collection has more than 1 file, use the last one
+                collection = collections[-1]
+        else:
+            # If there is only one collection, use it
+            collection = collections[0]
+
+        self.log.debug(f"Selected collection: {collection} with {len(collection.indexes)} files")
+
+        # Generate representations
         extension = collection.tail[1:]
         files = list(collection)
         representation = {
