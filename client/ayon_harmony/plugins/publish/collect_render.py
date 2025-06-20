@@ -15,14 +15,14 @@ class CollectRender(publish.CollectRenderBase):
     label = "Collect Render Instances"
     order = pyblish.api.CollectorOrder + 0.01
     hosts = ["harmony"]
-    families = ["render.local"]
+    families = ["render"]
 
 
 class CollectFarmRender(publish.CollectRenderBase):
     """Collect farm renders."""
 
     label = "Collect Farm Render"
-    families = ["render.farm"]
+    families = ["render"]
 
     def add_additional_data(self, instance):
         instance["FOV"] = self._context.data["FOV"]

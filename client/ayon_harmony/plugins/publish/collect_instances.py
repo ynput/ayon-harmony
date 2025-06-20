@@ -25,7 +25,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
     def process(self, instance: pyblish.api.Instance):
         # skip render farm product type as it is collected separately
         product_type = instance.data["productType"]
-        if product_type in ["workfile", "render"]:
+        if product_type == "workfile":
             return
 
         node = instance.data["transientData"]["node"]
