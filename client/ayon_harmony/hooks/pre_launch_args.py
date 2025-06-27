@@ -8,6 +8,7 @@ from ayon_core.lib import (
 )
 from ayon_applications import PreLaunchHook, LaunchTypes
 from ayon_harmony import get_launch_script_path
+from ayon_harmony.api import unzip_scene_file
 
 
 def get_launch_kwargs(kwargs):
@@ -75,7 +76,7 @@ class HarmonyPrelaunchHook(PreLaunchHook):
             and workfile_path
             and os.path.exists(workfile_path)
         ):
-            new_launch_args.append(workfile_path)
+            new_launch_args.append(unzip_scene_file(workfile_path))
 
         # Append as whole list as these arguments should not be separated
         self.launch_context.launch_args.append(new_launch_args)

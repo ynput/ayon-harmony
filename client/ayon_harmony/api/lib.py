@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Utility functions used for AYON - Harmony integration."""
+from pathlib import Path
 import platform
 import subprocess
 import threading
@@ -202,6 +203,10 @@ def launch(application_path, *args):
         open_empty_workfile()
         return
 
+    if len(args) > 0 and (scene_path := Path(args[-1])).suffix == ".xstage":
+        launch_zip_file(scene_path)
+        return
+    
     ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
     host_tools.show_workfiles(save=False)
     ProcessContext.execute_in_main_thread(check_workfiles_tool)
@@ -235,11 +240,17 @@ def get_local_harmony_path(filepath):
     return os.path.join(harmony_path, basename)
 
 
-def launch_zip_file(filepath):
-    """Launch a Harmony application instance with the provided zip file.
-
+def unzip_scene_file(filepath: str) -> str:
+    """Unzip a Harmony scene file and return the path to the .xstage file.
+    
     Args:
-        filepath (str): Path to file.
+        filepath (str): Path to the zip file.
+        
+    Returns:
+        str: Path to the .xstage file.
+        
+    Raises:
+        Exception: If no .xstage file is found or if the working folder cannot be deleted.
     """
     print(f"Localizing {filepath}")
 
@@ -274,6 +285,44 @@ def launch_zip_file(filepath):
             # unzipped with duplicated scene_name
             temp_path = os.path.join(temp_path, scene_name)
 
+    # find any xstage files is directory, prefer the one with the same name
+    # as directory (plus extension)
+    xstage_files = []
+    for _, _, files in os.walk(temp_path):
+        for file in files:
+            if os.path.splitext(file)[1] == ".xstage":
+                xstage_files.append(file)
+
+    if not os.path.basename("temp.zip"):
+        if not xstage_files:
+            raise Exception("No xstage file was found.")
+
+    # try to use first available
+    scene_path = os.path.join(
+        temp_path, xstage_files[0]
+    )
+
+    # prefer the one named as zip file
+    zip_based_name = "{}.xstage".format(
+        os.path.splitext(os.path.basename(filepath))[0])
+
+    if zip_based_name in xstage_files:
+        scene_path = os.path.join(
+            temp_path, zip_based_name
+        )
+
+    if not os.path.exists(scene_path):
+        raise Exception(f"Cannot determine scene file {scene_path}.")
+
+    return scene_path
+
+
+def launch_zip_file(filepath):
+    """Launch a Harmony application instance with the provided zip file.
+
+    Args:
+        filepath (str): Path to file.
+    """
     # Close existing scene.
     if ProcessContext.pid:
         os.kill(ProcessContext.pid, signal.SIGTERM)
@@ -292,36 +341,11 @@ def launch_zip_file(filepath):
     # Save workfile path for later.
     ProcessContext.workfile_path = filepath
 
-    # find any xstage files is directory, prefer the one with the same name
-    # as directory (plus extension)
-    xstage_files = []
-    for _, _, files in os.walk(temp_path):
-        for file in files:
-            if os.path.splitext(file)[1] == ".xstage":
-                xstage_files.append(file)
-
-    if not os.path.basename("temp.zip"):
-        if not xstage_files:
-            ProcessContext.server.stop()
-            print("no xstage file was found")
-            return
-
-    # try to use first available
-    scene_path = os.path.join(
-        temp_path, xstage_files[0]
-    )
-
-    # prefer the one named as zip file
-    zip_based_name = "{}.xstage".format(
-        os.path.splitext(os.path.basename(filepath))[0])
-
-    if zip_based_name in xstage_files:
-        scene_path = os.path.join(
-            temp_path, zip_based_name
-        )
-
-    if not os.path.exists(scene_path):
-        print("error: cannot determine scene file {}".format(scene_path))
+    # Unzip the scene file and get the .xstage path
+    try:
+        scene_path = unzip_scene_file(filepath)
+    except Exception as e:
+        print(f"Error unzipping scene file: {e}")
         ProcessContext.server.stop()
         return
 
