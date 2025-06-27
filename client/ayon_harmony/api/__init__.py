@@ -34,6 +34,7 @@ from .lib import (
     set_scene_data,
     get_all_top_names,
     get_palettes_paths,
+    unzip_scene_file,
 )
 
 from .workio import (
@@ -78,6 +79,7 @@ __all__ = [
     "set_scene_data",
     "get_all_top_names",
     "get_palettes_paths",
+    "unzip_scene_file",
 
     # Workfiles API
     "open_file",
