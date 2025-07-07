@@ -1,6 +1,6 @@
 name = "harmony"
 title = "Harmony"
-version = "0.4.2"
+version = "0.4.2+dev"
 client_dir = "ayon_harmony"
 app_host_name = "harmony"
 
