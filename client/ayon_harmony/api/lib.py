@@ -199,15 +199,6 @@ def launch(application_path, *args):
     setup_startup_scripts()
     check_libs()
 
-    # If no workfile is provided, open an empty workfile.
-    if len(args) == 0:
-        open_empty_workfile()
-        return
-
-    if len(args) > 0 and (scene_path := Path(args[-1])).suffix == ".xstage":
-        launch_zip_file(scene_path)
-        return
-
     # Whether to show workfiles on launch.
     env_workfiles_on_launch = os.getenv( "AYON_AFTEREFFECTS_WORKFILES_ON_LAUNCH",
         # Backwards compatibility
@@ -217,6 +208,16 @@ def launch(application_path, *args):
         ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
         host_tools.show_workfiles(save=False)
         ProcessContext.execute_in_main_thread(check_workfiles_tool)
+
+    # If no workfile is provided, open an empty workfile.
+    if len(args) == 0:
+        open_empty_workfile()
+        return
+
+    if len(args) > 0 and (scene_path := Path(args[-1])).suffix == ".xstage":
+        launch_zip_file(scene_path)
+        return
+
 
 
 def check_workfiles_tool():
