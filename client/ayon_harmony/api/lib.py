@@ -200,9 +200,8 @@ def launch(application_path, *args):
     check_libs()
 
     # Whether to show workfiles on launch.
-    env_workfiles_on_launch = os.getenv( "AYON_AFTEREFFECTS_WORKFILES_ON_LAUNCH",
-        # Backwards compatibility
-        os.getenv("AVALON_AFTEREFFECTS_WORKFILES_ON_LAUNCH", True)
+    env_workfiles_on_launch = os.getenv(
+        "AYON_HARMONY_WORKFILES_ON_LAUNCH", False
     )
     if env_value_to_bool(value=env_workfiles_on_launch):
         ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
