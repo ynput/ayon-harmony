@@ -80,7 +80,7 @@ class HarmonyPrelaunchHook(PreLaunchHook):
         
         workfile_startup = self.data.get("workfile_startup", False)
         # set the env variable AYON_AFTEREFFECTS_WORKFILES_ON_LAUNCH to "true" or "false"
-        self.launch_context.env["AYON_AFTEREFFECTS_WORKFILES_ON_LAUNCH"] = str(workfile_startup).lower()
+        self.launch_context.env["AYON_HARMONY_WORKFILES_ON_LAUNCH"] = str(workfile_startup).lower()
 
         # Append as whole list as these arguments should not be separated
         self.launch_context.launch_args.append(new_launch_args)
