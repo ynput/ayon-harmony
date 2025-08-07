@@ -1,0 +1,109 @@
+# -*- coding: utf-8 -*-
+"""Loader for single images."""
+from pathlib import Path
+
+from ayon_core.pipeline import (
+    load,
+    get_representation_path,
+)
+import ayon_harmony.api as harmony
+
+
+class ImageLoader(load.LoaderPlugin):
+    """Load single images.
+
+    Stores the imported product in a container named after the product.
+    """
+
+    product_types = {
+        "shot",
+        "render",
+        "image",
+        "plate",
+        "reference",
+        "review",
+    }
+    representations = {"*"}
+    extensions = {"jpeg", "png", "jpg", "tga", "psd", "sgi"}
+    settings_category = "harmony"
+
+    def load(self, context, name=None, namespace=None, data=None):
+        """Plugin entry point.
+
+        Args:
+            context (:class:`pyblish.api.Context`): Context.
+            name (str, optional): Container name.
+            namespace (str, optional): Container namespace.
+            data (dict, optional): Additional data passed into loader.
+
+        """
+        filepath = Path(self.filepath_from_context(context))
+        self_name = self.__class__.__name__
+
+        folder_name = context["folder"]["name"]
+        product_name = context["product"]["name"]
+
+        image_node = harmony.send(
+            {
+                "function": f"AyonHarmony.Loaders.{self_name}.importImageFile",
+                "args": [
+                    filepath.as_posix(),
+                    folder_name,
+                    product_name,
+                ]
+            }
+        )["result"]
+
+        return harmony.containerise(
+            f"{folder_name}_{product_name}",
+            namespace,
+            image_node,
+            context,
+            self_name,
+            nodes=[image_node]
+        )
+
+    def switch(self, container, context):
+        """Switch loaded representations."""
+        self_name = self.__class__.__name__
+        node = container.get("nodes").pop()
+
+        folder_name = context["folder"]["name"]
+        product_name = context["product"]["name"]
+
+        repre_entity = context["representation"]
+        path = Path(get_representation_path(repre_entity))
+
+        image_node = harmony.send(
+            {
+                "function": f"AyonHarmony.Loaders.{self_name}.replaceImageFile",
+                "args": [node, path.as_posix(), folder_name, product_name]
+            }
+        )["result"]
+
+        harmony.imprint(
+            image_node, {"representation": repre_entity["id"]}
+        ) 
+
+    def update(self, container, context):
+        """Update loaded containers.
+
+        Args:
+            container (dict): Container data.
+            context (dict): Representation context data.
+
+        """
+        self.switch(container, context)
+
+    def remove(self, container):
+        """Remove loaded container.
+
+        Args:
+            container (dict): Container data.
+
+        """
+        node = container.get("nodes").pop()
+        harmony.send(
+            {"function": "AyonHarmony.deleteNode", "args": [node]}
+        )
+        harmony.imprint(node, {}, remove=True)

@@ -285,6 +285,62 @@ AyonHarmony.getRootBackdrop = function(backdrops) {
 
 
 /**
+ * Get nodes links.
+ * @function
+ * @param {array} args Arguments, see example.
+ * @return {array} List of nodes links.
+ *
+ * @example
+ * // arguments are in following order:
+ * var args = [
+ *  nodes,
+ *  onlyExtraNodes
+ * ];
+ */
+AyonHarmony.getNodesLinks = function(args) {
+    var nodes = args[0];
+    var onlyExtraNodes = args[1] || true;
+
+    var nodesLinks = [];
+    nodes.forEach(function(nodeName) {
+        // Input links
+        for (var i = 0; i < node.numberOfInputPorts(nodeName); i++) {
+            var link = node.srcNodeInfo(nodeName, i);
+
+            // Skip if no link or if it's a node from the backdrop container
+            if (link == null || (onlyExtraNodes && nodes.indexOf(link.node) > -1)) continue;
+
+            nodesLinks.push({
+                srcNode: link.node,
+                srcPort: link.port,
+                dstNode: nodeName,
+                dstPort: i,
+            });
+        }
+
+        // Output links
+        for (var i = 0; i < node.numberOfOutputPorts(nodeName); i++) {
+            for (var j = 0; j < node.numberOfOutputLinks(nodeName, i); j++) {
+                var link = node.dstNodeInfo(nodeName, i, j);
+
+                // Skip if no link or if it's a node from the backdrop container
+                if (link == null || (onlyExtraNodes && nodes.indexOf(link.node) > -1)) continue;
+
+                nodesLinks.push({
+                    srcNode: nodeName,
+                    srcPort: i,
+                    dstNode: link.node,
+                    dstPort: link.port,
+                });
+            }
+        }
+    });
+
+    return nodesLinks;
+}
+
+
+/**
  * Set nodes links.
  * @function
  * @param {array} links List of nodes links.
