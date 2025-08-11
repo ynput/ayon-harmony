@@ -3,6 +3,7 @@
 // *                        ImageLoader                                   *
 // ***************************************************************************
 
+
 // check if AyonHarmony is defined and if not, load it.
 if (typeof AyonHarmony === 'undefined') {
     var AYON_HARMONY_JS = System.getenv('AYON_HARMONY_JS') + '/AyonHarmony.js';
@@ -12,11 +13,9 @@ if (typeof AyonHarmony === 'undefined') {
 if (typeof $ === 'undefined'){
     $ = this.__proto__['$'];
 }
-
-
 /**
  * @namespace
- * @classdesc PSD loader JS code.
+ * @classdesc Image loader JS code.
  */
 var PsdLoader = function() {};
 
