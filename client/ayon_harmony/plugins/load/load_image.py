@@ -23,8 +23,8 @@ class ImageLoader(load.LoaderPlugin):
         "reference",
         "review",
     }
-    representations = {"*"}
-    extensions = {"jpeg", "png", "jpg", "tga", "psd", "sgi"}
+    representations = {"jpeg", "png", "jpg", "tga", "psd", "sgi"}
+    extensions = representations.copy()
     settings_category = "harmony"
 
     def load(self, context, name=None, namespace=None, data=None):
@@ -53,7 +53,7 @@ class ImageLoader(load.LoaderPlugin):
         )["result"]
 
         return harmony.containerise(
-            f"{folder_name}_{product_name}",
+            name,
             namespace,
             image_node,
             context,
@@ -63,7 +63,10 @@ class ImageLoader(load.LoaderPlugin):
 
     def switch(self, container, context):
         """Switch loaded representations."""
-        node = container.get("nodes").pop()
+        nodes = container.get("nodes") or []
+        if not nodes:
+            raise RuntimeError("Container has no nodes to switch.")
+        node = nodes[-1]
 
         repre_entity = context["representation"]
         path = Path(get_representation_path(repre_entity))
@@ -96,8 +99,11 @@ class ImageLoader(load.LoaderPlugin):
             container (dict): Container data.
 
         """
-        node = container.get("nodes").pop()
+        nodes = container.get("nodes") or []
+        if not nodes:
+            return
+        node = nodes.pop()
+        harmony.imprint(node, {}, remove=True)
         harmony.send(
             {"function": "AyonHarmony.deleteNode", "args": [node]}
         )
-        harmony.imprint(node, {}, remove=True)
