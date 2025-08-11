@@ -45,11 +45,9 @@ class ImageLoader(load.LoaderPlugin):
 
         image_node = harmony.send(
             {
-                "function": f"AyonHarmony.Loaders.{self_name}.importImageFile",
+                "function": f"AyonHarmony.importImageFile",
                 "args": [
                     filepath.as_posix(),
-                    folder_name,
-                    product_name,
                 ]
             }
         )["result"]
@@ -65,24 +63,20 @@ class ImageLoader(load.LoaderPlugin):
 
     def switch(self, container, context):
         """Switch loaded representations."""
-        self_name = self.__class__.__name__
         node = container.get("nodes").pop()
-
-        folder_name = context["folder"]["name"]
-        product_name = context["product"]["name"]
 
         repre_entity = context["representation"]
         path = Path(get_representation_path(repre_entity))
 
-        image_node = harmony.send(
+        harmony.send(
             {
-                "function": f"AyonHarmony.Loaders.{self_name}.replaceImageFile",
-                "args": [node, path.as_posix(), folder_name, product_name]
+                "function": f"AyonHarmony.replaceImageFile",
+                "args": [node, path.as_posix()]
             }
-        )["result"]
+        )
 
         harmony.imprint(
-            image_node, {"representation": repre_entity["id"]}
+            node, {"representation": repre_entity["id"]}
         ) 
 
     def update(self, container, context):
