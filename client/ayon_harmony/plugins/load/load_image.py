@@ -43,7 +43,7 @@ class ImageLoader(load.LoaderPlugin):
 
         image_node = harmony.send(
             {
-                "function": f"AyonHarmony.importImageFile",
+                "function": "AyonHarmony.importImageFile",
                 "args": [
                     filepath.as_posix(),
                     self.expose_only_current_frame,
@@ -72,7 +72,7 @@ class ImageLoader(load.LoaderPlugin):
 
         harmony.send(
             {
-                "function": f"AyonHarmony.replaceImageFile",
+                "function": "AyonHarmony.replaceImageFile",
                 "args": [node, path.as_posix()]
             }
         )

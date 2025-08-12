@@ -302,7 +302,7 @@ AyonHarmony.substituteNode = function(nodePath, newNodePath) {
 
     // Exposure
     if (oldNode instanceof $.oDrawingNode) {
-        oldDrawing = oldNode.getAttributeByName("DRAWING.ELEMENT");
+        var oldDrawing = oldNode.getAttributeByName("DRAWING.ELEMENT");
         var newDrawing = newNode.getAttributeByName("DRAWING.ELEMENT");
 
         // Clear keyframes
