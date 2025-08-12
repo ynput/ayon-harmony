@@ -302,16 +302,18 @@ AyonHarmony.substituteNode = function(nodePath, newNodePath) {
 
     // Exposure
     if (oldNode instanceof $.oDrawingNode) {
-        drawing = oldNode.getAttributeByName("DRAWING.ELEMENT");
-        var keyframes = drawing.getKeyframes();
-        var exposure = [];
-        for (var i = 0; i < keyframes.length; i++) {
-            exposure.push({frame: keyframes[i].frameNumber, value: keyframes[i].value});
-        }
-        drawing = newNode.getAttributeByName("DRAWING.ELEMENT");
-        for( var i=0; i < exposure.length; i++ ){
-            drawing.setValue(exposure[i].value, exposure[i].frame);
-        }
+        oldDrawing = oldNode.getAttributeByName("DRAWING.ELEMENT");
+        var newDrawing = newNode.getAttributeByName("DRAWING.ELEMENT");
+
+        // Clear keyframes
+        newDrawing.frames.forEach(function(frame) {
+            newDrawing.setValue("", frame.frameNumber);
+        });
+
+        // Set keyframes
+        oldDrawing.keyframes.forEach(function(kf) {
+            newDrawing.setValue(kf.value, kf.frameNumber);
+        });
     }
 
     // Position
@@ -398,13 +400,39 @@ AyonHarmony.copyFile = function(src, dst) {
 /**
  * Import image file.
  * @function
- * @param {string} filepath Path to image file.
+ * @param {array} args Arguments, see example.
  * @return {string} Resulting node.
+ * 
+ * @example
+ * // arguments are in following order:
+ * var args = [
+ *  filepath,
+ *  exposeOnlyCurrentFrame
+ * ];
  */
-AyonHarmony.importImageFile = function(filepath) {
+AyonHarmony.importImageFile = function(args) {
+    var filepath = args[0];
+    var exposeOnlyCurrentFrame = args[1];
+
     // Create in the active node group
     var activeGroup = AyonHarmony.getActiveNodeGroup();
     var drawingNode = activeGroup.importImage(filepath);
+
+    if (exposeOnlyCurrentFrame) {
+        drawing = drawingNode.getAttributeByName("DRAWING.ELEMENT");
+        var currentFrame = frame.current();
+        drawing.frames.forEach(function(f) {
+            if (f.frameNumber == currentFrame) {
+                f.isKeyframe = true;
+            }
+        });
+        drawing.frames.forEach(function(f) {
+            // Skip "0" ghost frame to avoid deleting it
+            if (f.frameNumber != currentFrame && f.frameNumber != 0) {
+                drawing.setValue("", f.frameNumber);
+            }
+        });
+    }
 
     return drawingNode.path;
 }

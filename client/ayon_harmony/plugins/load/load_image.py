@@ -26,6 +26,7 @@ class ImageLoader(load.LoaderPlugin):
     representations = {"jpeg", "png", "jpg", "tga", "psd", "sgi"}
     extensions = representations.copy()
     settings_category = "harmony"
+    expose_only_current_frame = False
 
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.
@@ -40,14 +41,12 @@ class ImageLoader(load.LoaderPlugin):
         filepath = Path(self.filepath_from_context(context))
         self_name = self.__class__.__name__
 
-        folder_name = context["folder"]["name"]
-        product_name = context["product"]["name"]
-
         image_node = harmony.send(
             {
                 "function": f"AyonHarmony.importImageFile",
                 "args": [
                     filepath.as_posix(),
+                    self.expose_only_current_frame,
                 ]
             }
         )["result"]
