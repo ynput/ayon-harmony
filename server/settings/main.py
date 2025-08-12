@@ -1,6 +1,7 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
 from .imageio import HarmonyImageIOModel
+from .load_plugins import HarmonyLoadPlugins
 from .creator_plugins import HarmonyCreatePlugins
 from .publish_plugins import HarmonyPublishPlugins
 
@@ -11,6 +12,10 @@ class HarmonySettings(BaseSettingsModel):
     imageio: HarmonyImageIOModel = SettingsField(
         default_factory=HarmonyImageIOModel,
         title="OCIO config"
+    )
+    load: HarmonyLoadPlugins = SettingsField(
+        default_factory=HarmonyLoadPlugins,
+        title="Load plugins"
     )
     create: HarmonyCreatePlugins = SettingsField(
         default_factory=HarmonyCreatePlugins,
@@ -23,6 +28,12 @@ class HarmonySettings(BaseSettingsModel):
 
 
 DEFAULT_HARMONY_SETTING = {
+    "load": {
+        "ImageLoader": {
+            "enabled": True,
+            "expose_only_current_frame": False
+        }
+    },
     "create": {
         "CreateRender": {
             "enabled": True,
