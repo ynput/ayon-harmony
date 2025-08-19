@@ -24,6 +24,20 @@ class HarmonySettings(BaseSettingsModel):
 
 DEFAULT_HARMONY_SETTING = {
     "create": {
+        "CreateWorkfile": {
+            "enabled": True,
+            "active_on_create": True,
+            "default_variants": [
+                "Main"
+            ],
+        },
+        "CreateReview": {
+            "enabled": False,
+            "active_on_create": True,
+            "default_variants": [
+                "Main"
+            ],
+        },
         "CreateRender": {
             "enabled": True,
             "default_variants": [
