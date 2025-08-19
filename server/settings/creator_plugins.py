@@ -18,7 +18,24 @@ class CreateRenderPluginModel(BaseSettingsModel):
     )
 
 
+class CreateAutoPluginModel(BaseSettingsModel):
+    enabled: bool = SettingsField(False, title="Enabled")
+    active_on_create: bool = SettingsField(True, title="Active by default")
+    default_variants: list[str] = SettingsField(
+        default_factory=list,
+        title="Default Variants"
+    )
+
+
 class HarmonyCreatePlugins(BaseSettingsModel):
+    CreateWorkfile: CreateAutoPluginModel = SettingsField(
+        title="Workfile",
+        default_factory=CreateAutoPluginModel,
+    )
+    CreateReview: CreateAutoPluginModel = SettingsField(
+        title="Review",
+        default_factory=CreateAutoPluginModel,
+    )
     CreateRender: CreateRenderPluginModel = SettingsField(
         title="Render",
         default_factory=CreateRenderPluginModel,
