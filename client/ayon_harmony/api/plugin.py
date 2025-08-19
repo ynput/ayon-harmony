@@ -272,9 +272,14 @@ class HarmonyRenderCreator(HarmonyCreator):
 
 class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
 
+    enabled = True
+
     def create(self):
 
-        variant = self.default_variant
+        variant = None
+        if self.default_variants:
+            variant = self.default_variants[0]
+
         current_instance = next(
             (
                 instance for instance in self.create_context.instances
@@ -308,6 +313,8 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
                     host_name,
                     current_instance)
             )
+            if not self.active_on_create:
+                data["active"] = False
             self.log.info(f"Auto-creating {self.product_type} instance...")
             current_instance = CreatedInstance(
                 self.product_type, product_name, data, self
