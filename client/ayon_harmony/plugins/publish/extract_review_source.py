@@ -20,6 +20,10 @@ class ExtractSourceForReview(publish.Extractor):
 
     def process(self, instance):
         """Plugin entry point."""
+        if instance.data["productType"] != "review":
+            self.log.info(f"Not primary `review` product type, skipping.")
+            return
+
         staging_dir = self.staging_dir(instance)
         file_name = f"{instance.name}.mov"
         filepath = os.path.join(staging_dir, file_name)
