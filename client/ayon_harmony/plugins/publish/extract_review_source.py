@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Export content of Display node as .mov."""
+
 import os
+
+import pyblish.api
 
 from ayon_core.pipeline import publish
 
@@ -9,12 +12,15 @@ import ayon_harmony.api as harmony
 
 class ExtractSourceForReview(publish.Extractor):
     """Use exporter to save .mov from Display node.
-    
+
     Review should be created automatically, `Display`
     node is expected.
     """
 
     label = "Extract sources for Review"
+    order = (
+        pyblish.api.ExtractorOrder - 0.0001
+    )  # TODO remove decrement after ayon-core ExtractThumbnailFromSource is set later
     hosts = ["harmony"]
     families = ["review"]
 
@@ -82,3 +88,4 @@ class ExtractSourceForReview(publish.Extractor):
         }
 
         instance.data["representations"] = [representation]
+        instance.data["thumbnailSource"] = filepath
