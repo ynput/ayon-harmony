@@ -263,15 +263,14 @@ class HarmonyRenderCreator(HarmonyCreator):
     def get_instance_attr_defs(self):
         return [
             EnumDef(
-                "render_target",
-                items=self.rendering_targets,
-                label="Render target"
+                "render_target", items=self.rendering_targets, label="Render target"
             )
         ]
 
 
 class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
 
+    settings_category = "harmony"
     enabled = True
 
     def create(self):
