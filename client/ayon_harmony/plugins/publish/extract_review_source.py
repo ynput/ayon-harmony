@@ -76,5 +76,5 @@ class ExtractSourceForReview(publish.Extractor):
             "stagingDir": staging_dir,
             "tags": ["review", "delete"]
         }
-        self.log.info(f"repre::{representation}")
+
         instance.data["representations"] = [representation]
