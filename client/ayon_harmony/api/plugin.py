@@ -2,9 +2,14 @@ import re
 
 from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.pipeline import (
-    Creator, AYON_INSTANCE_ID, AVALON_INSTANCE_ID,
-    CreatedInstance, CreatorError
+    Creator, 
+    AYON_INSTANCE_ID, 
+    AVALON_INSTANCE_ID,
+    CreatedInstance, 
+    CreatorError,
+    AutoCreator
 )
+
 import ayon_harmony.api as harmony
 
 
@@ -258,8 +263,98 @@ class HarmonyRenderCreator(HarmonyCreator):
     def get_instance_attr_defs(self):
         return [
             EnumDef(
-                "render_target",
-                items=self.rendering_targets,
-                label="Render target"
+                "render_target", items=self.rendering_targets, label="Render target"
             )
         ]
+
+
+class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
+
+    settings_category = "harmony"
+    enabled = True
+
+    def create(self):
+
+        variant = None
+        if self.default_variants:
+            variant = self.default_variants[0]
+
+        current_instance = next(
+            (
+                instance for instance in self.create_context.instances
+                if instance.creator_identifier == self.identifier
+            ), None)
+
+        project_name = self.project_name
+        folder_entity = self.create_context.get_current_folder_entity()
+        task_entity = self.create_context.get_current_task_entity()
+        host_name = self.create_context.host_name
+
+        if current_instance is None:
+            product_name = self.get_product_name(
+                project_name,
+                folder_entity,
+                task_entity,
+                variant,
+                host_name,
+            )
+            data = {
+                "folderPath": folder_entity["path"],
+                "task": task_entity["name"],
+                "variant": variant
+            }
+            data.update(
+                self.get_dynamic_data(
+                    project_name,
+                    folder_entity,
+                    task_entity,
+                    variant,
+                    host_name,
+                    current_instance)
+            )
+            if not self.active_on_create:
+                data["active"] = False
+            self.log.info(f"Auto-creating {self.product_type} instance...")
+            current_instance = CreatedInstance(
+                self.product_type, product_name, data, self
+            )
+            self._add_instance_to_context(current_instance)
+        elif (
+            current_instance["folderPath"] != folder_entity["path"]
+            or current_instance["task"] != task_entity["name"]
+        ):
+            # Update instance context if is not the same
+            product_name = self.get_product_name(
+                project_name,
+                folder_entity,
+                task_entity,
+                variant,
+                host_name,
+            )
+
+            current_instance["folderPath"] = folder_entity["path"]
+            current_instance["task"] = task_entity["name"]
+            current_instance["productName"] = product_name
+
+        current_instance.transient_data["node"] = self._node_name
+
+    def collect_instances(self):
+        cache = self.cache_instance_data(self.collection_shared_data)
+        for node in cache.get("harmony_cached_instance_data").get(
+                self.identifier, []):
+            data = cache.get("harmony_cached_scene_data")[node]
+            created_instance = CreatedInstance.from_existing(data, self)
+            created_instance.transient_data["node"] = self._node_name
+            self._add_instance_to_context(created_instance)
+
+    def update_instances(self, update_list):
+        for created_inst, _changes in update_list:
+            harmony.lib.imprint(self._node_name, created_inst.data_to_store())
+
+    def remove_instances(self, instances):
+        for instance in instances:
+            scene_data = harmony.lib.get_scene_data()
+            scene_data.pop(self._node_name, None)
+            harmony.lib.set_scene_data(scene_data)
+
+            self._remove_instance_from_context(instance)
