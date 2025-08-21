@@ -27,7 +27,7 @@ class ExtractSourceForReview(publish.Extractor):
     def process(self, instance):
         """Plugin entry point."""
         if instance.data["productType"] != "review":
-            self.log.info(f"Not primary `review` product type, skipping.")
+            self.log.info("Not primary `review` product type, skipping.")
             return
 
         staging_dir = self.staging_dir(instance)
