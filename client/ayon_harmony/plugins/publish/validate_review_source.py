@@ -18,7 +18,6 @@ class ValidateTopDisplay(pyblish.api.InstancePlugin):
     settings_category = "harmony"
 
     def process(self, instance):
-        sig = harmony.signature()
         display_node_name = harmony.send(
             {"function": "node.getName", "args": "Top/Display"}
         )["result"]
