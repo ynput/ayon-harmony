@@ -90,5 +90,5 @@ class HarmonyPrelaunchHook(PreLaunchHook):
 
         # Add additional scripts to the environment
         self.launch_context.kwargs["env"].setdefault(
-            "AYON_HARMONY_ADDITIONAL_SCRIPTS", []
+            "AYON_HARMONY_ADDITIONAL_SCRIPTS", ""
         )
