@@ -239,7 +239,8 @@ def inject_ayon_js():
 
     # send additional scripts to Harmony
     for script in os.getenv("AYON_HARMONY_ADDITIONAL_SCRIPTS").split(";"):
-        harmony.send({"script": Path(script).read_text()})
+        if script:
+            harmony.send({"script": Path(script).read_text()})
 
 
 def is_container_data(data: dict) -> bool:
