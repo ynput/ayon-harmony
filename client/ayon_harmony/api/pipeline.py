@@ -237,6 +237,10 @@ def inject_ayon_js():
     # send AyonHarmonyAPI.js to Harmony
     harmony.send({"script": script})
 
+    # send additional scripts to Harmony
+    for script in os.getenv("AYON_HARMONY_ADDITIONAL_SCRIPTS").split(";"):
+        harmony.send({"script": Path(script).read_text()})
+
 
 def is_container_data(data: dict) -> bool:
     """Return whether data is container data."""
