@@ -301,7 +301,7 @@ Object.defineProperty($.oScene.prototype, 'aspectRatioY', {
         return scene.unitsAspectRatioY();
     },
     set : function(val){
-        scene.setUnitsAspectRatio( this.aspectRatioY, val );
+        scene.setUnitsAspectRatio( this.aspectRatioX, val );
     }
 });
 
@@ -527,7 +527,10 @@ Object.defineProperty($.oScene.prototype, 'columns', {
     get : function(){
         var _columns = [];
         for (var i=0; i<column.numberOf(); i++){
-            _columns.push( this.$column(column.getName(i)) );
+          // no attribute can be passed to the constructor
+          // since a column can be linked to several attributes.
+          // access it from the node to get the missing information.
+          _columns.push( this.$getColumnByName(column.getName(i)) );
         }
         return _columns;
     }
@@ -562,28 +565,51 @@ Object.defineProperty($.oScene.prototype, 'palettes', {
 Object.defineProperty($.oScene.prototype, 'elements', {
   get : function(){
     var _elements = [];
-    var _columns = this.columns;
-    var _ids = [];
-    for (var i in _columns){
-      if (_columns.type != "DRAWING") continue;
-      var _element = _columns[i].element
-      _elements.push(_element);
-      if (_ids.indexOf(_element.id) == -1) _ids.push (_element.id);
+    var _ids = {};
+
+    // fetching the elements from the nodes to get the synched drawing attribute value
+    var _nodes = $.scene.getNodesByType("READ");
+    for (var n in _nodes) {
+      var _element = _nodes[n].element;
+      var _layer = _element._synchedLayer;
+      var _foundDuplicate = false;
+      // store ids and layer info (synced drawings) to avoid duplicates
+
+      function isInKeys(value, object){
+        // for some reason we can't use Object.keys(_ids).indexOf(_element.id), so we fake it
+        var _keys = Object.keys(object);
+        var _exists = false;
+        for (var i in _keys)
+          if (_keys[i] == value) _exists = true;
+        return _exists;
+      }
+
+      if (!isInKeys(_element.id, _ids)){
+        _ids[_element.id] = [];
+      }
+      if (_ids[_element.id].indexOf(_layer) == -1){
+        _ids[_element.id].push(_layer);
+      }else{
+        _foundDuplicate = true;
+      }
+
+      if(!_foundDuplicate){
+        _elements.push(_nodes[n].element);
+      }
     }
 
     // adding the elements not linked to columns
     var _elementNum = element.numberOf();
     for (var i = 0; i<_elementNum; i++){
       var _id = element.id(i);
-      if (_ids.indexOf(_id) == -1) {
-        _elements.push(new this.$.oElement(_id));
-        _ids.push (_id)
+      if (!isInKeys(_id, _ids)) {
+        _elements.push(new this.$.oElement(_id)); // these elements have no column and no attribute
+        _ids[_id] = [];
       }
     }
     return _elements;
   }
 });
-
 
 
 /**
@@ -600,9 +626,9 @@ Object.defineProperty($.oScene.prototype, 'length', {
         var _length = frame.numberOf();
         var _toAdd = newLength-_length;
         if (_toAdd>0){
-            frame.insert(_length-1, _toAdd)
+            frame.insert(_length, _toAdd)
         }else{
-            frame.remove(_length-1, _toAdd)
+            frame.remove(_length-_toAdd, -_toAdd)
         }
     }
 });
@@ -738,16 +764,21 @@ Object.defineProperty($.oScene.prototype, "selectedContours", {
  */
 Object.defineProperty($.oScene.prototype, 'activeDrawing', {
   get : function(){
-    var _curDrawing = Tools.getToolSettings().currentDrawing;
+    var _settings = Tools.getToolSettings();
+    var _drawingNodes = this.getSelectedNodesOfType("READ", false);;
+    if (!_drawingNodes.length) return null;
+    var _node = _drawingNodes[0];
+
+    if (!_settings.hasOwnProperty("currentDrawing")){
+      // fix for missing property in Harmony 21.1
+      var _frame = this.$.scn.currentFrame;
+      var _curDrawing = _node.attributes.drawing.element.getValue(_frame);
+    }else{
+      var _curDrawing = _settings.currentDrawing.drawingId;
+    }
     if (!_curDrawing) return null;
 
-    var _element = this.selectedNodes[0].element;
-    var _drawings = _element.drawings;
-    for (var i in _drawings){
-      if (_drawings[i].id == _curDrawing.drawingId) return _drawings[i];
-    }
-
-    return null
+    return _node.element.getDrawingByName(_curDrawing);
   },
 
   set : function( newCurrentDrawing ){
@@ -814,15 +845,29 @@ $.oScene.prototype.getNodeByPath = function(fullPath){
     return _node;
 }
 
- /**
- * Returns the nodes of a certain type in the entire scene.
- * @param   {string}      typeName       The name of the node.
+/**
+ * Returns the nodes of a certain type in the entire scene (includes group contents).
+ * @param   {string}        typeName       The type of node.
  *
  * @return  {$.oNode[]}     The nodes found.
  */
 $.oScene.prototype.getNodesByType = function(typeName){
   return this.root.getNodesByType(typeName, true);
 }
+
+/**
+ * Returns the selected nodes of a certain type in the entire scene.
+ * @param   {string[]}      types       The types of nodes that will be returned (if only one is provided, doesn't need to be an array)
+ * @param   {bool}        recuse        Wether to include nodes inside selected groups in selection.
+ *
+ * @return  {$.oNode[]}     The nodes found.
+ */
+ $.oScene.prototype.getSelectedNodesOfType = function(types, recurse){
+  if (!(types instanceof Array)) types = [types];
+  if (typeof recurse === "undefined") var recurse = false;
+  return this.getSelectedNodes(recurse).filter(function(x){return types.indexOf(x.type) != -1});
+}
+
 
 /**
  * Gets a column by the name.
@@ -1587,57 +1632,87 @@ $.oScene.prototype.getNodesLinks = function (nodes){
  * @return {$.oNode}        The resulting drawing node from the merge.
  */
 $.oScene.prototype.mergeNodes = function (nodes, resultName, deleteMerged){
+    this.$.beginUndo("oh_mergeNodes");
     // TODO: is there a way to do this without Action.perform?
     // pass a oNode object as argument for destination node instead of name/group?
-
-    if (typeof resultName === 'undefined') var resultName = nodes[0].name+"_merged"
-    if (typeof group === 'undefined') var group = nodes[0].group;
     if (typeof deleteMerged === 'undefined') var deleteMerged = true;
 
     // only merge READ nodes so we filter out other nodes from parameters
-    nodes = nodes.filter(function(x){return x.type == "READ"})
+    var drawingNodes = nodes.filter(function(x){return x.type == "READ"});
 
-    var _timeline = this.getTimeline()
-    nodes = nodes.sort(function(a, b){return a.timelineIndex(_timeline) - b.timelineIndex(_timeline)})
+    if (typeof resultName === 'undefined') var resultName = drawingNodes[0].name+"_merged";
+
+    if (!drawingNodes.length) return;
+
+    var _timeline = this.getTimeline();
+    drawingNodes = drawingNodes.sort(function(a, b){return a.timelineIndex(_timeline) - b.timelineIndex(_timeline)});
 
     // create a new destination node for the merged result
-    var _mergedNode = this.addDrawingNode(resultName);
+    var _group = drawingNodes[0].group;
 
     // connect the node to the scene base composite, TODO: handle better placement
     // also TODO: check that the composite is connected to the display currently active
     // also TODO: disable pegs that affect the nodes but that we don't want to merge
-    var _composite = this.nodes.filter(function(x){return x.type == "COMPOSITE"})[0]
+    //var inNodes = nodes.map(function(x){return x.linkedInNodes});
+
+    var selectedPaths = nodes.map(function(x){return x.path});
+
+    var _allNodes = this.nodes.filter(function(x){return ["GROUP", "COMPOSITE", "MULTIPORT_OUT"].indexOf(x.type) == -1});
+    var nodesEnabled = [];
+    for (var i in _allNodes){
+      // disable all nodes in the scene before merging unless given as argument
+      if (selectedPaths.indexOf(_allNodes[i].path) != -1) {
+        $.log(_allNodes[i].path+" " +selectedPaths.indexOf(_allNodes[i].path));
+        continue;
+      }
+      if (_allNodes[i].enabled){
+        nodesEnabled.push(_allNodes[i]);
+        _allNodes[i].enabled = false;
+      }
+    }
+
+    // creating destination node
+    var _mergedNode = _group.addDrawingNode(resultName);
+
+    var outNodes = [];
+    for (var i in drawingNodes){
+      outNodes = outNodes.concat(drawingNodes[i].linkedOutNodes);
+    }
+
+    var _composite = outNodes.filter(function(x){return x.type == "COMPOSITE"})[0];
+    if (!_composite) _composite = outNodes.filter(function(x){return x.type == "MULTIPORT_OUT"})[0];
 
     _mergedNode.linkOutNode(_composite);
 
     // get  the individual keys of all nodes
     var _keys = []
-    for (var i in nodes){
-        var _timings = nodes[i].timings;
+    for (var i in drawingNodes){
+        var _timings = drawingNodes[i].timings;
         var _frameNumbers = _keys.map(function (x){return x.frameNumber})
         for (var j in _timings){
             if (_frameNumbers.indexOf(_timings[j].frameNumber) == -1) _keys.push(_timings[j])
         }
     }
 
-
     // sort frame objects by frameNumber
     _keys = _keys.sort(function(a, b){return a.frameNumber - b.frameNumber})
 
-    // create an empty drawing for each exposure of the nodes to be merged
+    // create an empty drawing for each exposure of the nodes to be merged and copy the contents into it
+    Action.perform("onActionChooseSelectTool()", "cameraView");
+    ToolProperties.setApplyAllArts(true);
+
     for (var i in _keys){
-        var _frame = _keys[i].frameNumber
-        _mergedNode.element.addDrawing(_frame)
+        var _frame = _keys[i].frameNumber;
+        _mergedNode.element.addDrawing(_frame);
 
         // copy paste the content of each of the nodes onto the mergedNode
         // code inspired by Bake_Parent_to_Drawings v1.2 from Yu Ueda (raindropmoment.com)
         frame.setCurrent( _frame );
 
-        Action.perform("onActionChooseSelectTool()", "cameraView");
-        for (var j=nodes.length-1; j>=0; j--){
+        for (var j=drawingNodes.length-1; j>=0; j--){
             //if (nodes[j].attributes.drawing.element.frames[_frame].isBlank) continue;
 
-            DrawingTools.setCurrentDrawingFromNodeName( nodes[j].path, _frame );
+            DrawingTools.setCurrentDrawingFromNodeName( drawingNodes[j].path, _frame );
             Action.perform("selectAll()", "cameraView");
 
             // select all and check. If empty, operation ends for the current frame
@@ -1650,7 +1725,7 @@ $.oScene.prototype.mergeNodes = function (nodes, resultName, deleteMerged){
     }
 
     _mergedNode.attributes.drawing.element.column.extendExposures();
-    _mergedNode.placeAtCenter(nodes)
+    _mergedNode.placeAtCenter(drawingNodes)
 
     // connect to the same composite as the first node, at the same place
     // delete nodes that were merged if parameter is specified
@@ -1659,6 +1734,14 @@ $.oScene.prototype.mergeNodes = function (nodes, resultName, deleteMerged){
             nodes[i].remove();
         }
     }
+
+    // restore node enabled status
+    for (var i in nodesEnabled){
+      nodesEnabled[i].enabled = true;
+    }
+
+    this.$.endUndo();
+
     return _mergedNode;
 }
 
@@ -1816,7 +1899,7 @@ $.oScene.prototype.importTemplate = function( tplPath, group, destinationNodes, 
 
   if (_group != null && _group instanceof this.$.oGroupNode){
     this.$.log("oScene.importTemplate is deprecated. Use oGroupNode.importTemplate instead")
-    var _node = _group.addNode(tplPath, destinationNodes, extendScene, nodePosition, pasteOptions )
+    var _nodes = _group.importTemplate(tplPath, destinationNodes, extendScene, nodePosition, pasteOptions);
     return _nodes;
   }else{
     throw new Error (group+" is an invalid group to import the template into.")
@@ -2015,23 +2098,25 @@ $.oScene.prototype.updatePSD = function( path, group, separateLayers ){
  * @param   {double}         scale                         The scale of the export compared to the scene resolution.
  * @param   {bool}           exportSound                   Whether to include the sound in the export.
  * @param   {bool}           exportPreviewArea             Whether to only export the preview area of the timeline.
- *
- * @return {bool}        The success of the export
- */
-$.oScene.prototype.exportQT = function( path, display, scale, exportSound, exportPreviewArea){
+ * @param   {bool}           createThumbnail               Whether to create a thumbnail at the first frame.
+*
+* @return {bool}        The success of the export
+*/
+$.oScene.prototype.exportQT = function (path, display, scale, exportSound, exportPreviewArea, createThumbnail){
   if (typeof display === 'undefined') var display = node.getName(node.getNodes(["DISPLAY"])[0]);
   if (typeof exportSound === 'undefined') var exportSound = true;
   if (typeof exportPreviewArea === 'undefined') var exportPreviewArea = false;
   if (typeof scale === 'undefined') var scale = 1;
+  if (typeof createThumbnail === 'undefined') var createThumbnail = true;
 
   if (display instanceof oNode) display = display.name;
 
   var _startFrame = exportPreviewArea?scene.getStartFrame():1;
-  var _stopFrame = exportPreviewArea?scene.getStopFrame():this.length-1;
-  var _resX = this.defaultResolutionX*scale
-  var _resY= this.defaultResolutionY*scale
-  return exporter.exportToQuicktime ("", _startFrame, _stopFrame, exportSound, _resX, _resY, path, display, true, 1);
-}
+  var _stopFrame = exportPreviewArea?scene.getStopFrame():this.length;
+  var _resX = this.defaultResolutionX*scale;
+  var _resY= this.defaultResolutionY*scale;
+  return exporter.exportToQuicktime("", _startFrame, _stopFrame, exportSound, _resX, _resY, path, display, createThumbnail, 1);
+};
 
 
 /**
@@ -2039,19 +2124,21 @@ $.oScene.prototype.exportQT = function( path, display, scale, exportSound, expor
  * @Deprecated
  * @param   {string}         path                          The quicktime file to import.
  * @param   {string}         group                         The group to import the QT into.
+ * @param   {bool}           importSound                   Whether to import the sound
  * @param   {$.oPoint}       nodePosition                  The position for the node to be placed in the network.
  * @param   {bool}           extendScene                   Whether to extend the scene to the duration of the QT.
  * @param   {string}         alignment                     Alignment type.
+ * @param   {bool}           convertToTvg                  Convert movie frames to TVG format.
  *
  * @return {$.oNode}        The imported Quicktime Node.
  */
-$.oScene.prototype.importQT = function( path, group, importSound, nodePosition, extendScene, alignment ){
+$.oScene.prototype.importQT = function( path, group, importSound, nodePosition, extendScene, alignment, convertToTvg ){
   if (typeof group === 'undefined') var group = this.root;
   var _group = (group instanceof this.$.oGroupNode)?group:this.$node(group);
 
   if (_group != null && _group instanceof this.$.oGroupNode){
     this.$.log("oScene.importQT is deprecated. Use oGroupNode.importQTs instead")
-    var _node = _group.importQT(path, importSound, extendScene, alignment, nodePosition)
+    var _node = _group.importQT(path, importSound, extendScene, alignment, nodePosition, convertToTvg)
     return _node;
   }else{
     throw new Error (group+" is an invalid group to import a QT file to.")
@@ -2170,7 +2257,7 @@ $.oScene.prototype.renderWriteNodes = function(renderInBackground, startFrame, e
   if (typeof resY === 'undefined') var resY = this.resolutionY;
 
   this.save();
-  var harmonyBin = specialFolders.bin+"/HarmonyPremium.exe";
+  var harmonyBin = specialFolders.bin+"/HarmonyPremium";
 
   var args = ["-batch", "-frames", startFrame, endFrame, "-res", resX, resY, this.fov];
 

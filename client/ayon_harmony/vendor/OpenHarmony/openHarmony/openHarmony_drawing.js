@@ -4,7 +4,7 @@
 //                            openHarmony Library
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney
+//         Developped by Mathieu Chaptel, Chris Fourney
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -16,7 +16,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -59,17 +59,23 @@
  * @property {int}                   name                       The name of the drawing.
  * @property {$.oElement}            element                    The element object associated to the element.
  */
-$.oDrawing = function (name, oElementObject) {
+$.oDrawing = function (name, synchedLayer, oElementObject) {
   this._type = "drawing";
   this._name = name;
   this.element = oElementObject;
 
-  this._key = Drawing.Key({
-    elementId: oElementObject.id,
-    exposure: name
-  });
-
-  //log(JSON.stringify(this._key))
+  if (synchedLayer){
+    this._key = Drawing.Key({
+      elementId: oElementObject.id,
+      exposure: name,
+      layer: synchedLayer
+    });
+  }else{
+    this._key = Drawing.Key({
+      elementId: oElementObject.id,
+      exposure: name
+    });
+  }
 
   this._overlay = new this.$.oArtLayer(3, this);
   this._lineArt = new this.$.oArtLayer(2, this);
@@ -148,7 +154,12 @@ Object.defineProperty($.oDrawing.prototype, 'id', {
  */
 Object.defineProperty($.oDrawing.prototype, 'path', {
   get: function () {
-    return fileMapper.toNativePath(Drawing.filename(this.element.id, this.name))
+    var _file = new this.$.oFile(Drawing.filename(this.element.id, this.name));
+    if (this._key.layer){
+      var _fileName = _file.name.replace(this.element.name, this._key.layer);
+      var _file = new this.$.oFile(_file.folder.path + "/" + _fileName +"."+_file.extension);
+    }
+    return _file.path;
   }
 })
 
@@ -419,6 +430,26 @@ Object.defineProperty($.oDrawing.prototype, 'drawingData', {
 })
 
 
+/**
+ * The drawings of the same name in other elements synched with this one.
+ * @name $.oDrawing#synchedDrawing
+ * @type {$.oDrawing[]}
+ * @readonly
+ * @private
+ */
+Object.defineProperty($.oDrawing.prototype, 'synchedDrawings', {
+  get: function () {
+    var _syncedElements = this.element.synchedElements;
+    var _syncedDrawings = []
+    for (e in _syncedElements){
+      // skip this element
+      if (_syncedElements[e]._synchedLayer == this.element._synchedLayer) continue;
+      _syncedDrawings.push(_syncedElements[e].getDrawingByName(this.name));
+    }
+    return _syncedDrawings;
+  }
+})
+
 
 
 // $.oDrawing Class methods
@@ -426,7 +457,7 @@ Object.defineProperty($.oDrawing.prototype, 'drawingData', {
 /**
  * Import a given file into an existing drawing.
  * @param   {$.oFile} file                  The path to the file
- * @param   {bool}    [convertToTvg=false]  Whether to convert the bitmap to the tvg format (this doesn't vectorise the drawing)
+ * @param   {bool}    [convertToTvg=false]  Wether to convert the bitmap to the tvg format (this doesn't vectorise the drawing)
  *
  * @return { $.oFile }   the oFile object pointing to the drawing file after being it has been imported into the element folder.
  */
@@ -440,9 +471,11 @@ $.oDrawing.prototype.importBitmap = function (file, convertToTvg) {
     var _bin = specialFolders.bin + "/utransform";
 
     var tempFolder = this.$.scn.tempFolder;
+    var res_x = this.$.scn.resolutionX
+    var res_y = this.$.scn.resolutionY
 
     var _convertedFilePath = tempFolder.path + "/" + file.name + ".tvg";
-    var _convertProcess = new this.$.oProcess(_bin, ["-outformat", "TVG", "-debug", "-scale", "1", "-bboxtvgincrease","0" , "-outfile", _convertedFilePath, file.path]);
+    var _convertProcess = new this.$.oProcess(_bin, ["-outformat", "TVG", "-debug", "-resolution", res_x, res_y, "-outfile", _convertedFilePath, file.path]);
     log(_convertProcess.execute())
 
     var convertedFile = new this.$.oFile(_convertedFilePath);
@@ -562,11 +595,24 @@ $.oDrawing.prototype.setAsActiveDrawing = function (artLayer) {
  * @param {string}   [newName]   A new name for the drawing. By default, the name will be the number of the frame.
  * @returns {$.oDrawing}   the newly created drawing
  */
-$.oDrawing.prototype.duplicate = function(frame, newName){
+$.oDrawing.prototype.duplicate = function(frame, newName, duplicateSynchedDrawings){
   var _element = this.element
+  if (typeof duplicateSynchedDrawings === 'undefined') duplicateSynchedDrawings = true; // hidden parameter used to avoid recursion bomb
   if (typeof frame ==='undefined') var frame = this.$.scn.currentFrame;
   if (typeof newName === 'undefined') var newName = frame;
-  var newDrawing = _element.addDrawing(frame, newName, this.path)
+  var newDrawing = _element.addDrawing(frame, newName, this.path);
+
+  // also duplicate synched drawings
+  if (duplicateSynchedDrawings){
+    var _syncedDrawings = newDrawing.synchedDrawings;
+    for (var i in _syncedDrawings){
+      var _originalDrawing = _syncedDrawings[i].element.getDrawingByName(this.name);
+      var _file = new this.$.oFile(_originalDrawing.path);
+      var _path = new this.$.oFile(_syncedDrawings[i].path);
+      return _file.copy(_path.folder, _path.name, true);
+    }
+  }
+
   return newDrawing;
 }
 
@@ -588,7 +634,7 @@ $.oDrawing.prototype.copyContents = function (artLayer) {
 
   var _current = this.setAsActiveDrawing(artLayer);
   if (!_current) {
-    this.$.debug("Impossible to copy contents of drawing " + this.name + " of element " + _element.name + ", the drawing cannot be set as active.", this.DEBUG_LEVEL.ERROR);
+    this.$.debug("Impossible to copy contents of drawing " + this.name + " of element " + _element.name + ", the drawing cannot be set as active.", this.$.DEBUG_LEVEL.ERROR);
     return;
   }
   ToolProperties.setApplyAllArts(!artLayer);
@@ -608,7 +654,7 @@ $.oDrawing.prototype.pasteContents = function (artLayer) {
 
   var _current = this.setAsActiveDrawing(artLayer);
   if (!_current) {
-    this.$.debug("Impossible to copy contents of drawing " + this.name + " of element " + _element.name + ", the drawing cannot be set as active.", this.DEBUG_LEVEL.ERROR);
+    this.$.debug("Impossible to copy contents of drawing " + this.name + " of element " + _element.name + ", the drawing cannot be set as active.", this.$.DEBUG_LEVEL.ERROR);
     return;
   }
   ToolProperties.setApplyAllArts(!artLayer);
@@ -627,13 +673,13 @@ $.oDrawing.prototype.pasteContents = function (artLayer) {
 */
 $.oDrawing.prototype.setLineEnds = function (endType, artLayer) {
   if (this.$.batchMode) {
-    this.$.debug("setting line ends not available in batch mode", this.DEBUG_LEVEL.ERROR);
+    this.$.debug("setting line ends not available in batch mode", this.$.DEBUG_LEVEL.ERROR);
     return;
   }
 
   var _current = this.setAsActiveDrawing(artLayer);
   if (!_current) {
-    this.$.debug("Impossible to change line ends on drawing " + this.name + " of element " + _element.name + ", the drawing cannot be set as active.", this.DEBUG_LEVEL.ERROR);
+    this.$.debug("Impossible to change line ends on drawing " + this.name + " of element " + _element.name + ", the drawing cannot be set as active.", this.$.DEBUG_LEVEL.ERROR);
     return;
   }
 
@@ -878,8 +924,8 @@ $.oArtLayer.prototype.drawCircle = function(center, radius, lineStyle, fillStyle
  * @param {$.oVertex[]}    path         an array of $.oVertex objects that describe a path.
  * @param {$.oLineStyle}   [lineStyle]  the line style to draw with. (By default, will use the current stencil selection)
  * @param {$.oFillStyle}   [fillStyle]  the fill information for the path. (By default, will use the current palette selection)
- * @param {bool}   [polygon]            Whether bezier handles should be created for the points in the path (ignores "onCurve" properties of oVertex from path)
- * @param {bool}   [createUnderneath]   Whether the new shape will appear on top or underneath the contents of the layer. (not working yet)
+ * @param {bool}   [polygon]            Wether bezier handles should be created for the points in the path (ignores "onCurve" properties of oVertex from path)
+ * @param {bool}   [createUnderneath]   Wether the new shape will appear on top or underneath the contents of the layer. (not working yet)
  */
 $.oArtLayer.prototype.drawShape = function(path, lineStyle, fillStyle, polygon, createUnderneath){
   if (typeof fillStyle === 'undefined') var fillStyle = new this.$.oFillStyle();
@@ -959,7 +1005,7 @@ $.oArtLayer.prototype.drawContour = function(path, fillStyle){
  * @param {float}        width      the width of the rectangle.
  * @param {float}        height     the height of the rectangle.
  * @param {$.oLineStyle} lineStyle  a line style to use for the rectangle stroke.
- * @param {$.oFillStyle} fillStyle  a fill style to use for the rectangle fill.
+ * @param {$.oFillStyle} fillStyle  a fill style to use for the rectange fill.
  * @returns {$.oShape} the shape containing the added stroke.
  */
 $.oArtLayer.prototype.drawRectangle = function(x, y, width, height, lineStyle, fillStyle){
@@ -1514,7 +1560,7 @@ Object.defineProperty($.oStroke.prototype, "path", {
 
 
 /**
- * The oVertex that are on the stroke (Bezier handles excluded.)
+ * The oVertex that are on the stroke (Bezier handles exluded.)
  * The first is repeated at the last position when the stroke is closed.
  * @name $.oStroke#points
  * @type {$.oVertex[]}
@@ -1583,7 +1629,7 @@ Object.defineProperty($.oStroke.prototype, "style", {
 
 
 /**
- * whether the stroke is a closed shape.
+ * wether the stroke is a closed shape.
  * @name $.oStroke#closed
  * @type {bool}
  */
@@ -1731,7 +1777,7 @@ $.oStroke.prototype.addPoints = function (pointsToAdd) {
     }
   }
 
-  if (newPoints.length != pointsToAdd.length) throw new Error ("some points in " + pointsToAdd + " were not created.");
+  if (newPoints.length < pointsToAdd.length) throw new Error ("some points in " + pointsToAdd + " were not created.");
   return newPoints;
 }
 
@@ -1919,7 +1965,7 @@ $.oContour.prototype.toString = function(){
  * @constructor
  * @classdesc
  * The $.oVertex class represents a single control point on a stroke. This class is used to get the index of the point in the stroke path sequence, as well as its position as a float along the stroke's length.
- * The onCurve property describes whether this control point is a bezier handle or a point on the curve.
+ * The onCurve property describes wether this control point is a bezier handle or a point on the curve.
  *
  * @param {$.oStroke} stroke   the stroke that this vertex belongs to
  * @param {float}     x        the x coordinate of the vertex, in drawing space

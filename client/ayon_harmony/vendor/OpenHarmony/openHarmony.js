@@ -4,7 +4,7 @@
 //                            openHarmony Library
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney
+//         Developped by Mathieu Chaptel, Chris Fourney
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -16,7 +16,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -78,7 +78,7 @@
  * $.log("hello");                     // prints out a message to the MessageLog.
  * var myPoint = new $.oPoint(0,0,0);  // create a new class instance from an openHarmony class.
  *
- * // function members of the $ objects get published to the global scope, which means $ can be omitted
+ * // function members of the $ objects get published to the global scope, which means $ can be ommited
  *
  * log("hello");
  * var myPoint = new oPoint(0,0,0);    // This is all valid
@@ -118,7 +118,7 @@ Object.defineProperty( $, "directory", {
 
 
 /**
- * Whether Harmony is run with the interface or simply from command line
+ * Wether Harmony is run with the interface or simply from command line
  */
 Object.defineProperty( $, "batchMode", {
   get: function(){
@@ -310,6 +310,29 @@ $.browseForFolder = function(){ return $.dialog.browseForFolder.apply( $.dialog,
 
 
 /**
+ * Prompts with a file selector window
+ * @param   {string}           [text="Select a file:"]       The title of the file browser dialog.
+ * @param   {string}           [filter="*"]                  The filter for the file type and/or file name that can be selected. Accepts wildcard charater "*".
+ * @param   {string}           [getExisting=true]            Whether to select an existing file or a save location
+ * @param   {string}           [acceptMultiple=false]        Whether or not selecting more than one file is ok. Is ignored if getExisting is false.
+ * @param   {string}           [startDirectory]              The directory showed at the opening of the dialog.
+ *
+ * @return  {oFile[]}           An oFile array, or 'undefined' if the dialog is cancelled
+ */
+$.chooseFile = function(){ return $.dialog.chooseFile.apply( $.dialog, arguments ) };
+
+
+/**
+ * Prompts with a browse for folder dialog.
+ * @param   {string}           [text]                        The title of the file browser dialog.
+ * @param   {string}           [startDirectory]              The directory showed at the opening of the dialog.
+ *
+ * @return  {oFolder}           An oFolder for the selected folder, or undefined if dialog was cancelled
+ */
+ $.chooseFolder = function(){ return $.dialog.chooseFolder.apply( $.dialog, arguments ) };
+
+
+/**
  * Gets access to a widget from the Harmony Interface.
  * @function
  * @name    $#getHarmonyUIWidget
@@ -468,6 +491,19 @@ $.clearOpenHarmonyCache = function(){
 }
 $.clearOpenHarmonyCache();
 
+
+//----- General Helpers --------------------
+
+/**
+ * Linear interpolation between two floating point numerical values
+ * @param {float} a   the first value to interpolate from
+ * @param {float} b   the second value to interpolate towards
+ * @param {float} t   a number between 0 (returns a) and 1 (returns b)
+ * @returns {float}  the value interpolated between a and b at the proportion t
+ */
+$.lerp = function(a, b, t){
+  return (1 - t) * a + t * b;
+}
 
 //---- Instantiate Class $ DOM Access ------
 function addDOMAccess( target, item ){
