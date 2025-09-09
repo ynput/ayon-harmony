@@ -236,12 +236,14 @@ class CreateRenderLayer(HarmonyRenderCreator):
         ]
         self.log.info(f"layers_full_name::{layers_full_names}")
         self_name = self.__class__.__name__
-        layers_data = harmony.send(
+        created_node = harmony.send(
             {
                 "function": f"AyonHarmony.Creators.{self_name}.createLayerNodes",
                 "args": [layers_full_names, product_name]
             }
         )["result"]
+
+        return created_node
 
 
     def _get_layers_data(self):
