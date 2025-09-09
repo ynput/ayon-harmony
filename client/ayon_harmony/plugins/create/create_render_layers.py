@@ -225,8 +225,11 @@ class CreateRenderLayer(HarmonyRenderCreator):
     def get_instance_attr_defs(self):
         groups_enum = self._get_groups_enum()
         return [
-            EnumDef("group_id", label="Group", items=groups_enum),
+            EnumDef("group_id", label="Group", items=groups_enum, enabled=False),
             BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
+            EnumDef(
+                "render_target", items=self.rendering_targets, label="Render target"
+            )
         ]
 
     def _create_nodes_for_group(self, group_id, product_name):
