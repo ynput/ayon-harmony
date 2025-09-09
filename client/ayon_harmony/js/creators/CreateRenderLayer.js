@@ -85,6 +85,7 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
             groupCompositeNode.linkOutNode(groupWriteNode);
             groupWriteNode.centerBelow(groupCompositeNode);
             groupWriteNode.x += 150;
+            groupWriteNode.drawing_type = "PNG4"  // png + alpha
         }
         var connections = groupNode.linkedOutNodes || [];
         var compositePath = "Top/" + compositeName;
