@@ -40,7 +40,7 @@ CreateRenderLayer.prototype.getLayerInfos = function() {
 
     layerInfos.push(info);
     }
-    MessageLog.trace("layerInfox: " + JSON.stringify(layerInfos));
+
     return layerInfos;
 };
 
