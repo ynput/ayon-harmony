@@ -186,9 +186,10 @@ class CreateRenderLayer(HarmonyRenderCreator):
             mark_for_review = self.mark_for_review
         creator_attributes["group_id"] = group_id
         creator_attributes["mark_for_review"] = mark_for_review
+        creator_attributes["render_target"] = pre_create_data["render_target"]
 
         node = self._create_nodes_for_group(group_id, product_name)
-        self.log.info(f"node is {node}")
+        self.log.info(f"Created node:: {node}")
         return node
 
     def _get_groups_enum(self):
