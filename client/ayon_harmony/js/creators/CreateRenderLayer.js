@@ -19,17 +19,6 @@ var CreateRenderLayer = function() {};
 
 
 /**
- * Create render layer instance.
- * @function
- * @param {array} args Arguments for instance.
- */
-CreateRenderLayer.prototype.create = function(args) {
-    node.setTextAttr(args[0], 'DRAWING_TYPE', 1, 'PNG4');
-    node.setTextAttr(args[0], 'DRAWING_NAME', 1, args[1]);
-    node.setTextAttr(args[0], 'MOVIE_PATH', 1, args[1]);
-};
-
-/**
  * Get layers info
  * @function
  */
@@ -58,7 +47,9 @@ CreateRenderLayer.prototype.getLayerInfos = function() {
 /**
  * Create render layer nodes.
  * 
- * 
+ * Creates:
+ * - composite node connected to all Harmony layers with same color
+ * - write node connected to composite (for rendering)
  * @function
  * @param {array} args Arguments for instance.
  */
