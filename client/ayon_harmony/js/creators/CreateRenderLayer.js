@@ -17,33 +17,6 @@ if (typeof AyonHarmony === 'undefined') {
  */
 var CreateRenderLayer = function() {};
 
-
-/**
- * Get layers info
- * @function
- */
-CreateRenderLayer.prototype.getLayerInfos = function() {
-    var scene = $.scene;
-    var readNodes = scene.getNodesByType("READ");
-    var layerInfos = [];
-    var info = {};
-
-    for (var i = 0; i < readNodes.length; i++) {
-        var readNode = readNodes[i];
-
-        info = {
-            "name": readNode.name,
-            "color": readNode.nodeColor.toString(),
-            "fullName": readNode.toString(),
-            "selected": readNode.selected
-        };
-
-    layerInfos.push(info);
-    }
-
-    return layerInfos;
-};
-
 /**
  * Create render layer nodes.
  * 
@@ -109,5 +82,42 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     return groupWriteNode.fullPath;
 };
 
-// add self to AYON Loaders
+/**
+ * @namespace
+ * @classdesc Code creating render containers in Harmony.
+ */
+var CreateRenderPass = function() {};
+
+/**
+ * Create render layer nodes.
+ * 
+ * Creates:
+ * - write node connected to read (drawing) node
+ * @function
+ * @param {array} args Arguments for instance.
+ */
+CreateRenderPass.prototype.createPassNode = function(args) {
+    var readNode = args[0];
+    var productName = args[1];
+
+    if (!readNode){
+        return;
+    }
+    var scene = $.scn;
+    var readNode = scene.getNodeByPath("Top/" + readNode);
+    var writeNode = scene.getNodeByPath("Top/" + productName);
+
+    if (!writeNode){
+        var sceneRoot = $.scn.root; 
+        writeNode = sceneRoot.addNode("WRITE", productName);
+        readNode.linkOutNode(writeNode);
+        writeNode.centerBelow(readNode);
+        writeNode.x -= 150;
+        writeNode.drawing_type = "PNG4"  // png + alpha
+    }
+    return writeNode.fullPath;
+}
+
+// add self to AYON
 AyonHarmony.Creators.CreateRenderLayer = new CreateRenderLayer();
+AyonHarmony.Creators.CreateRenderPass = new CreateRenderPass();
