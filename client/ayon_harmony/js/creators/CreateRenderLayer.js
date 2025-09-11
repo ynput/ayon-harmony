@@ -57,6 +57,10 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     var groupNodes = args[0];
     var productName = args[1];
 
+    if (!groupNodes){
+        return;
+    }
+
     var scene = $.scn;
 
     var compositeName = productName + "_comp";
