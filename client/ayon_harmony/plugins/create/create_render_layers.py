@@ -134,7 +134,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         }
 
     def product_impl(self, product_name, instance_data, pre_create_data):
-        group_name = instance_data["variant"]
+        variant = instance_data["variant"]
 
         group_id = pre_create_data.get("group_id")
         # This creator should run only on one group
