@@ -31,6 +31,7 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     var productName = args[1];
 
     if (!groupNodes){
+        MessageLog.trace("No nodes passed for 'createLayerNodes'")
         return;
     }
 
