@@ -138,8 +138,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
         group_id = pre_create_data.get("group_id")
         # This creator should run only on one group
-        if group_id is None or group_id == "-1":
-            selected_groups = self._get_selected_group_ids()
         if group_id is None or group_id == -1:
             selected_groups = self._get_selected_group_colors()
             if len(selected_groups) > 1:
