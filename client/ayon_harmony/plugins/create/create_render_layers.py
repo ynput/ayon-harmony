@@ -248,569 +248,208 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
 
     def _get_layers_data(self):
-        self_name = self.__class__.__name__
         layers_data = harmony.send(
             {
-                "function": f"AyonHarmony.Creators.{self_name}.getLayerInfos",
+                "function": f"AyonHarmony.getLayerInfos",
                 "args": []
             }
         )["result"]
         return layers_data
 
     def _get_selected_group_ids(self):
-        return {layer["color"] for layer in self._get_layers_data() if layer["selected"]}
-
-#     def _update_color_groups(self):
-#         render_layer_instances = []
-#         for instance in self.create_context.instances:
-#             if instance.creator_identifier == self.identifier:
-#                 render_layer_instances.append(instance)
-
-#         if not render_layer_instances:
-#             return
-
-#         groups_by_id = {group["group_id"]: group for group in get_groups_data()}
-#         grg_script_lines = []
-#         for instance in render_layer_instances:
-#             group_id = instance["creator_attributes"]["group_id"]
-#             variant = instance["variant"]
-#             group = groups_by_id[group_id]
-#             if group["name"] == variant:
-#                 continue
-
-#             grg_script_lines.append(
-#                 self.rename_script_template.format(
-#                     clip_id=group["clip_id"],
-#                     group_id=group["group_id"],
-#                     r=group["red"],
-#                     g=group["green"],
-#                     b=group["blue"],
-#                     name=variant,
-#                 )
-#             )
-
-#         if grg_script_lines:
-#             execute_george_through_file("\n".join(grg_script_lines))
-
-#     def _update_renderpass_groups(self):
-#         render_layer_instances = {}
-#         render_pass_instances = collections.defaultdict(list)
-
-#         for instance in self.create_context.instances:
-#             if instance.creator_identifier == CreateRenderPass.identifier:
-#                 render_layer_id = instance["creator_attributes"][
-#                     "render_layer_instance_id"
-#                 ]
-#                 render_pass_instances[render_layer_id].append(instance)
-#             elif instance.creator_identifier == self.identifier:
-#                 render_layer_instances[instance.id] = instance
-
-#         if not render_pass_instances or not render_layer_instances:
-#             return
-
-#         layers_data = get_layers_data()
-#         layers_by_name = collections.defaultdict(list)
-#         for layer in layers_data:
-#             layers_by_name[layer["name"]].append(layer)
-
-#         george_lines = []
-#         for render_layer_id, instances in render_pass_instances.items():
-#             render_layer_inst = render_layer_instances.get(render_layer_id)
-#             if render_layer_inst is None:
-#                 continue
-#             group_id = render_layer_inst["creator_attributes"]["group_id"]
-#             layer_names = set()
-#             for instance in instances:
-#                 layer_names |= set(instance["layer_names"])
-
-#             for layer_name in layer_names:
-#                 george_lines.extend(
-#                     f'tv_layercolor "set" {layer["layer_id"]} {group_id}'
-#                     for layer in layers_by_name[layer_name]
-#                     if layer["group_id"] != group_id
-#                 )
-#         if george_lines:
-#             execute_george_through_file("\n".join(george_lines))
+        return {layer["color"] for layer in get_layers_info() if layer["selected"]}
 
 
-# class CreateRenderPass(HarmonyCreator):
-#     product_type = "render"
-#     product_template_product_type = "renderPass"
-#     identifier = "render.pass"
-#     label = "Render Pass"
-#     icon = "fa5.image"
-#     description = "Mark selected Harmony layers as pass of Render Layer."
-#     detailed_description = RENDER_PASS_DETAILED_DESCRIPTIONS
+class CreateRenderPass(HarmonyRenderCreator):
+    product_type = "render"
+    product_template_product_type = "renderPass"
+    identifier = "render.pass"
+    label = "Render Pass"
+    icon = "fa5.image"
+    description = "Mark selected Harmony layers as pass of Render Layer."
+    detailed_description = RENDER_PASS_DETAILED_DESCRIPTIONS
 
-#     order = CreateRenderlayer.order + 10
+    order = CreateRenderLayer.order + 10
 
-#     # Settings
-#     render_pass_template = "{variant}"
-#     layer_name_template = {"enabled": False, "template": "{variant}"}
-#     group_idx_offset = 10
-#     group_idx_padding = 3
-#     layer_idx_offset = 10
-#     layer_idx_padding = 3
-#     mark_for_review = True
+    # Settings
+    render_pass_template = "{variant}"
+    layer_name_template = {"enabled": True, "template": "G{group_index}_L{layer_index}_{variant}"}
+    group_idx_offset = 10
+    group_idx_padding = 3
+    layer_idx_offset = 10
+    layer_idx_padding = 3
+    mark_for_review = True
 
-#     def register_callbacks(self):
-#         self.create_context.add_instances_added_callback(self._on_added_instance)
-#         self.create_context.add_instances_removed_callback(self._on_removed_instance)
-#         self.create_context.add_value_changed_callback(self._on_value_change)
+    def product_impl(self, product_name, instance_data, pre_create_data):
+        variant = instance_data["variant"]
 
-#     def apply_settings(self, project_settings):
-#         super().apply_settings(project_settings)
-#         plugin_settings = project_settings["Harmony"]["create"]["create_render_pass"]
-#         self.layer_name_template = plugin_settings["layer_name_template"]
-#         self.group_idx_offset = plugin_settings["group_idx_offset"]
-#         self.group_idx_padding = plugin_settings["group_idx_padding"]
-#         self.layer_idx_offset = plugin_settings["layer_idx_offset"]
-#         self.layer_idx_padding = plugin_settings["layer_idx_padding"]
-#         self.default_variant = plugin_settings["default_variant"]
-#         self.default_variants = plugin_settings["default_variants"]
-#         self.mark_for_review = plugin_settings["mark_for_review"]
-#         self.render_pass_template = plugin_settings["render_pass_template"]
-#         self.create_allow_context_change = not self._use_current_context
+        render_layer_instance_id = pre_create_data.get("render_layer_instance_id")
+        # This creator should run only on one group
+        if render_layer_instance_id is None or render_layer_instance_id == "-1":
+            raise CreatorError("You must select layer group")
 
-#     def collect_instances(self):
-#         instances_by_identifier = self._cache_and_get_instances()
-#         render_layers = {
-#             instance_data["instance_id"]: {
-#                 "variant": instance_data["variant"],
-#                 "template_data": prepare_template_data(
-#                     {"renderlayer": instance_data["variant"]}
-#                 ),
-#             }
-#             for instance_data in (instances_by_identifier[CreateRenderlayer.identifier])
-#         }
-
-#         layers_data = get_layers_data()
-#         layers_count = len(layers_data)
-#         layers_by_name = collections.defaultdict(list)
-#         for layer in layers_data:
-#             layers_by_name[layer["name"]].append(layer)
-
-#         for instance_data in instances_by_identifier[self.identifier]:
-#             instance_layers = []
-#             layer_names = instance_data.setdefault("layer_names", [])
-#             for layer_name in tuple(layer_names):
-#                 instance_layers.extend(layers_by_name[layer_name])
-
-#             render_layer_instance_id = instance_data.get("creator_attributes", {}).get(
-#                 "render_layer_instance_id"
-#             )
-#             render_layer_info = render_layers.get(render_layer_instance_id, {})
-
-#             instance = CreatedInstance.from_existing(instance_data, self)
-
-#             instance.transient_data["instance_layers"] = instance_layers
-#             instance.transient_data["layers_count"] = layers_count
-#             self._add_instance_to_context(instance)
-#             if self._use_current_context:
-#                 self._update_instance_context(instance)
-
-#             self.update_instance_labels(
-#                 instance,
-#                 layers_count,
-#                 instance_layers,
-#                 render_layer_info.get("variant"),
-#                 render_layer_info.get("template_data"),
-#             )
-
-#             self._set_layer_name(
-#                 instance["variant"],
-#                 instance["layer_names"],
-#                 layers_by_name,
-#                 layers_count,
-#             )
-
-#     def get_dynamic_data(
-#         self, project_name, folder_entity, task_entity, variant, host_name, instance
-#     ):
-#         dynamic_data = super().get_dynamic_data(
-#             project_name, folder_entity, task_entity, variant, host_name, instance
-#         )
-#         dynamic_data["renderpass"] = "{renderpass}"
-#         dynamic_data["renderlayer"] = "{renderlayer}"
-#         return dynamic_data
-
-#     def update_instance_labels(
-#         self,
-#         instance: CreatedInstance,
-#         all_layers_count: int,
-#         instance_layers: list[dict[str, Any]],
-#         render_layer_variant: Optional[str],
-#         render_layer_data: Optional[dict[str, Any]],
-#     ):
-#         new_group = None
-#         if render_layer_variant is None:
-#             render_layer_variant = "{renderlayer}"
-#         else:
-#             new_group = f"{self.get_group_label()} ({render_layer_variant})"
-
-#         if render_layer_data is None:
-#             product_name_data = prepare_template_data(
-#                 {
-#                     "renderlayer": render_layer_variant,
-#                 }
-#             )
-#         else:
-#             product_name_data = copy.deepcopy(render_layer_data)
-
-#         # Prepare 'renderpass' value
-#         render_pass_name = self._get_render_pass_name(
-#             all_layers_count,
-#             instance_layers,
-#             instance["variant"],
-#         )
-#         product_name_data.update(
-#             prepare_template_data({"renderpass": render_pass_name})
-#         )
-
-#         try:
-#             new_label = instance["productName"].format(**product_name_data)
-#         except (KeyError, ValueError):
-#             new_label = None
-
-#         instance["label"] = new_label
-#         instance["group"] = new_group
-
-#     def create(self, product_name, instance_data, pre_create_data):
-#         render_layer_instance_id = pre_create_data.get("render_layer_instance_id")
-#         if not render_layer_instance_id:
-#             raise CreatorError(
-#                 (
-#                     "You cannot create a Render Pass without a Render Layer."
-#                     " Please select one first"
-#                 )
-#             )
-
-#         render_layer_instance = self.create_context.instances_by_id.get(
-#             render_layer_instance_id
-#         )
-#         if render_layer_instance is None:
-#             raise CreatorError(
-#                 (
-#                     "RenderLayer instance was not found"
-#                     f' by id "{render_layer_instance_id}"'
-#                 )
-#             )
-
-#         if self._use_current_context:
-#             project_name = self.create_context.get_current_project_name()
-#             folder_entity = self.create_context.get_current_folder_entity()
-#             task_entity = self.create_context.get_current_task_entity()
-#             project_entity = self.create_context.get_current_project_entity()
-
-#             product_name = self.get_product_name(
-#                 project_name,
-#                 folder_entity,
-#                 task_entity,
-#                 variant=instance_data["variant"],
-#                 project_entity=project_entity,
-#             )
-
-#             instance_data["folderPath"] = folder_entity["path"]
-#             instance_data["task"] = task_entity["name"]
-#             instance_data["productName"] = product_name
-
-#         group_id = render_layer_instance["creator_attributes"]["group_id"]
-#         self.log.debug("Query data from workfile.")
-#         layers_data = get_layers_data()
-#         layers_count = len(layers_data)
-
-#         self.log.debug("Checking selection.")
-#         # Get all selected layers and their group ids
-#         marked_layer_names = pre_create_data.get("layer_names")
-#         if marked_layer_names is not None:
-#             layers_by_name = {layer["name"]: layer for layer in layers_data}
-#             marked_layers = []
-#             for layer_name in marked_layer_names:
-#                 layer = layers_by_name.get(layer_name)
-#                 if layer is None:
-#                     raise CreatorError(f'Layer with name "{layer_name}" was not found')
-#                 marked_layers.append(layer)
-
-#         else:
-#             marked_layers = [layer for layer in layers_data if layer["selected"]]
-
-#             # Raise if nothing is selected
-#             if not marked_layers:
-#                 raise CreatorError("Nothing is selected. Please select layers.")
-
-#         marked_layer_names = [layer["name"] for layer in marked_layers]
-
-#         layers_by_name = collections.defaultdict(list)
-#         for layer in marked_layers:
-#             layers_by_name[layer["name"]].append(layer)
-
-#         self._set_layer_name(
-#             instance_data["variant"],
-#             marked_layer_names,
-#             layers_by_name,
-#             layers_count,
-#             group_id,
-#         )
-
-#         marked_layer_names_s = set(marked_layer_names)
-#         instances_to_remove = []
-#         for instance in self.create_context.instances:
-#             if instance.creator_identifier != self.identifier:
-#                 continue
-#             cur_layer_names = set(instance["layer_names"])
-#             if not cur_layer_names.intersection(marked_layer_names_s):
-#                 continue
-#             new_layer_names = cur_layer_names - marked_layer_names_s
-#             if new_layer_names:
-#                 instance["layer_names"] = list(new_layer_names)
-#             else:
-#                 instances_to_remove.append(instance)
-
-#         render_pass_name = self._get_render_pass_name(
-#             layers_count, marked_layers, instance_data["variant"]
-#         )
-#         render_layer = render_layer_instance["variant"]
-#         product_name_fill_data = {
-#             "renderlayer": render_layer,
-#             "renderpass": render_pass_name,
-#         }
-
-#         # Format dynamic keys in product name
-#         label = product_name
-#         try:
-#             label = label.format(**prepare_template_data(product_name_fill_data))
-#         except (KeyError, ValueError):
-#             pass
-
-#         self.log.info(f'New product name is "{label}".')
-#         instance_data["label"] = label
-#         instance_data["group"] = f"{self.get_group_label()} ({render_layer})"
-#         instance_data["layer_names"] = marked_layer_names
-
-#         creator_attributes = instance_data.setdefault("creator_attributes", {})
-#         mark_for_review = pre_create_data.get("mark_for_review")
-#         if mark_for_review is None:
-#             mark_for_review = self.mark_for_review
-#         creator_attributes["mark_for_review"] = mark_for_review
-#         creator_attributes["render_layer_instance_id"] = render_layer_instance_id
-
-#         new_instance = CreatedInstance(
-#             self.product_type, product_name, instance_data, self
-#         )
-#         instances_data = self._remove_and_filter_instances(instances_to_remove)
-#         instances_data.append(new_instance.data_to_store())
-
-#         self.host.write_instances(instances_data)
-#         self._add_instance_to_context(new_instance)
-#         self._change_layers_group(marked_layers, group_id)
-
-#         return new_instance
-
-#     def _change_layers_group(self, layers, group_id):
-#         filtered_layers = [layer for layer in layers if layer["group_id"] != group_id]
-#         if filtered_layers:
-#             self.log.info(
-#                 (
-#                     "Changing group of "
-#                     f"{','.join([layer['name'] for layer in filtered_layers])}"
-#                     f" to {group_id}"
-#                 )
-#             )
-#             george_lines = [
-#                 f'tv_layercolor "set" {layer["layer_id"]} {group_id}'
-#                 for layer in filtered_layers
-#             ]
-#             execute_george_through_file("\n".join(george_lines))
-
-#     def _remove_and_filter_instances(self, instances_to_remove):
-#         instances_data = self.host.list_instances()
-#         if not instances_to_remove:
-#             return instances_data
-
-#         removed_ids = set()
-#         for instance in instances_to_remove:
-#             removed_ids.add(instance.id)
-#             self._remove_instance_from_context(instance)
-
-#         return [
-#             instance_data
-#             for instance_data in instances_data
-#             if instance_data.get("instance_id") not in removed_ids
-#         ]
-
-#     def get_pre_create_attr_defs(self):
-#         # Find available Render Layers
-#         # - instances are created after creators reset
-#         render_layers = self._get_render_layers_items()
         layers_data = get_layers_info()
+        marked_layer_name = pre_create_data.get("layer_name")
+        layer = self._get_used_layer(marked_layer_name, layers_data)
 
-#         return [
-#             EnumDef(
-#                 "render_layer_instance_id", label="Render Layer", items=render_layers
-#             ),
-#             BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
-#         ]
+        group_id = 0   # TODO
+        position_in_group = 0
+        for layer_info in layers_data:
+            if layer_info["color"] != layer["color"]:
+                continue
+            if layer_info["name"] == layer["name"]:
+                break
+            position_in_group += 1
 
-#     def get_attr_defs_for_instance(self, instance):
-#         render_layer_instance_id = instance.creator_attributes[
-#             "render_layer_instance_id"
-#         ]
-#         render_layers = self._get_render_layers_items()
-#         default = None
-#         for layer in render_layers:
-#             if layer["value"] == render_layer_instance_id:
-#                 default = render_layer_instance_id
-#                 break
+        product_name = self._get_product_name(
+            variant,
+            group_id,
+            position_in_group
+        )
 
-#         return [
-#             EnumDef(
-#                 "render_layer_instance_id",
-#                 label="Render Layer",
-#                 items=render_layers,
-#                 default=default,
-#             ),
-#             BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
-#         ]
+        for instance in self.create_context.instances:
+            if instance.creator_identifier != self.identifier:
+                continue
+            if instance["productName"] == product_name:
+                raise CreatorError(
+                    f"Product '{product_name}' already exists.")
 
-#     def _get_render_layers_items(self):
-#         current_instances = self.create_context.instances
-#         render_layers = [
-#             {"value": instance.id, "label": instance.label}
-#             for instance in current_instances
-#             if instance.creator_identifier == CreateRenderlayer.identifier
-#         ]
-#         if not render_layers:
-#             render_layers.append({"value": None, "label": "N/A"})
-#         return render_layers
+        creator_attributes = instance_data.setdefault("creator_attributes", {})
+        mark_for_review = pre_create_data.get("mark_for_review")
+        if mark_for_review is None:
+            mark_for_review = self.mark_for_review
+        creator_attributes["mark_for_review"] = mark_for_review
+        creator_attributes["render_target"] = pre_create_data["render_target"]
+        creator_attributes["render_layer_instance_id"] = render_layer_instance_id
 
-#     def _get_render_pass_name(self, all_layers_count, layers, variant):
-#         max_position = 1
-#         if layers:
-#             max_position = max(layer["position"] for layer in layers)
-#         layer_template = "{}"
-#         if self.layer_idx_offset:
-#             layer_template = f"{{:0>{self.layer_idx_padding}}}"
+        node = self._create_node_for_pass(layer, product_name)
+        self.log.info(f"Created node:: {node}")
+        return node
 
-#         layer_index: str = layer_template.format(
-#             (all_layers_count - max_position) * self.layer_idx_offset
-#         )
-#         output = "{renderpass}"
-#         try:
-#             output = self.render_pass_template.format(
-#                 **prepare_template_data(
-#                     {
-#                         "variant": variant,
-#                         "layer_index": layer_index,
-#                     }
-#                 )
-#             )
-#         except Exception:
-#             self.log.warning("Failed to fill render pass template", exc_info=True)
-#         return output
+    def _get_selected_layers(self):
+        return {layer for layer in get_layers_info() if layer["selected"]}
+    
+    def _create_node_for_pass(self, layer, product_name):
+        self_name = self.__class__.__name__
+        layer_name = layer["name"]
+        created_node = harmony.send(
+            {
+                "function": f"AyonHarmony.Creators.{self_name}.createPassNode",
+                "args": [layer_name, product_name]
+            }
+        )["result"]
 
-#     def _on_added_instance(self, event):
-#         if any(
-#             instance.creator_identifier == "render.layer"
-#             for instance in event["instances"]
-#         ):
-#             self._update_instance_attributes()
+        return created_node
+    
+    def _get_used_layer(self, marked_layer_name, layers_data):
+        if marked_layer_name is not None:
+            layers_by_name = {layer["name"]: layer for layer in layers_data}
+            layer = layers_by_name.get(marked_layer_name)
+            if layer is None:
+                raise CreatorError(
+                    f"Layer with name \"{marked_layer_name}\" was not found")
+        else:
+            marked_layers = [
+                layer
+                for layer in layers_data
+                if layer["selected"]
+            ]
 
-#     def _on_removed_instance(self, event):
-#         if any(
-#             instance.creator_identifier == "render.layer"
-#             for instance in event["instances"]
-#         ):
-#             self._update_instance_attributes()
+            # Raise if nothing is selected
+            if not marked_layers:
+                raise CreatorError(
+                    "Nothing is selected. Please select layers.")
+            if len(marked_layers) != 1:
+                raise CreatorError(
+                    "Select just 1 layer.")
+            layer = marked_layers[0]
 
-#     def _on_value_change(self, event):
-#         changed_ids = set()
-#         for change in event["changes"]:
-#             instance = change["instance"]
-#             if (
-#                 instance is None
-#                 or instance.creator_identifier != CreateRenderlayer.identifier
-#             ):
-#                 continue
+        return layer
 
-#             if "productName" in change["changes"]:
-#                 changed_ids.add(instance.id)
+    def get_dynamic_data(
+        self, project_name, folder_entity, task_entity, variant, host_name, instance
+    ):
+        dynamic_data = super().get_dynamic_data(
+            project_name, folder_entity, task_entity, variant, host_name, instance
+        )
+        dynamic_data["renderpass"] = "{renderpass}"
+        dynamic_data["renderlayer"] = "{renderlayer}"
+        return dynamic_data
 
-#         if changed_ids:
-#             self._update_instance_attributes(changed_ids)
+    def get_pre_create_attr_defs(self):
+        # Find available Render Layers
+        # - instances are created after creators reset
+        enum_defs = super().get_pre_create_attr_defs()
+        render_layers = self._get_render_layers_items()
 
-#     def _update_instance_attributes(self, render_layer_ids=None):
-#         self.create_context.create_plugin_pre_create_attr_defs_changed(
-#             CreateRenderPass.identifier
-#         )
-#         if render_layer_ids is not None and not render_layer_ids:
-#             return
+        enum_defs.extend(
+            [
+                EnumDef(
+                    "render_layer_instance_id", label="Render Layer", items=render_layers),
+                BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
+            ]
+        )
+        return enum_defs
+    
+    def get_instance_attr_defs(self):
+        render_layers = self._get_render_layers_items()
+        return [
+            EnumDef(
+                "render_layer_instance_id", 
+                label="Render Layer", 
+                items=render_layers,
+                enabled=False
+            ),
+            BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
+            EnumDef(
+                "render_target", items=self.rendering_targets, label="Render target"
+            )
+        ]
 
-#         filtered_instances = []
-#         for instance in self.create_context.instances:
-#             if instance.creator_identifier != self.identifier:
-#                 continue
-#             rl_id = instance.creator_attributes["render_layer_instance_id"]
-#             if render_layer_ids is not None and rl_id not in render_layer_ids:
-#                 continue
-#             filtered_instances.append(instance)
+    def _get_render_layers_items(self):
+        current_instances = self.create_context.instances
+        render_layers = [
+            {"value": instance.id, "label": instance.label}
+            for instance in current_instances
+            if instance.creator_identifier == CreateRenderLayer.identifier
+        ]
+        if not render_layers:
+            render_layers.append({"value": None, "label": "N/A"})
+        return render_layers
 
-#         if not filtered_instances:
-#             return
+    def _get_product_name(
+        self,
+        variant: str,
+        group_id: int,
+        position_in_group: int 
+    ):
+        if not self.layer_name_template["enabled"]:
+            return
 
-#         with self.create_context.bulk_create_attr_defs_change():
-#             for instance in filtered_instances:
-#                 instance.set_create_attr_defs(self.get_attr_defs_for_instance(instance))
+        template = self.layer_name_template["template"]
 
-#     def _set_layer_name(
-#         self,
-#         variant: str,
-#         layer_names: list[str],
-#         layers_by_name: dict[str, list[dict[str, Any]]],
-#         layers_count: int,
-#         group_id: Optional[int] = None,
-#     ):
-#         if not self.layer_name_template["enabled"]:
-#             return
+        group_template = "{}"
+        if self.group_idx_padding:
+            group_template = f"{{:0>{self.group_idx_padding}}}"
 
-#         template = self.layer_name_template["template"]
+        layer_template = "{}"
+        if self.layer_idx_offset:
+            layer_template = f"{{:0>{self.layer_idx_padding}}}"
 
-#         group_template = "{}"
-#         if self.group_idx_padding:
-#             group_template = f"{{:0>{self.group_idx_padding}}}"
+        group_pos = group_id * self.group_idx_offset
 
-#         layer_template = "{}"
-#         if self.layer_idx_offset:
-#             layer_template = f"{{:0>{self.layer_idx_padding}}}"
+        layer_index = position_in_group * self.layer_idx_offset
+        self.log.info(f"template::{template}")
+        try:
+            new_name = template.format(
+                layer_index=layer_template.format(layer_index),
+                group_index=group_template.format(group_pos),
+                variant=variant,
+            )
+        except Exception:
+            self.log.warning("Failed to create new layer name", exc_info=True)
 
-#         for layer_name in tuple(layer_names):
-#             layers = layers_by_name.get(layer_name)
-#             if not layers:
-#                 continue
-#             for layer in layers:
-#                 # Reverse the position order
-#                 layer_pos = layers_count - layer["position"]
-#                 group_pos = layer["group_id"]
-#                 layer_index = self.layer_idx_offset * layer_pos
-#                 if group_id is not None:
-#                     group_pos = group_id
-
-#                 group_pos = group_pos * self.group_idx_offset
-#                 new_name = None
-#                 try:
-#                     new_name = template.format(
-#                         layer_index=layer_template.format(layer_index),
-#                         group_index=group_template.format(group_pos),
-#                         variant=variant,
-#                     )
-#                 except Exception:
-#                     self.log.warning("Failed to create new layer name", exc_info=True)
-
-#                 if new_name and layer["name"] != new_name:
-#                     layer_id = layer["layer_id"]
-#                     idx = layer_names.index(layer_name)
-#                     layer_names[idx] = new_name
-#                     layer["name"] = new_name
-#                     execute_george(f"tv_layerrename {layer_id} {new_name}")
+        return new_name
 
 
 class HarmonyAutoDetectRenderCreator(HarmonyAutoCreator):
