@@ -67,8 +67,8 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     var groupCompositeNode = scene.getNodeByPath("Top/" + compositeName);
     var groupWriteNode = scene.getNodeByPath("Top/" + productName);
 
-    for (var i = 0; i < groupNodes.length; i++) {
-        var sceneRoot = $.scn.root; 
+    var sceneRoot = $.scn.root; 
+    for (var i = groupNodes.length -1; i >= 0; i--) {
         var groupNode = scene.getNodeByPath(groupNodes[i]);
         // create composition and 
         if (!groupCompositeNode){  
