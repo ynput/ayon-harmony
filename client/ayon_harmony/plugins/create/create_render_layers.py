@@ -136,24 +136,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
     def product_impl(self, product_name, instance_data, pre_create_data):
         group_name = instance_data["variant"]
 
-        if self._use_current_context:
-            project_name = self.create_context.get_current_project_name()
-            folder_entity = self.create_context.get_current_folder_entity()
-            task_entity = self.create_context.get_current_task_entity()
-            project_entity = self.create_context.get_current_project_entity()
-
-            product_name = self.get_product_name(
-                project_name,
-                folder_entity,
-                task_entity,
-                variant=group_name,
-                project_entity=project_entity,
-            )
-
-            instance_data["folderPath"] = folder_entity["path"]
-            instance_data["task"] = task_entity["name"]
-            instance_data["productName"] = product_name
-
         group_id = pre_create_data.get("group_id")
         # This creator should run only on one group
         if group_id is None or group_id == "-1":
