@@ -293,7 +293,7 @@ class CreateRenderPass(HarmonyRenderCreator):
         layer = self._get_used_layer(marked_layer_name, layers_data)
 
         group_id = 0   # TODO
-        position_in_group = 0
+        position_in_group = 1
         for layer_info in layers_data:
             if layer_info["color"] != layer["color"]:
                 continue
