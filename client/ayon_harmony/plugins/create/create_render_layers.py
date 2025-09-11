@@ -140,29 +140,34 @@ class CreateRenderLayer(HarmonyRenderCreator):
         # This creator should run only on one group
         if group_id is None or group_id == "-1":
             selected_groups = self._get_selected_group_ids()
+        if group_id is None or group_id == -1:
+            selected_groups = self._get_selected_group_colors()
             if len(selected_groups) > 1:
                 raise CreatorError("You have selected more than one group")
 
             if len(selected_groups) == 0:
                 raise CreatorError("You don't have selected any group")
-            group_id = tuple(selected_groups)[0]
+            group_color = tuple(selected_groups)[0]
 
         for instance in self.create_context.instances:
-            if (
-                instance.creator_identifier == self.identifier
-                and instance["creator_attributes"]["group_id"] == group_id
-            ):
+            if instance.creator_identifier != self.identifier:
+                continue
+            if instance["creator_attributes"]["group_id"] == group_id:
                 raise CreatorError(
                     (
                         f'Group "{group_id}" is already used'
                         f' by another render layer "{instance["productName"]}"'
                     )
                 )
+            if instance["productName"] == product_name:
+                raise CreatorError(
+                    f"Product '{product_name}' already exists.")
 
         creator_attributes = instance_data.setdefault("creator_attributes", {})
         mark_for_review = pre_create_data.get("mark_for_review")
         if mark_for_review is None:
             mark_for_review = self.mark_for_review
+        group_id = self._get_group_id(group_color)
         creator_attributes["group_id"] = group_id
         creator_attributes["mark_for_review"] = mark_for_review
         creator_attributes["render_target"] = pre_create_data["render_target"]
@@ -172,23 +177,27 @@ class CreateRenderLayer(HarmonyRenderCreator):
         return node
 
     def _get_groups_enum(self):
+        """Lists all used layer colors to choose from"""
+        # TODO cache this
         used_colors_enum = []
         layers_data = get_layers_info()
         available_colors = sorted(set(layer["color"] for layer in layers_data))
 
+        group_id = 0
         for color in available_colors:
             item = {
                 "label": color,
-                "value": color
+                "value": group_id
             }
             used_colors_enum.append(item)
+            group_id += 1
 
         return used_colors_enum
 
     def get_pre_create_attr_defs(self):
         enum_defs = super().get_pre_create_attr_defs()
         group_enum_values = self._get_groups_enum()
-        group_enum_values.insert(0, {"label": "<Use selection>", "value": "-1"})
+        group_enum_values.insert(0, {"label": "<Use selection>", "value": -1})
         enum_defs.append(
             EnumDef(
                 "group_id",
@@ -212,10 +221,12 @@ class CreateRenderLayer(HarmonyRenderCreator):
         ]
 
     def _create_nodes_for_group(self, group_id, product_name):
+        group_color = self._get_group_color(group_id)
+
         layers_data = get_layers_info()
         layers_full_names = [
             layer["fullName"] for layer in layers_data 
-            if layer["color"]==group_id
+            if layer["color"]==group_color
         ]
         self.log.info(f"layers_full_name::{layers_full_names}")
         self_name = self.__class__.__name__
@@ -238,8 +249,28 @@ class CreateRenderLayer(HarmonyRenderCreator):
         )["result"]
         return layers_data
 
-    def _get_selected_group_ids(self):
+    def _get_selected_group_colors(self):
         return {layer["color"] for layer in get_layers_info() if layer["selected"]}
+    
+    # TODO refactor
+    def _get_group_color(self, group_id):
+        group_enum_values = self._get_groups_enum()
+        group_color = None
+        for group_item in group_enum_values:
+            if group_item["value"] == group_id:
+                group_color = group_item["label"]
+                break
+        return group_color
+    
+    def _get_group_id(self, group_color):
+        group_enum_values = self._get_groups_enum()
+        group_id = None
+        for group_item in group_enum_values:
+            if group_item["label"] == group_color:
+                group_id = group_item["value"]
+                break
+        return group_id
+
 
 
 class CreateRenderPass(HarmonyRenderCreator):
@@ -269,12 +300,23 @@ class CreateRenderPass(HarmonyRenderCreator):
         # This creator should run only on one group
         if render_layer_instance_id is None or render_layer_instance_id == "-1":
             raise CreatorError("You must select layer group")
+        
+        render_layer_instance = self.create_context.instances_by_id.get(
+            render_layer_instance_id
+        )
+        if render_layer_instance is None:
+            raise CreatorError((
+                "RenderLayer instance was not found"
+                f" by id \"{render_layer_instance_id}\""
+            ))
+        
+        self.log.info(f'created::{render_layer_instance["creator_attributes"]}')
 
         layers_data = get_layers_info()
         marked_layer_name = pre_create_data.get("layer_name")
         layer = self._get_used_layer(marked_layer_name, layers_data)
 
-        group_id = 0   # TODO
+        group_id = render_layer_instance["creator_attributes"]["group_id"]
         position_in_group = 1
         for layer_info in layers_data:
             if layer_info["color"] != layer["color"]:
