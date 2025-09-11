@@ -469,4 +469,35 @@ AyonHarmony.movePaletteToIndex = function(args) {
             PaletteObjectManager.getScenePaletteList().movePaletteDown(palette.id);
         }
     }
-}   
+}
+
+
+/**
+ * Get layers info
+ * 
+ * Return information about name, fullName, selection etc.
+ * @function
+* @return {object} Object with info about node/layer.
+ */
+AyonHarmony.getLayerInfos = function() {
+    var scn = $.scene;
+    var readNodes = scn.getNodesByType("READ");
+    var layerInfos = [];
+    var info = {};
+
+    for (var i = 0; i < readNodes.length; i++) {
+        var readNode = readNodes[i];
+
+        info = {
+            "name": readNode.name,
+            "color": readNode.nodeColor.toString(),
+            "fullName": readNode.toString(),
+            "selected": readNode.selected,
+            "position": readNode.timelineIndex()
+        };
+
+    layerInfos.push(info);
+    }
+
+    return layerInfos;
+};

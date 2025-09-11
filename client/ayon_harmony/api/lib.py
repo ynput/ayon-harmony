@@ -685,3 +685,13 @@ def find_backdrop_by_name(name: str) -> dict:
             return backdrop
 
     return None
+
+def get_layers_info() -> list[dict[str, str]]:
+    """Returns list of dicts with info about timeline layers"""
+    layers_info = send(
+        {
+            "function": f"AyonHarmony.getLayerInfos",
+            "args": []
+        }
+    )["result"]
+    return sorted(layers_info, key=lambda layer: layer["position"])

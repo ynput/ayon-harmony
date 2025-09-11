@@ -53,6 +53,7 @@ from ayon_core.pipeline.create import (
     CreatorError,
 )
 from ayon_harmony.api.plugin import HarmonyAutoCreator, HarmonyRenderCreator
+from ayon_harmony.api.lib import get_layers_info
 import ayon_harmony.api as harmony
 
 
@@ -194,7 +195,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     def _get_groups_enum(self):
         used_colors_enum = []
-        layers_data = self._get_layers_data()
+        layers_data = get_layers_info()
         available_colors = sorted(set(layer["color"] for layer in layers_data))
 
         for color in available_colors:
@@ -233,7 +234,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         ]
 
     def _create_nodes_for_group(self, group_id, product_name):
-        layers_data = self._get_layers_data()
+        layers_data = get_layers_info()
         layers_full_names = [
             layer["fullName"] for layer in layers_data 
             if layer["color"]==group_id
@@ -645,6 +646,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
 #         # Find available Render Layers
 #         # - instances are created after creators reset
 #         render_layers = self._get_render_layers_items()
+        layers_data = get_layers_info()
 
 #         return [
 #             EnumDef(
