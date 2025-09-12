@@ -525,11 +525,14 @@ class AutoDetectRenderCreator(HarmonyCreator):
     active_on_create = True
 
     enabled = True
-    allow_group_rename = True
+
+    layer_name_template = {"enabled": False, "template": "G{group_index}_L{layer_index}_{variant}"}
     group_name_template = "G{group_index}"
     group_idx_offset = 10
     group_idx_padding = 3
-    layer_name_template = {"enabled": False, "template": "G{group_index}_L{layer_index}_{variant}"}
+    render_pass_template = "L{layer_index}"
+    layer_idx_offset = 10
+    layer_idx_padding = 3
 
 #     def apply_settings(self, project_settings):
 #         super().apply_settings(project_settings)
