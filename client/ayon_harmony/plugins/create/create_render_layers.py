@@ -386,6 +386,13 @@ class CreateRenderPass(HarmonyRenderCreator):
         )
         dynamic_data["renderpass"] = "{renderpass}"
         dynamic_data["renderlayer"] = "{renderlayer}"
+        if "data" in instance: # passed from Auto creator
+            renderpass = instance["data"].get("renderpass")
+            if renderpass:
+                dynamic_data["renderpass"] = renderpass
+            renderlayer = instance["data"].get("renderlayer")
+            if renderlayer:
+                dynamic_data["renderlayer"] = renderlayer
         return dynamic_data
 
     def get_pre_create_attr_defs(self):
