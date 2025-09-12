@@ -103,6 +103,8 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
         self._add_instance_to_context(instance)
 
+        return instance
+
     def update_instances(self, update_list):
         for created_inst, _changes in update_list:
             node = created_inst.transient_data["node"]
