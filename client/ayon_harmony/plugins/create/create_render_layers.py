@@ -410,6 +410,46 @@ class CreateRenderPass(HarmonyRenderCreator):
         )
         return enum_defs
     
+    def get_product_name(
+        self,
+        project_name,
+        folder_entity,
+        task_entity,
+        variant,
+        host_name=None,
+        instance=None,
+        project_entity=None,
+    ):
+        if host_name is None:
+            host_name = self.create_context.host_name
+        if project_entity is None:
+            project_entity = self.create_context.get_current_project_entity()
+        dynamic_data = self.get_dynamic_data(
+            project_name,
+            folder_entity,
+            task_entity,
+            variant,
+            host_name,
+            instance
+        )
+        task_name = task_type = None
+        if task_entity:
+            task_name = task_entity["name"]
+            task_type = task_entity["taskType"]
+
+        return get_product_name(
+            project_name,
+            task_name,
+            task_type,
+            host_name,
+            self.product_type,
+            variant,
+            dynamic_data=dynamic_data,
+            project_settings=self.project_settings,
+            product_type_filter=self.product_template_product_type,
+            project_entity=project_entity,
+        )
+    
     def get_instance_attr_defs(self):
         render_layers = self._get_render_layers_items()
         return [
