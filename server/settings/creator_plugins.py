@@ -27,14 +27,6 @@ class CreateAutoPluginModel(BaseSettingsModel):
     )
 
 
-class CreateRenderLayerModel(BaseSettingsModel):
-    mark_for_review: bool = SettingsField(True, title="Review by default")
-    default_pass_name: str = SettingsField(title="Default beauty pass")
-    default_variant: str = SettingsField(title="Default variant")
-    default_variants: list[str] = SettingsField(
-        default_factory=list, title="Default variants")
-
-
 class LayerNameTemplateModel(BaseSettingsModel):
     enabled: bool = SettingsField(False, title="Enabled")
     template: str = SettingsField(
@@ -47,7 +39,17 @@ class LayerNameTemplateModel(BaseSettingsModel):
     )
 
 
+class CreateRenderLayerModel(BaseSettingsModel):
+    enabled: bool = SettingsField(False)
+    mark_for_review: bool = SettingsField(True, title="Review by default")
+    default_pass_name: str = SettingsField(title="Default beauty pass")
+    default_variant: str = SettingsField(title="Default variant")
+    default_variants: list[str] = SettingsField(
+        default_factory=list, title="Default variants")
+    
+
 class CreateRenderPassModel(BaseSettingsModel):
+    enabled: bool = SettingsField(False)
     mark_for_review: bool = SettingsField(True, title="Review by default")
     default_variant: str = SettingsField(title="Default variant")
     default_variants: list[str] = SettingsField(
@@ -62,22 +64,7 @@ class CreateRenderPassModel(BaseSettingsModel):
     layer_name_template: LayerNameTemplateModel = SettingsField(
         default_factory=LayerNameTemplateModel,
         title="Layer name template",
-        description="Automatically change TVPaint layer name using template.",
-    )
-
-    # Template settings section
-    group_idx_offset: int = SettingsField(
-        10, title="Group index Offset", ge=1,
-        section="Template Settings"
-    )
-    group_idx_padding: int = SettingsField(
-        3, title="Group index Padding", ge=0
-    )
-    layer_idx_offset: int = SettingsField(
-        10, title="Layer index Offset", ge=1
-    )
-    layer_idx_padding: int = SettingsField(
-        3, title="Layer index Padding", ge=0
+        description="Final layer template to parse out variant from already renamed layers or",
     )
 
 
@@ -85,9 +72,9 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     """The creator to auto-detect Render Layers and Render Passes in scene.
 
     For Render Layers is used group name as a variant and for Render Passes is
-    used TVPaint layer name.
+    used Harmony  layer name.
 
-    Group names can be renamed by their used order in scene. The renaming
+    Group names are renamed by their used order in scene. The renaming
     template where can be used '{group_index}' formatting key which is
     filled by "used position index of group".
     - Template: 'G{group_index}'
@@ -95,16 +82,35 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     - Group padding: '3'
 
     Would create group names "G010", "G020", ...
+
+    If this plugin is enabled, both 'CreateRenderLayer' and 'CreateRenderPass'
+    must be enabled!
+
+    To fully use this `ayon+settings://core/tools/creator/product_name_profiles` must
+    contain `{product[type]}{Task[name]}_{Renderlayer}_{Renderpass}` for product types:
+    ['renderLayer', 'renderPass']!
     """
 
-    enabled: bool = SettingsField(True)
-    allow_group_rename: bool = SettingsField(title="Allow group rename")
-    group_name_template: str = SettingsField(title="Group name template")
+    enabled: bool = SettingsField(False)
+    group_name_template: str = SettingsField(
+        "G{group_index}",
+        title="Group name template",
+        description="How color coded group name is calculated,"
+    )
     group_idx_offset: int = SettingsField(
         10, title="Group index Offset", ge=1
     )
     group_idx_padding: int = SettingsField(
         3, title="Group index Padding", ge=0
+    )
+    render_pass_template: str = SettingsField(
+        "L{layer_index}",
+        title="RenderPass name template")
+    layer_idx_offset: int = SettingsField(
+        10, title="Layer index Offset", ge=1
+    )
+    layer_idx_padding: int = SettingsField(
+        3, title="Layer index Padding", ge=0
     )
 
 
@@ -125,16 +131,15 @@ class HarmonyCreatePlugins(BaseSettingsModel):
         title="Render on Farm",
         default_factory=CreateRenderPluginModel,
     )
-
     CreateRenderLayer: CreateRenderLayerModel = SettingsField(
+        title="RenderLayer",
         default_factory=CreateRenderLayerModel,
-        title="Create Render Layer"
     )
     CreateRenderPass: CreateRenderPassModel = SettingsField(
         default_factory=CreateRenderPassModel,
-        title="Create Render Pass"
+        title="RenderPass"
     )
-    AutoDetectCreateRender: AutoDetectCreateRenderModel = SettingsField(
+    AutoDetectRenderCreator: AutoDetectCreateRenderModel = SettingsField(
         default_factory=AutoDetectCreateRenderModel,
         title="Auto-Detect Create Render",
     )
