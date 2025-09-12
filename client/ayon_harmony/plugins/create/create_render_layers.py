@@ -39,6 +39,7 @@ import json
 import copy
 import collections
 from typing import Any, Optional, Union
+from dataclasses import dataclass
 
 from ayon_core.lib import (
     AbstractAttrDef,
@@ -97,6 +98,11 @@ There is option to auto-rename color groups before Render Layer creation. That
 is based on settings template where is filled index of used group from bottom
 to top.
 """
+
+@dataclass
+class GroupInfo:
+    id: int
+    color: str
 
 
 class CreateRenderLayer(HarmonyRenderCreator):
@@ -180,30 +186,50 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     def get_pre_create_attr_defs(self):
         enum_defs = super().get_pre_create_attr_defs()
-        group_enum_values = get_groups_enum()
+        group_infos = get_group_infos()
+        group_enum_values = [
+            {"value": group.id, "label": group.color}
+            for group in group_infos
+        ]
         group_enum_values.insert(0, {"label": "<Use selection>", "value": -1})
+
         enum_defs.append(
-            EnumDef(
-                "group_id",
-                label="Group",
-                items=group_enum_values
-            )
-        )
+            EnumDef("group_id", label="Group", items=group_enum_values))
         enum_defs.append(
-            BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=self.mark_for_review
+            ),
         )
         return enum_defs
 
     def get_instance_attr_defs(self):
-        groups_enum = get_groups_enum()
-        return [
-            EnumDef("group_id", label="Group", items=groups_enum, enabled=False),
-            BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
-            EnumDef(
-                "render_target", items=self.rendering_targets, label="Render target"
-            )
+        groups = get_group_infos()
+
+        groups_enum = [
+            {"value": group.id, "label": group.color}
+            for group in groups
         ]
-    
+        return [
+            EnumDef(
+                "group_id",
+                label="Group",
+                items=groups_enum,
+                enabled=False
+            ),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=self.mark_for_review
+            ),
+            EnumDef(
+                "render_target",
+                items=self.rendering_targets,
+                label="Render target"
+            ),
+        ]
+
     def get_product_name(
         self,
         project_name,
@@ -603,7 +629,7 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
             collections.defaultdict(list)
         )
         scene_layers: list[dict[str, Any]] = get_layers_info()
-        scene_groups: list[dict[str, Any]] = get_groups_enum()
+        scene_groups: list[dict[str, Any]] = get_group_infos()
         for layer in scene_layers:
             group_color: int = layer["color"]
             group_id = get_group_id(group_color, scene_groups)
@@ -627,27 +653,25 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
         )
         # Make sure  all render layers are created
         for group in filtered_groups:
-            group_id = group["value"]
             instance: Union[CreatedInstance, None] = (
                 self._prepare_render_layer(
                     project_entity,
                     folder_entity,
                     task_entity,
-                    group_id,
+                    group.id,
                     filtered_groups,
                     mark_layers_for_review,
                     render_target,
-                    render_layers_by_group_id.get(group_id),
+                    render_layers_by_group_id.get(group.id),
                 )
             )
             if instance is not None:
-                render_layers_by_group_id[group_id] = instance
+                render_layers_by_group_id[group.id] = instance
 
         for group in filtered_groups:
-            group_id = group["value"]
-            layers: list[dict[str, Any]] = layers_by_group_id[group_id]
+            layers: list[dict[str, Any]] = layers_by_group_id[group.id]
             render_layer_instance: Union[CreatedInstance, None] = (
-                render_layers_by_group_id.get(group_id)
+                render_layers_by_group_id.get(group.id)
             )
             if not layers or render_layer_instance is None:
                 continue
@@ -666,8 +690,7 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
     def _filter_groups(self, layers_by_group_id, scene_groups, only_visible_groups):
         filtered_groups = []
         for group in scene_groups:
-            group_id = group["value"]
-            layers: list[dict[str, Any]] = layers_by_group_id[group_id]
+            layers: list[dict[str, Any]] = layers_by_group_id[group.id]
             if not layers:
                 continue
 
@@ -684,25 +707,25 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
         folder_entity: dict[str, Any],
         task_entity: dict[str, Any],
         group_id: int,
-        groups: list[dict[str, Any]],
+        groups: list[GroupInfo],
         mark_for_review: bool,
         render_target: str,
         existing_instance: Optional[CreatedInstance] = None,
     ) -> Union[CreatedInstance, None]:
         match_group: Optional[dict[str, Any]] = next(
-            (group for group in groups if group["value"] == group_id), None
+            (group for group in groups if group.id == group_id), None
         )
         if not match_group:
             return None
 
         task_name = task_entity["name"]
-        group_idx = match_group["value"]
+        group_idx = match_group.id
         variant: str = get_group_layer_name(
             self.group_name_template,
-            group_idx, 
-            self.group_idx_padding, 
+            group_idx,
+            self.group_idx_padding,
             self.group_idx_offset,
-            self.log
+            self.log,
         )
         creator: CreateRenderLayer = self.create_context.creators[
             CreateRenderLayer.identifier
@@ -778,10 +801,8 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
             ):
                 name_regex = name_regex.replace(src, regex)
             name_regex = re.compile(name_regex)
-        layer_positions_in_groups = self._get_layer_positions_in_groups(
-            layers
-        )
-        groups_info = get_groups_enum()
+        layer_positions_in_groups = self._get_layer_positions_in_groups(layers)
+        groups_info = get_group_infos()
 
         for layer in layers:
             layer_name = layer["name"]
@@ -904,43 +925,49 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
 
 
 # TODO refactor
-def get_groups_enum():
+def get_group_infos() -> list[GroupInfo]:
     """Lists all used layer colors to choose from"""
     # TODO cache this
-    used_colors_enum = []
+    used_group_colors = []
     layers_data = get_layers_info()
-    available_colors = sorted(set(layer["color"] for layer in layers_data))
+    # to keep order
+    available_colors = {layer["color"]:layer["color"] for layer in layers_data}
 
-    group_id = 0
-    for color in available_colors:
-        item = {
-            "label": color,
-            "value": group_id
-        }
-        used_colors_enum.append(item)
+    group_id = 1
+    for color in available_colors.keys():
+        item = GroupInfo(id=group_id, color=color)
+        used_group_colors.append(item)
         group_id += 1
 
-    return used_colors_enum
+    return used_group_colors
 
 
-def get_group_color(group_id, group_enum_values=None):
-    if not group_enum_values:
-        group_enum_values = get_groups_enum()
+def get_group_color(
+    group_id: int,
+    group_infos: Optional[list[GroupInfo]]=None
+) -> str:
+    """Find appropriate color for ordinal number of group"""
+    if not group_infos:
+        group_infos = get_group_infos()
     group_color = None
-    for group_item in group_enum_values:
-        if group_item["value"] == group_id:
-            group_color = group_item["label"]
+    for group_item in group_infos:
+        if group_item.id == group_id:
+            group_color = group_item.color
             break
     return group_color
 
 
-def get_group_id(group_color, group_enum_values=None):
-    if not group_enum_values:
-        group_enum_values = get_groups_enum()
+def get_group_id(
+    group_color: str,
+    group_infos: Optional[list[GroupInfo]]=None
+) -> int:
+    """Find ordinal number of group for particular group color"""
+    if not group_infos:
+        group_infos = get_group_infos()
     group_id = None
-    for group_item in group_enum_values:
-        if group_item["label"] == group_color:
-            group_id = group_item["value"]
+    for group_item in group_infos:
+        if group_item.color == group_color:
+            group_id = group_item.id
             break
     return group_id
 
