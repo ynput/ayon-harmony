@@ -59,8 +59,8 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
         var connections = groupNode.linkedOutNodes || [];
         var compositePath = "Top/" + compositeName;
         var isConnectedToGroup = false;
-        for (var i = 0; i < connections.length; i++) {
-                var connPath = connections[i].fullPath; 
+        for (var ci = 0; ci < connections.length; ci++) {
+                var connPath = connections[ci].fullPath; 
                 if (connPath=== compositePath) {
                         isConnectedToGroup = true;
                         break;
