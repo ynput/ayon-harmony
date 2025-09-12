@@ -49,7 +49,7 @@ from ayon_core.pipeline.create import (
     get_product_name
 )
 
-from ayon_harmony.api.plugin import HarmonyAutoCreator, HarmonyRenderCreator
+from ayon_harmony.api.plugin import HarmonyCreator, HarmonyRenderCreator
 from ayon_harmony.api.lib import get_layers_info
 import ayon_harmony.api as harmony
 
@@ -515,7 +515,7 @@ class CreateRenderPass(HarmonyRenderCreator):
         return new_name
 
 
-class HarmonyAutoDetectRenderCreator(HarmonyAutoCreator):
+class HarmonyAutoDetectRenderCreator(HarmonyCreator):
 #     """Create Render Layer and Render Pass instances based on scene data.
 
 #     This is auto-detection creator which can be triggered by user to create
