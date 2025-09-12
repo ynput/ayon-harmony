@@ -131,7 +131,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
     def get_dynamic_data(
         self, project_name, folder_entity, task_entity, variant, host_name, instance
     ):
-        self.log.info("get_dynamic_data")
         return {
             "renderpass": self.default_pass_name,
             "renderlayer": variant,
@@ -176,7 +175,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         creator_attributes["render_target"] = pre_create_data["render_target"]
 
         node = self._create_nodes_for_group(group_id, product_name)
-        self.log.info(f"Created node:: {node}")
+        self.log.debug(f"Created node:: {node}")
         return node
 
     def get_pre_create_attr_defs(self):
@@ -253,7 +252,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
             layer["fullName"] for layer in layers_data 
             if layer["color"]==group_color
         ]
-        self.log.info(f"layers_full_name::{layers_full_names}")
+
         self_name = self.__class__.__name__
         created_node = harmony.send(
             {
@@ -299,8 +298,6 @@ class CreateRenderPass(HarmonyRenderCreator):
     mark_for_review = True
 
     def product_impl(self, product_name, instance_data, pre_create_data):
-        variant = instance_data["variant"]
-
         render_layer_instance_id = pre_create_data.get("render_layer_instance_id")
         # This creator should run only on one group
         if render_layer_instance_id is None or render_layer_instance_id == "-1":
@@ -333,6 +330,8 @@ class CreateRenderPass(HarmonyRenderCreator):
         creator_attributes["mark_for_review"] = mark_for_review
         creator_attributes["render_target"] = pre_create_data["render_target"]
         creator_attributes["render_layer_instance_id"] = render_layer_instance_id
+
+        instance_data["layer_name"] = marked_layer_name
 
         node = self._create_node_for_pass(layer, product_name)
         self.log.info(f"Created node:: {node}")
@@ -504,7 +503,7 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
     group_name_template = "G{group_index}"
     group_idx_offset = 10
     group_idx_padding = 3
-    layer_name_template = {"enabled": False}
+    layer_name_template = {"enabled": False, "template": "G{group_index}_L{layer_index}_{variant}"}
 
 #     def apply_settings(self, project_settings):
 #         super().apply_settings(project_settings)
@@ -570,97 +569,6 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
 
 #     
 
-#     def _prepare_render_passes(
-#         self,
-#         project_entity: dict[str, Any],
-#         folder_entity: dict[str, Any],
-#         task_entity: dict[str, Any],
-#         render_layer_instance: CreatedInstance,
-#         layers: list[dict[str, Any]],
-#         mark_for_review: bool,
-#         existing_render_passes: list[CreatedInstance],
-#     ):
-#         task_name = task_entity["name"]
-#         creator: CreateRenderPass = self.create_context.creators[
-#             CreateRenderPass.identifier
-#         ]
-#         render_pass_by_layer_name = {}
-#         for render_pass in existing_render_passes:
-#             for layer_name in render_pass["layer_names"]:
-#                 render_pass_by_layer_name[layer_name] = render_pass
-
-#         # Use renaming template to parse correct variant from existing layer
-#         #   names.
-#         name_regex = None
-#         if self.layer_name_template["enabled"]:
-#             template = self.layer_name_template["template"]
-#             fake_group = "___group___"
-#             fake_layer = "___layer___"
-#             fake_variant = "___variant___"
-#             try:
-#                 name_regex = template.format(
-#                     layer_index=fake_layer,
-#                     group_index=fake_group,
-#                     variant=fake_variant,
-#                 )
-#             except Exception:
-#                 self.log.error("Failed to fill name regex template.", exc_info=True)
-#                 name_regex = ""
-
-#             for src, regex in (
-#                 (fake_group, r"(?P<group>\d+)"),
-#                 (fake_layer, r"(?P<layer>\d+)"),
-#                 (fake_variant, r"(?P<variant>.*)"),
-#             ):
-#                 name_regex = name_regex.replace(src, regex)
-#             name_regex = re.compile(name_regex)
-
-#         for layer in layers:
-#             layer_name = layer["name"]
-#             variant = None
-#             render_pass = render_pass_by_layer_name.get(layer_name)
-#             if render_pass is not None and len(render_pass["layer_names"]) > 0:
-#                 variant = render_pass["variant"]
-#             elif name_regex is not None:
-#                 result = name_regex.match(layer_name)
-#                 groups = {}
-#                 if result is not None:
-#                     groups = result.groupdict()
-#                 variant = groups.get("variant")
-
-#             if not variant:
-#                 variant = layer_name
-
-#             product_name = creator.get_product_name(
-#                 project_entity["name"],
-#                 folder_entity,
-#                 task_entity,
-#                 variant,
-#                 host_name=self.create_context.host_name,
-#                 instance=render_pass,
-#                 project_entity=project_entity,
-#             )
-
-#             if render_pass is not None:
-#                 render_pass["folderPath"] = folder_entity["path"]
-#                 render_pass["task"] = task_name
-#                 render_pass["productName"] = product_name
-#                 continue
-
-#             instance_data: dict[str, str] = {
-#                 "folderPath": folder_entity["path"],
-#                 "task": task_name,
-#                 "productType": creator.product_type,
-#                 "variant": variant,
-#             }
-
-#             pre_create_data: dict[str, Any] = {
-#                 "render_layer_instance_id": render_layer_instance.id,
-#                 "layer_names": [layer_name],
-#                 "mark_for_review": mark_for_review,
-#             }
-#             creator.create(product_name, instance_data, pre_create_data)
-
     def create(self, product_name, instance_data, pre_create_data):
 
         project_entity = self.create_context.get_current_project_entity()
@@ -700,8 +608,7 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
             group_color: int = layer["color"]
             group_id = get_group_id(group_color, scene_groups)
 
-            layers_by_group_id[group_id].append(layer)
-        self.log.info(f"layers_by_group_id::{layers_by_group_id}")    
+            layers_by_group_id[group_id].append(layer)  
         mark_layers_for_review = pre_create_data.get(
             "mark_layers_for_review", False
         )
@@ -718,7 +625,6 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
             scene_groups,
             only_visible_groups
         )
-        self.log.info(f"filtered_groups::{filtered_groups}")
         # Make sure  all render layers are created
         for group in filtered_groups:
             group_id = group["value"]
@@ -737,13 +643,31 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
             if instance is not None:
                 render_layers_by_group_id[group_id] = instance
 
+        for group in filtered_groups:
+            group_id = group["value"]
+            layers: list[dict[str, Any]] = layers_by_group_id[group_id]
+            render_layer_instance: Union[CreatedInstance, None] = (
+                render_layers_by_group_id.get(group_id)
+            )
+            if not layers or render_layer_instance is None:
+                continue
+
+            self._prepare_render_passes(
+                project_entity,
+                folder_entity,
+                task_entity,
+                render_layer_instance,
+                layers,
+                mark_passes_for_review,
+                render_target,
+                render_passes_by_render_layer_id[render_layer_instance.id]
+            )
+
     def _filter_groups(self, layers_by_group_id, scene_groups, only_visible_groups):
         filtered_groups = []
         for group in scene_groups:
             group_id = group["value"]
-            self.log.info(f"group_id::{group_id}")
             layers: list[dict[str, Any]] = layers_by_group_id[group_id]
-            self.log.info(f"layers::{layers}")
             if not layers:
                 continue
 
@@ -773,7 +697,13 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
 
         task_name = task_entity["name"]
         group_idx = match_group["value"]
-        variant: str = f"G{group_idx * 10:0>3}"
+        variant: str = get_group_layer_name(
+            self.group_name_template,
+            group_idx, 
+            self.group_idx_padding, 
+            self.group_idx_offset,
+            self.log
+        )
         creator: CreateRenderLayer = self.create_context.creators[
             CreateRenderLayer.identifier
         ]
@@ -803,6 +733,118 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
             "render_target": render_target,
         }
         return creator.create(product_name, instance_data, pre_create_data)
+    
+    def _prepare_render_passes(
+        self,
+        project_entity: dict[str, Any],
+        folder_entity: dict[str, Any],
+        task_entity: dict[str, Any],
+        render_layer_instance: CreatedInstance,
+        layers: list[dict[str, Any]],
+        mark_for_review: bool,
+        render_target: str,
+        existing_render_passes: list[CreatedInstance],
+    ):
+        task_name = task_entity["name"]
+        creator: CreateRenderPass = self.create_context.creators[
+            CreateRenderPass.identifier
+        ]
+        render_pass_by_layer_name = {}
+        for render_pass in existing_render_passes:
+            render_pass_by_layer_name[render_pass["layer_name"]] = render_pass
+
+        # Use renaming template to parse correct variant from existing layer
+        #   names.
+        name_regex = None
+        if self.layer_name_template["enabled"]:
+            template = self.layer_name_template["template"]
+            fake_group = "___group___"
+            fake_layer = "___layer___"
+            fake_variant = "___variant___"
+            try:
+                name_regex = template.format(
+                    layer_index=fake_layer,
+                    group_index=fake_group,
+                    variant=fake_variant,
+                )
+            except Exception:
+                self.log.error("Failed to fill name regex template.", exc_info=True)
+                name_regex = ""
+
+            for src, regex in (
+                (fake_group, r"(?P<group>\d+)"),
+                (fake_layer, r"(?P<layer>\d+)"),
+                (fake_variant, r"(?P<variant>.*)"),
+            ):
+                name_regex = name_regex.replace(src, regex)
+            name_regex = re.compile(name_regex)
+        layer_positions_in_groups = self._get_layer_positions_in_groups(
+            layers
+        )
+        groups_info = get_groups_enum()
+
+        for layer in layers:
+            layer_name = layer["name"]
+            variant = None
+            render_pass = render_pass_by_layer_name.get(layer_name)
+            if render_pass is not None and len(render_pass["layer_names"]) > 0:
+                variant = render_pass["variant"]
+            elif name_regex is not None:
+                result = name_regex.match(layer_name)
+                groups = {}
+                if result is not None:
+                    groups = result.groupdict()
+                variant = groups.get("variant")
+
+            if not variant:
+                variant = layer["name"]
+
+            group_id = get_group_id(layer["color"], groups_info)
+            renderlayer = get_group_layer_name(
+                self.group_name_template,
+                group_id, 
+                self.group_idx_padding, 
+                self.group_idx_offset,
+                self.log
+            )
+
+            renderpass = get_render_pass_name(  #TODO from Settings
+                "L{layer_index}",
+                layer_positions_in_groups[layer["name"]], 
+                3, 
+                10,
+                self.log
+            )
+            if not render_pass:
+                render_pass = {"data": {}}
+
+            render_pass["data"]["renderpass"] = renderpass
+            render_pass["data"]["renderlayer"] = renderlayer
+
+            product_name = creator.get_product_name(
+                project_entity["name"],
+                folder_entity,
+                task_entity,
+                variant,
+                host_name=self.create_context.host_name,
+                instance=render_pass,
+                project_entity=project_entity,
+            )
+
+            instance_data: dict[str, str] = {
+                "folderPath": folder_entity["path"],
+                "task": task_name,
+                "productType": creator.product_type,
+                "variant": variant,
+            }
+
+            pre_create_data: dict[str, Any] = {
+                "render_layer_instance_id": render_layer_instance.id,
+                "layer_name": layer_name,
+                "mark_for_review": mark_for_review,
+                "render_target": render_target, 
+            }
+            creator.create(product_name, instance_data, pre_create_data)
 
     def get_pre_create_attr_defs(self) -> list[AbstractAttrDef]:
         render_layer_creator: CreateRenderLayer = self.create_context.creators[
@@ -847,6 +889,19 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         pass
 
+    def _get_layer_positions_in_groups(self, layers):
+        layer_positions_in_groups = {}
+        sorted_layers = sorted(layers, key=lambda layer: (layer["color"], layer["position"]))
+        last_group = None
+        position_in_group = 1
+        for layer in sorted_layers:
+            if last_group is None or last_group != layer["color"]:
+                position_in_group = 1
+                last_group = layer["color"]
+            layer_positions_in_groups[layer["name"]] = position_in_group
+            position_in_group += 1
+        return layer_positions_in_groups
+
 
 # TODO refactor
 def get_groups_enum():
@@ -878,6 +933,7 @@ def get_group_color(group_id, group_enum_values=None):
             break
     return group_color
 
+
 def get_group_id(group_color, group_enum_values=None):
     if not group_enum_values:
         group_enum_values = get_groups_enum()
@@ -887,3 +943,49 @@ def get_group_id(group_color, group_enum_values=None):
             group_id = group_item["value"]
             break
     return group_id
+
+
+def get_group_layer_name(
+    group_template: str, 
+    group_id: int, 
+    group_idx_padding: int, 
+    group_idx_offset: int,
+    log
+) -> str:
+    new_name = None
+    index_template = f"{{:0>{group_idx_padding}}}"
+    group_pos = group_id * group_idx_offset
+    log.info(f"index_template::{index_template} , group_pos::{group_pos}")
+    try:
+        group_index = index_template.format(group_pos)
+        new_name = group_template.format(
+            group_index=group_index,
+        )
+    except Exception:
+        log.warning("Failed to create new layer name", exc_info=True)
+
+    return new_name
+
+
+def get_render_pass_name(
+    pass_template: str, 
+    position_in_group: int, 
+    layer_idx_padding: int, 
+    layer_idx_offset: int,
+    log
+) -> str:
+    new_name = None
+    index_template = f"{{:0>{layer_idx_padding}}}"
+    layer_pos = position_in_group * layer_idx_offset
+    log.info(f"pass_template::{pass_template}")
+    log.info(f"index_template::{index_template} , layer_pos::{layer_pos}")
+    try:
+        layer_index = index_template.format(layer_pos)
+        log.info(f"layer_index::{layer_index}")
+        new_name = pass_template.format(
+            layer_index=layer_index,
+        )
+    except Exception:
+        log.warning("Failed to create new pass name", exc_info=True)
+
+    return new_name
