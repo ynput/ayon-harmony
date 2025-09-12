@@ -56,12 +56,14 @@ DEFAULT_HARMONY_SETTING = {
         },
         "CreateRenderLayer": {
             "mark_for_review": False,
+            "active_on_create": True,
             "default_pass_name": "beauty",
             "default_variant": "Main",
             "default_variants": []
         },
         "CreateRenderPass": {
             "mark_for_review": False,
+            "active_on_create": True,
             "default_variant": "",
             "default_variants": []
         },
