@@ -493,7 +493,8 @@ AyonHarmony.getLayerInfos = function() {
             "color": readNode.nodeColor.toString(),
             "fullName": readNode.toString(),
             "selected": readNode.selected,
-            "position": readNode.timelineIndex()
+            "position": readNode.timelineIndex(),
+            "enabled": readNode.enabled
         };
 
     layerInfos.push(info);
