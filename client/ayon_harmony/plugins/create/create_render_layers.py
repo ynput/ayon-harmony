@@ -41,10 +41,12 @@ import collections
 from typing import Any, Optional, Union
 
 from ayon_core.lib import (
+    AbstractAttrDef,
     EnumDef,
     BoolDef,
 )
 from ayon_core.pipeline.create import (
+    CreatedInstance,
     CreatorError,
     get_product_name
 )
@@ -129,6 +131,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
     def get_dynamic_data(
         self, project_name, folder_entity, task_entity, variant, host_name, instance
     ):
+        self.log.info("get_dynamic_data")
         return {
             "renderpass": self.default_pass_name,
             "renderlayer": variant,
@@ -147,6 +150,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
             if len(selected_groups) == 0:
                 raise CreatorError("You don't have selected any group")
             group_color = tuple(selected_groups)[0]
+            group_id = get_group_id(group_color)
 
         for instance in self.create_context.instances:
             if instance.creator_identifier != self.identifier:
@@ -166,7 +170,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         mark_for_review = pre_create_data.get("mark_for_review")
         if mark_for_review is None:
             mark_for_review = self.mark_for_review
-        group_id = self._get_group_id(group_color)
+        
         creator_attributes["group_id"] = group_id
         creator_attributes["mark_for_review"] = mark_for_review
         creator_attributes["render_target"] = pre_create_data["render_target"]
@@ -175,27 +179,9 @@ class CreateRenderLayer(HarmonyRenderCreator):
         self.log.info(f"Created node:: {node}")
         return node
 
-    def _get_groups_enum(self):
-        """Lists all used layer colors to choose from"""
-        # TODO cache this
-        used_colors_enum = []
-        layers_data = get_layers_info()
-        available_colors = sorted(set(layer["color"] for layer in layers_data))
-
-        group_id = 0
-        for color in available_colors:
-            item = {
-                "label": color,
-                "value": group_id
-            }
-            used_colors_enum.append(item)
-            group_id += 1
-
-        return used_colors_enum
-
     def get_pre_create_attr_defs(self):
         enum_defs = super().get_pre_create_attr_defs()
-        group_enum_values = self._get_groups_enum()
+        group_enum_values = get_groups_enum()
         group_enum_values.insert(0, {"label": "<Use selection>", "value": -1})
         enum_defs.append(
             EnumDef(
@@ -210,7 +196,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         return enum_defs
 
     def get_instance_attr_defs(self):
-        groups_enum = self._get_groups_enum()
+        groups_enum = get_groups_enum()
         return [
             EnumDef("group_id", label="Group", items=groups_enum, enabled=False),
             BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
@@ -290,26 +276,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     def _get_selected_group_colors(self):
         return {layer["color"] for layer in get_layers_info() if layer["selected"]}
-    
-    # TODO refactor
-    def _get_group_color(self, group_id):
-        group_enum_values = self._get_groups_enum()
-        group_color = None
-        for group_item in group_enum_values:
-            if group_item["value"] == group_id:
-                group_color = group_item["label"]
-                break
-        return group_color
-    
-    def _get_group_id(self, group_color):
-        group_enum_values = self._get_groups_enum()
-        group_id = None
-        for group_item in group_enum_values:
-            if group_item["label"] == group_color:
-                group_id = group_item["value"]
-                break
-        return group_id
-
 
 
 class CreateRenderPass(HarmonyRenderCreator):
@@ -544,14 +510,6 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
     group_idx_padding = 3
     layer_name_template = {"enabled": False}
 
-    # Placeholder node name for where we store the workfile data.
-    # This does not create an actual Harmony node, but just uses this name
-    # as key in the AYON Harmony scene data.
-    _node_name = "__renderLayers__"
-
-    def create(self):
-        pass
-
 #     def apply_settings(self, project_settings):
 #         super().apply_settings(project_settings)
 #         plugin_settings = project_settings["Harmony"]["create"]["auto_detect_render"]
@@ -614,52 +572,7 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
 #         if grg_lines:
 #             execute_george_through_file("\n".join(grg_lines))
 
-#     def _prepare_render_layer(
-#         self,
-#         project_entity: dict[str, Any],
-#         folder_entity: dict[str, Any],
-#         task_entity: dict[str, Any],
-#         group_id: int,
-#         groups: list[dict[str, Any]],
-#         mark_for_review: bool,
-#         existing_instance: Optional[CreatedInstance] = None,
-#     ) -> Union[CreatedInstance, None]:
-#         match_group: Optional[dict[str, Any]] = next(
-#             (group for group in groups if group["group_id"] == group_id), None
-#         )
-#         if not match_group:
-#             return None
-
-#         task_name = task_entity["name"]
-#         variant: str = match_group["name"]
-#         creator: CreateRenderlayer = self.create_context.creators[
-#             CreateRenderlayer.identifier
-#         ]
-#         product_name: str = creator.get_product_name(
-#             project_entity["name"],
-#             folder_entity,
-#             task_entity,
-#             variant,
-#             host_name=self.create_context.host_name,
-#             project_entity=project_entity,
-#         )
-#         if existing_instance is not None:
-#             existing_instance["folderPath"] = folder_entity["path"]
-#             existing_instance["task"] = task_name
-#             existing_instance["productName"] = product_name
-#             return existing_instance
-
-#         instance_data: dict[str, str] = {
-#             "folderPath": folder_entity["path"],
-#             "task": task_name,
-#             "productType": creator.product_type,
-#             "variant": variant,
-#         }
-#         pre_create_data: dict[str, Any] = {
-#             "group_id": group_id,
-#             "mark_for_review": mark_for_review,
-#         }
-#         return creator.create(product_name, instance_data, pre_create_data)
+#     
 
 #     def _prepare_render_passes(
 #         self,
@@ -752,165 +665,229 @@ class HarmonyAutoDetectRenderCreator(HarmonyCreator):
 #             }
 #             creator.create(product_name, instance_data, pre_create_data)
 
-#     def _filter_groups(self, layers_by_group_id, groups_order, only_visible_groups):
-#         new_groups_order = []
-#         for group_id in groups_order:
-#             layers: list[dict[str, Any]] = layers_by_group_id[group_id]
-#             if not layers:
-#                 continue
+    def create(self, product_name, instance_data, pre_create_data):
 
-#             if only_visible_groups and not any(
-#                 layer for layer in layers if layer["visible"]
-#             ):
-#                 continue
-#             new_groups_order.append(group_id)
-#         return new_groups_order
+        project_entity = self.create_context.get_current_project_entity()
+        folder_path: str = self.create_context.get_current_folder_path()
+        task_name: str = self.create_context.get_current_task_name()
+        folder_entity: dict[str, Any] = self.create_context.get_folder_entity(
+            folder_path
+        )
+        task_entity: dict[str, Any] = self.create_context.get_task_entity(
+            folder_path, task_name
+        )
 
-    # def create(self, product_name, instance_data, pre_create_data):
-    #     name = "CreateRenderLayer"
-    #     with open("c:/projects/harmony1.txt", "w") as fp:
-    #         fp.write("FOOOOK")
-        # layers_data = harmony.send(
-        #     {
-        #         "function": f"AyonHarmony.Creators.{name}.getLayerInfos",
-        #         "args": []
-        #     }
-        # )
-        # self.log.info(f"layers_data::{layers_data}")
-        # with open("c:/projects/harmony.txt", "w") as fp:
-        #     fp.write(layers_data)
-#         project_entity = self.create_context.get_current_project_entity()
-#         if self._use_current_context:
-#             folder_path: str = self.create_context.get_current_folder_path()
-#             task_name: str = self.create_context.get_current_task_name()
-#         else:
-#             folder_path: str = instance_data["folderPath"]
-#             task_name: str = instance_data["task"]
-#         folder_entity: dict[str, Any] = self.create_context.get_folder_entity(
-#             folder_path
-#         )
-#         task_entity: dict[str, Any] = self.create_context.get_task_entity(
-#             folder_path, task_name
-#         )
+        render_layers_by_group_id: dict[int, CreatedInstance] = {}
+        render_passes_by_render_layer_id: dict[int, list[CreatedInstance]] = (
+            collections.defaultdict(list)
+        )
+        for instance in self.create_context.instances:
+            if instance.creator_identifier == CreateRenderLayer.identifier:
+                group_id = instance["creator_attributes"]["group_id"]
+                render_layers_by_group_id[group_id] = instance
+            elif instance.creator_identifier == CreateRenderPass.identifier:
+                render_layer_id = (
+                    instance
+                    ["creator_attributes"]
+                    ["render_layer_instance_id"]
+                )
+                render_passes_by_render_layer_id[render_layer_id].append(
+                    instance
+                )
 
-#         render_layers_by_group_id: dict[int, CreatedInstance] = {}
-#         render_passes_by_render_layer_id: dict[int, list[CreatedInstance]] = (
-#             collections.defaultdict(list)
-#         )
-#         for instance in self.create_context.instances:
-#             if instance.creator_identifier == CreateRenderlayer.identifier:
-#                 group_id = instance["creator_attributes"]["group_id"]
-#                 render_layers_by_group_id[group_id] = instance
-#             elif instance.creator_identifier == CreateRenderPass.identifier:
-#                 render_layer_id = instance["creator_attributes"][
-#                     "render_layer_instance_id"
-#                 ]
-#                 render_passes_by_render_layer_id[render_layer_id].append(instance)
+        layers_by_group_id: dict[int, list[dict[str, Any]]] = (
+            collections.defaultdict(list)
+        )
+        scene_layers: list[dict[str, Any]] = get_layers_info()
+        scene_groups: list[dict[str, Any]] = get_groups_enum()
+        for layer in scene_layers:
+            group_color: int = layer["color"]
+            group_id = get_group_id(group_color, scene_groups)
 
-#         layers_by_group_id: dict[int, list[dict[str, Any]]] = collections.defaultdict(
-#             list
-#         )
-#         scene_layers: list[dict[str, Any]] = get_layers_data()
-#         scene_groups: list[dict[str, Any]] = get_groups_data()
-#         groups_order: list[int] = []
-#         for layer in scene_layers:
-#             group_id: int = layer["group_id"]
-#             # Skip 'default' group
-#             if group_id == 0:
-#                 continue
+            layers_by_group_id[group_id].append(layer)
+        self.log.info(f"layers_by_group_id::{layers_by_group_id}")    
+        mark_layers_for_review = pre_create_data.get(
+            "mark_layers_for_review", False
+        )
+        mark_passes_for_review = pre_create_data.get(
+            "mark_passes_for_review", False
+        )
+        render_target = pre_create_data.get(
+            "render_target", False
+        )
 
-#             layers_by_group_id[group_id].append(layer)
-#             if group_id not in groups_order:
-#                 groups_order.append(group_id)
+        only_visible_groups = pre_create_data.get("only_visible_groups", False)
+        filtered_groups = self._filter_groups(
+            layers_by_group_id,
+            scene_groups,
+            only_visible_groups
+        )
+        self.log.info(f"filtered_groups::{filtered_groups}")
+        # Make sure  all render layers are created
+        for group in filtered_groups:
+            group_id = group["value"]
+            instance: Union[CreatedInstance, None] = (
+                self._prepare_render_layer(
+                    project_entity,
+                    folder_entity,
+                    task_entity,
+                    group_id,
+                    filtered_groups,
+                    mark_layers_for_review,
+                    render_target,
+                    render_layers_by_group_id.get(group_id),
+                )
+            )
+            if instance is not None:
+                render_layers_by_group_id[group_id] = instance
 
-#         groups_order.reverse()
+    def _filter_groups(self, layers_by_group_id, scene_groups, only_visible_groups):
+        filtered_groups = []
+        for group in scene_groups:
+            group_id = group["value"]
+            self.log.info(f"group_id::{group_id}")
+            layers: list[dict[str, Any]] = layers_by_group_id[group_id]
+            self.log.info(f"layers::{layers}")
+            if not layers:
+                continue
 
-#         mark_layers_for_review = pre_create_data.get("mark_layers_for_review", False)
-#         mark_passes_for_review = pre_create_data.get("mark_passes_for_review", False)
-#         rename_groups = pre_create_data.get("rename_groups", False)
-#         only_visible_groups = pre_create_data.get("only_visible_groups", False)
-#         groups_order = self._filter_groups(
-#             layers_by_group_id, groups_order, only_visible_groups
-#         )
-#         if not groups_order:
-#             return
+            if only_visible_groups and not any(
+                layer for layer in layers if layer["enabled"]
+            ):
+                continue
+            filtered_groups.append(group)
+        return filtered_groups
 
-#         if rename_groups:
-#             self._rename_groups(groups_order, scene_groups)
+    def _prepare_render_layer(
+        self,
+        project_entity: dict[str, Any],
+        folder_entity: dict[str, Any],
+        task_entity: dict[str, Any],
+        group_id: int,
+        groups: list[dict[str, Any]],
+        mark_for_review: bool,
+        render_target: str,
+        existing_instance: Optional[CreatedInstance] = None,
+    ) -> Union[CreatedInstance, None]:
+        match_group: Optional[dict[str, Any]] = next(
+            (group for group in groups if group["value"] == group_id), None
+        )
+        if not match_group:
+            return None
 
-#         # Make sure  all render layers are created
-#         for group_id in groups_order:
-#             instance: Union[CreatedInstance, None] = self._prepare_render_layer(
-#                 project_entity,
-#                 folder_entity,
-#                 task_entity,
-#                 group_id,
-#                 scene_groups,
-#                 mark_layers_for_review,
-#                 render_layers_by_group_id.get(group_id),
-#             )
-#             if instance is not None:
-#                 render_layers_by_group_id[group_id] = instance
+        task_name = task_entity["name"]
+        group_idx = match_group["value"]
+        variant: str = f"G{group_idx * 10:0>3}"
+        creator: CreateRenderLayer = self.create_context.creators[
+            CreateRenderLayer.identifier
+        ]
+        product_name: str = creator.get_product_name(
+            project_entity["name"],
+            folder_entity,
+            task_entity,
+            variant,
+            host_name=self.create_context.host_name,
+            project_entity=project_entity,
+        )
+        if existing_instance is not None:
+            existing_instance["folderPath"] = folder_entity["path"]
+            existing_instance["task"] = task_name
+            existing_instance["productName"] = product_name
+            return existing_instance
 
-#         for group_id in groups_order:
-#             layers: list[dict[str, Any]] = layers_by_group_id[group_id]
-#             render_layer_instance: Union[CreatedInstance, None] = (
-#                 render_layers_by_group_id.get(group_id)
-#             )
-#             if not layers or render_layer_instance is None:
-#                 continue
+        instance_data: dict[str, str] = {
+            "folderPath": folder_entity["path"],
+            "task": task_name,
+            "productType": creator.product_type,
+            "variant": variant,
+        }
+        pre_create_data: dict[str, Any] = {
+            "group_id": group_id,
+            "mark_for_review": mark_for_review,
+            "render_target": render_target,
+        }
+        return creator.create(product_name, instance_data, pre_create_data)
 
-#             self._prepare_render_passes(
-#                 project_entity,
-#                 folder_entity,
-#                 task_entity,
-#                 render_layer_instance,
-#                 layers,
-#                 mark_passes_for_review,
-#                 render_passes_by_render_layer_id[render_layer_instance.id],
-#             )
+    def get_pre_create_attr_defs(self) -> list[AbstractAttrDef]:
+        render_layer_creator: CreateRenderLayer = self.create_context.creators[
+            CreateRenderLayer.identifier
+        ]
+        render_pass_creator: CreateRenderPass = self.create_context.creators[
+            CreateRenderPass.identifier
+        ]
+        rendering_targets = {
+            "local": "Local machine rendering",
+            "farm": "Farm rendering",
+        }
+        output = []
+        output.extend(
+            [
+                BoolDef(
+                    "only_visible_groups",
+                    label="Only visible color groups",
+                    tooltip=(
+                        "Render Layers will happen only on color"
+                        " groups with visible layers."
+                    ),
+                    default=True
+                ),
+                BoolDef(
+                    "mark_layers_for_review",
+                    label="Mark RenderLayers for review",
+                    default=render_layer_creator.mark_for_review,
+                ),
+                BoolDef(
+                    "mark_passes_for_review",
+                    label="Mark RenderPasses for review",
+                    default=render_pass_creator.mark_for_review,
+                ),
+                EnumDef(
+                    "render_target", items=rendering_targets, label="Render target"
+                )
+            ]
+        )
+        return output
 
-#     def get_pre_create_attr_defs(self) -> list[AbstractAttrDef]:
-#         render_layer_creator: CreateRenderlayer = self.create_context.creators[
-#             CreateRenderlayer.identifier
-#         ]
-#         render_pass_creator: CreateRenderPass = self.create_context.creators[
-#             CreateRenderPass.identifier
-#         ]
-#         output = []
-#         if self.allow_group_rename:
-#             output.extend(
-#                 [
-#                     BoolDef(
-#                         "rename_groups",
-#                         label="Rename color groups",
-#                         tooltip="Will rename color groups using studio template",
-#                         default=True,
-#                     ),
-#                     BoolDef(
-#                         "only_visible_groups",
-#                         label="Only visible color groups",
-#                         tooltip=(
-#                             "Render Layers and rename will happen only on color"
-#                             " groups with visible layers."
-#                         ),
-#                         default=True,
-#                     ),
-#                     UISeparatorDef(),
-#                 ]
-#             )
-#         output.extend(
-#             [
-#                 BoolDef(
-#                     "mark_layers_for_review",
-#                     label="Mark RenderLayers for review",
-#                     default=render_layer_creator.mark_for_review,
-#                 ),
-#                 BoolDef(
-#                     "mark_passes_for_review",
-#                     label="Mark RenderPasses for review",
-#                     default=render_pass_creator.mark_for_review,
-#                 ),
-#             ]
-#         )
-#         return output
+    def product_impl(self, name, instance_data: dict, pre_create_data: dict):
+        pass
+
+
+# TODO refactor
+def get_groups_enum():
+    """Lists all used layer colors to choose from"""
+    # TODO cache this
+    used_colors_enum = []
+    layers_data = get_layers_info()
+    available_colors = sorted(set(layer["color"] for layer in layers_data))
+
+    group_id = 0
+    for color in available_colors:
+        item = {
+            "label": color,
+            "value": group_id
+        }
+        used_colors_enum.append(item)
+        group_id += 1
+
+    return used_colors_enum
+
+
+def get_group_color(group_id, group_enum_values=None):
+    if not group_enum_values:
+        group_enum_values = get_groups_enum()
+    group_color = None
+    for group_item in group_enum_values:
+        if group_item["value"] == group_id:
+            group_color = group_item["label"]
+            break
+    return group_color
+
+def get_group_id(group_color, group_enum_values=None):
+    if not group_enum_values:
+        group_enum_values = get_groups_enum()
+    group_id = None
+    for group_item in group_enum_values:
+        if group_item["label"] == group_color:
+            group_id = group_item["value"]
+            break
+    return group_id
