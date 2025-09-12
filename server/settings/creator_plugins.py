@@ -71,11 +71,6 @@ class CreateRenderPassModel(BaseSettingsModel):
         description="Available keys '{layer_index}' '{variant}'",
         placeholder="L{layer_index}_{variant}",
     )
-    layer_name_template: LayerNameTemplateModel = SettingsField(
-        default_factory=LayerNameTemplateModel,
-        title="Layer name template",
-        description="Final layer template to parse out variant from already renamed layers or",
-    )
 
 
 class AutoDetectCreateRenderModel(BaseSettingsModel):
@@ -121,6 +116,11 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     )
     layer_idx_padding: int = SettingsField(
         3, title="Layer index Padding", ge=0
+    )
+    layer_name_template: LayerNameTemplateModel = SettingsField(
+        default_factory=LayerNameTemplateModel,
+        title="Layer name template",
+        description="Final layer template to parse out variant from already renamed layers or",
     )
 
 
