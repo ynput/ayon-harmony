@@ -321,21 +321,6 @@ class CreateRenderPass(HarmonyRenderCreator):
         marked_layer_name = pre_create_data.get("layer_name")
         layer = self._get_used_layer(marked_layer_name, layers_data)
 
-        group_id = render_layer_instance["creator_attributes"]["group_id"]
-        position_in_group = 1
-        for layer_info in layers_data:
-            if layer_info["color"] != layer["color"]:
-                continue
-            if layer_info["name"] == layer["name"]:
-                break
-            position_in_group += 1
-
-        product_name = self._get_product_name(
-            variant,
-            group_id,
-            position_in_group
-        )
-
         for instance in self.create_context.instances:
             if instance.creator_identifier != self.identifier:
                 continue
@@ -445,40 +430,6 @@ class CreateRenderPass(HarmonyRenderCreator):
         if not render_layers:
             render_layers.append({"value": None, "label": "N/A"})
         return render_layers
-
-    def _get_product_name(
-        self,
-        variant: str,
-        group_id: int,
-        position_in_group: int 
-    ):
-        if not self.layer_name_template["enabled"]:
-            return
-
-        template = self.layer_name_template["template"]
-
-        group_template = "{}"
-        if self.group_idx_padding:
-            group_template = f"{{:0>{self.group_idx_padding}}}"
-
-        layer_template = "{}"
-        if self.layer_idx_offset:
-            layer_template = f"{{:0>{self.layer_idx_padding}}}"
-
-        group_pos = group_id * self.group_idx_offset
-
-        layer_index = position_in_group * self.layer_idx_offset
-        self.log.info(f"template::{template}")
-        try:
-            new_name = template.format(
-                layer_index=layer_template.format(layer_index),
-                group_index=group_template.format(group_pos),
-                variant=variant,
-            )
-        except Exception:
-            self.log.warning("Failed to create new layer name", exc_info=True)
-
-        return new_name
 
 
 class HarmonyAutoDetectRenderCreator(HarmonyCreator):
