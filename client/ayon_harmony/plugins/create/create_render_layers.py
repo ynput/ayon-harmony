@@ -314,8 +314,6 @@ class CreateRenderPass(HarmonyRenderCreator):
                 "RenderLayer instance was not found"
                 f" by id \"{render_layer_instance_id}\""
             ))
-        
-        self.log.info(f'created::{render_layer_instance["creator_attributes"]}')
 
         layers_data = get_layers_info()
         marked_layer_name = pre_create_data.get("layer_name")
