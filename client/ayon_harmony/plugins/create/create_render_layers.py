@@ -46,6 +46,7 @@ from ayon_core.lib import (
 )
 from ayon_core.pipeline.create import (
     CreatorError,
+    get_product_name
 )
 
 from ayon_harmony.api.plugin import HarmonyAutoCreator, HarmonyRenderCreator
@@ -217,9 +218,49 @@ class CreateRenderLayer(HarmonyRenderCreator):
                 "render_target", items=self.rendering_targets, label="Render target"
             )
         ]
+    
+    def get_product_name(
+        self,
+        project_name,
+        folder_entity,
+        task_entity,
+        variant,
+        host_name=None,
+        instance=None,
+        project_entity=None,
+    ):
+        if host_name is None:
+            host_name = self.create_context.host_name
+        if project_entity is None:
+            project_entity = self.create_context.get_current_project_entity()
+        dynamic_data = self.get_dynamic_data(
+            project_name,
+            folder_entity,
+            task_entity,
+            variant,
+            host_name,
+            instance
+        )
+        task_name = task_type = None
+        if task_entity:
+            task_name = task_entity["name"]
+            task_type = task_entity["taskType"]
+
+        return get_product_name(
+            project_name,
+            task_name,
+            task_type,
+            host_name,
+            self.product_type,
+            variant,
+            dynamic_data=dynamic_data,
+            project_settings=self.project_settings,
+            product_type_filter=self.product_template_product_type,
+            project_entity=project_entity,
+        )
 
     def _create_nodes_for_group(self, group_id, product_name):
-        group_color = self._get_group_color(group_id)
+        group_color = get_group_color(group_id)
 
         layers_data = get_layers_info()
         layers_full_names = [
