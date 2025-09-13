@@ -289,16 +289,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
         return created_node
 
-
-    def _get_layers_data(self):
-        layers_data = harmony.send(
-            {
-                "function": f"AyonHarmony.getLayerInfos",
-                "args": []
-            }
-        )["result"]
-        return layers_data
-
     def _get_selected_group_colors(self):
         return {layer["color"] for layer in get_layers_info() if layer["selected"]}
 
