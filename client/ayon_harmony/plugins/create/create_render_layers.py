@@ -392,10 +392,21 @@ class CreateRenderPass(HarmonyRenderCreator):
         return layer
 
     def get_dynamic_data(
-        self, project_name, folder_entity, task_entity, variant, host_name, instance
+        self,
+        project_name,
+        folder_entity,
+        task_entity,
+        variant,
+        host_name,
+        instance
     ):
         dynamic_data = super().get_dynamic_data(
-            project_name, folder_entity, task_entity, variant, host_name, instance
+            project_name,
+            folder_entity,
+            task_entity,
+            variant,
+            host_name,
+            instance
         )
         dynamic_data["renderpass"] = "{renderpass}"
         dynamic_data["renderlayer"] = "{renderlayer}"
@@ -417,8 +428,15 @@ class CreateRenderPass(HarmonyRenderCreator):
         enum_defs.extend(
             [
                 EnumDef(
-                    "render_layer_instance_id", label="Render Layer", items=render_layers),
-                BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
+                    "render_layer_instance_id",
+                    abel="Render Layer",
+                    items=render_layers
+                ),
+                BoolDef(
+                    "mark_for_review",
+                    label="Review",
+                    default=self.mark_for_review
+                ),
             ]
         )
         return enum_defs
@@ -472,9 +490,15 @@ class CreateRenderPass(HarmonyRenderCreator):
                 items=render_layers,
                 enabled=False
             ),
-            BoolDef("mark_for_review", label="Review", default=self.mark_for_review),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=self.mark_for_review
+            ),
             EnumDef(
-                "render_target", items=self.rendering_targets, label="Render target"
+                "render_target",
+                items=self.rendering_targets,
+                label="Render target"
             )
         ]
 
@@ -515,7 +539,10 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
     enabled = True
 
-    layer_name_template = {"enabled": False, "template": "G{group_index}_L{layer_index}_{variant}"}
+    layer_name_template = {
+        "enabled": False,
+        "template": "G{group_index}_L{layer_index}_{variant}"
+    }
     group_name_template = "G{group_index}"
     group_idx_offset = 10
     group_idx_padding = 3
@@ -523,69 +550,6 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
     layer_idx_offset = 10
     layer_idx_padding = 3
 
-#     def apply_settings(self, project_settings):
-#         super().apply_settings(project_settings)
-#         plugin_settings = project_settings["Harmony"]["create"]["auto_detect_render"]
-#         self.enabled = plugin_settings.get("enabled", False)
-#         self.allow_group_rename = plugin_settings["allow_group_rename"]
-#         self.group_name_template = plugin_settings["group_name_template"]
-#         self.group_idx_offset = plugin_settings["group_idx_offset"]
-#         self.group_idx_padding = plugin_settings["group_idx_padding"]
-#         self.create_allow_context_change = not self._use_current_context
-
-#         render_pass_settings = project_settings["Harmony"]["create"][
-#             "create_render_pass"
-#         ]
-#         self.layer_name_template = copy.deepcopy(
-#             render_pass_settings["layer_name_template"]
-#         )
-
-#     def _rename_groups(
-#         self, groups_order: list[int], scene_groups: list[dict[str, Any]]
-#     ):
-#         new_group_name_by_id: dict[int, str] = {}
-#         groups_by_id: dict[int, dict[str, Any]] = {
-#             group["group_id"]: group for group in scene_groups
-#         }
-#         # Count only renamed groups
-#         group_template = "{}"
-#         if self.group_idx_padding:
-#             group_template = f"{{:0>{self.group_idx_padding}}}"
-
-#         for idx, group_id in enumerate(groups_order):
-#             group_index_value: str = group_template.format(
-#                 (idx + 1) * self.group_idx_offset
-#             )
-#             group_name_fill_values: dict[str, str] = {
-#                 "groupIdx": group_index_value,
-#                 "groupidx": group_index_value,
-#                 "group_idx": group_index_value,
-#                 "group_index": group_index_value,
-#             }
-
-#             group_name: str = self.group_name_template.format(**group_name_fill_values)
-#             group: dict[str, Any] = groups_by_id[group_id]
-#             if group["name"] != group_name:
-#                 new_group_name_by_id[group_id] = group_name
-
-#         grg_lines: list[str] = []
-#         for group_id, group_name in new_group_name_by_id.items():
-#             group: dict[str, Any] = groups_by_id[group_id]
-#             grg_line: str = ('tv_layercolor "setcolor" {} {} {} {} {} "{}"').format(
-#                 group["clip_id"],
-#                 group_id,
-#                 group["red"],
-#                 group["green"],
-#                 group["blue"],
-#                 group_name,
-#             )
-#             grg_lines.append(grg_line)
-#             group["name"] = group_name
-
-#         if grg_lines:
-#             execute_george_through_file("\n".join(grg_lines))
-
-#     
 
     def create(self, product_name, instance_data, pre_create_data):
 
@@ -683,7 +647,12 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
         self._format_created_nodes(group_colors)
 
-    def _filter_groups(self, layers_by_group_id, scene_groups, only_visible_groups):
+    def _filter_groups(
+        self,
+        layers_by_group_id,
+        scene_groups,
+        only_visible_groups
+    ):
         filtered_groups = []
         for group in scene_groups:
             layers: list[dict[str, Any]] = layers_by_group_id[group.id]
@@ -788,7 +757,10 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                     variant=fake_variant,
                 )
             except Exception:
-                self.log.error("Failed to fill name regex template.", exc_info=True)
+                self.log.error(
+                    "Failed to fill name regex template.",
+                    exc_info=True
+                )
                 name_regex = ""
 
             for src, regex in (
@@ -826,7 +798,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 self.log
             )
 
-            renderpass = get_render_pass_name(  #TODO from Settings
+            renderpass = get_render_pass_name(
                 self.render_pass_template,
                 layer_positions_in_groups[layer["name"]], 
                 self.layer_idx_padding, 
@@ -899,7 +871,9 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                     default=render_pass_creator.mark_for_review,
                 ),
                 EnumDef(
-                    "render_target", items=rendering_targets, label="Render target"
+                    "render_target",
+                    items=rendering_targets,
+                    label="Render target"
                 )
             ]
         )
@@ -936,7 +910,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             group_color = group_colors[group_id]
             harmony.send(
                 {
-                    "function": f"AyonHarmony.Creators.CreateRenderLayer.formatNodes",
+                    "function": f"AyonHarmony.Creators.CreateRenderLayer.formatNodes",  #noqa
                     "args": [node_name, group_label, group_color]
                 }
             )
