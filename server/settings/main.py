@@ -55,6 +55,7 @@ DEFAULT_HARMONY_SETTING = {
             "composition_node_pattern": "Composite"
         },
         "CreateRenderLayer": {
+            "enabled": True,
             "mark_for_review": False,
             "active_on_create": True,
             "default_pass_name": "beauty",
@@ -62,13 +63,15 @@ DEFAULT_HARMONY_SETTING = {
             "default_variants": []
         },
         "CreateRenderPass": {
+            "enabled": True,
             "mark_for_review": False,
             "active_on_create": True,
             "default_variant": "",
-            "default_variants": []
+            "default_variants": [],
+            "rename_read": True,
         },
         "AutoDetectCreateRender": {
-            "enabled": False,
+            "enabled": True,
             "group_name_template": "G{group_index}",
             "group_idx_offset": 10,
             "group_idx_padding": 3,

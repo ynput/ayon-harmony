@@ -65,11 +65,10 @@ class CreateRenderPassModel(BaseSettingsModel):
     default_variants: list[str] = SettingsField(
         default_factory=list, title="Default variants"
     )
-    render_pass_template: str = SettingsField(
-        "{variant}",
-        title="Render pass name template",
-        description="Available keys '{layer_index}' '{variant}'",
-        placeholder="L{layer_index}_{variant}",
+    rename_read: bool = SettingsField(
+        True, 
+        title="Rename Read Nodes",
+        description="Uses product_name as Read node name, original layer name in Write Node"
     )
 
 
@@ -91,9 +90,9 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     If this plugin is enabled, both 'CreateRenderLayer' and 'CreateRenderPass'
     must be enabled!
 
-    To fully use this `ayon+settings://core/tools/creator/product_name_profiles` must
-    contain `{product[type]}{Task[name]}_{Renderlayer}_{Renderpass}` for product types:
-    ['renderLayer', 'renderPass']!
+    To fully use this 'ayon+settings://core/tools/creator/product_name_profiles' must
+    contain '{product[type]}{Task[name]}_{Renderlayer}_{Renderpass}' for host harmony and
+    product types: ['renderLayer', 'renderPass']!
     """
 
     enabled: bool = SettingsField(False)
