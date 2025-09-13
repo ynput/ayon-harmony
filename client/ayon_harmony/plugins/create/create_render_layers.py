@@ -833,10 +833,11 @@ class AutoDetectRenderCreator(HarmonyCreator):
             )
 
             renderpass = get_render_pass_name(  #TODO from Settings
-                "L{layer_index}",
+                self.render_pass_template,
                 layer_positions_in_groups[layer["name"]], 
-                3, 
-                10,
+                self.layer_idx_padding, 
+                self.layer_idx_offset,
+                variant,
                 self.log
             )
             if not render_pass:
