@@ -42,7 +42,8 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     var groupWriteNode = scene.getNodeByPath("Top/" + productName);
 
     var sceneRoot = $.scn.root; 
-    for (var i = groupNodes.length -1; i >= 0; i--) {
+    var lastInPortNum = -1;
+    for (var i = 0; i< groupNodes.length; i++) {
         var groupNode = scene.getNodeByPath(groupNodes[i]);
         // create composition and 
         if (!groupCompositeNode){  
@@ -71,14 +72,19 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
         }
 
         // connect to group composition
-        for (var j = 0; j< groupNode.linkedOutNodes.length; j++) {
-            var linkedOutNode = groupNode.linkedOutNodes[j];
-            groupCompositeNode.linkOutNode(linkedOutNode);
+	    var outConnections = groupNode.getOutLinks();
+        for (var j = 0; j< outConnections.length; j++) {
+            var outConn = outConnections[j];
+	        var linkedOutNode = outConn.inNode;
+	        lastInPortNum = outConn.inPort;
+
             groupNode.unlinkOutNode(linkedOutNode);
         }
         groupNode.linkOutNode(groupCompositeNode);
-        
+  
     }
+    groupCompositeNode.linkOutNode(linkedOutNode, undefined, lastInPortNum);
+
     MessageLog.trace("group:: " + groupWriteNode);
     return groupWriteNode.fullPath;
 };
