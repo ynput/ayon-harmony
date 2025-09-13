@@ -515,7 +515,8 @@ class AutoDetectRenderCreator(HarmonyCreator):
     # order = CreateRenderPass.order + 10
     description = "Create Render Layers and Render Passes based on scene setup"
     detailed_description = AUTODETECT_RENDER_DETAILED_DESCRIPTION
-
+    
+    settings_category = "harmony"
     # Settings
     default_variants = ["Main"]
     active_on_create = True
