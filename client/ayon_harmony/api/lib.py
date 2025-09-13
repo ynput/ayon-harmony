@@ -697,4 +697,5 @@ def get_layers_info() -> list[dict[str, str]]:
             "args": []
         }
     )["result"]
+    layers_info = [layer for layer in layers_info if layer["enabled"]]
     return sorted(layers_info, key=lambda layer: layer["position"], reverse=True)
