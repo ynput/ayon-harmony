@@ -318,6 +318,7 @@ class CreateRenderPass(HarmonyRenderCreator):
     default_variant = ""
     default_variants = []
     mark_for_review = True
+    rename_read = True
 
     def product_impl(self, product_name, instance_data, pre_create_data):
         render_layer_instance_id = pre_create_data.get("render_layer_instance_id")
@@ -355,20 +356,21 @@ class CreateRenderPass(HarmonyRenderCreator):
 
         instance_data["layer_name"] = marked_layer_name
 
-        node = self._create_node_for_pass(layer, product_name)
+        node = self._create_node_for_pass(layer, product_name, self.rename_read)
         self.log.info(f"Created node:: {node}")
         return node
 
     def _get_selected_layers(self):
         return {layer for layer in get_layers_info() if layer["selected"]}
     
-    def _create_node_for_pass(self, layer, product_name):
+    def _create_node_for_pass(self, layer, product_name, rename_read):
         self_name = self.__class__.__name__
         layer_name = layer["name"]
+        
         created_node = harmony.send(
             {
                 "function": f"AyonHarmony.Creators.{self_name}.createPassNode",
-                "args": [layer_name, product_name]
+                "args": [layer_name, product_name, rename_read]
             }
         )["result"]
 
