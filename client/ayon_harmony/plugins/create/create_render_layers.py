@@ -168,6 +168,8 @@ class CreateRenderLayer(HarmonyRenderCreator):
             if instance["productName"] == product_name:
                 raise CreatorError(
                     f"Product '{product_name}' already exists.")
+            
+        group_label = instance_data["group_label"]
 
         creator_attributes = instance_data.setdefault("creator_attributes", {})
         mark_for_review = pre_create_data.get("mark_for_review")
@@ -178,7 +180,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         creator_attributes["mark_for_review"] = mark_for_review
         creator_attributes["render_target"] = pre_create_data["render_target"]
 
-        node = self._create_nodes_for_group(group_id, product_name)
+        node = self._create_nodes_for_group(group_id, group_label, product_name)
         self.log.debug(f"Created node:: {node}")
         return node
 
@@ -268,7 +270,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
             project_entity=project_entity,
         )
 
-    def _create_nodes_for_group(self, group_id, product_name):
+    def _create_nodes_for_group(self, group_id, group_label, product_name):
         group_color = get_group_color(group_id)
 
         layers_data = get_layers_info()
@@ -632,9 +634,11 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         )
         scene_layers: list[dict[str, Any]] = get_layers_info()
         scene_groups: list[dict[str, Any]] = get_group_infos()
+        group_colors = {}
         for layer in scene_layers:
             group_color: int = layer["color"]
             group_id = get_group_id(group_color, scene_groups)
+            group_colors[group_id] = group_color
 
             layers_by_group_id[group_id].append(layer)  
         mark_layers_for_review = pre_create_data.get(
@@ -688,6 +692,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 render_target,
                 render_passes_by_render_layer_id[render_layer_instance.id]
             )
+
+        self._format_created_nodes(group_colors)
 
     def _filter_groups(self, layers_by_group_id, scene_groups, only_visible_groups):
         filtered_groups = []
@@ -751,6 +757,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             "task": task_name,
             "productType": creator.product_type,
             "variant": variant,
+            "group_label": variant
         }
         pre_create_data: dict[str, Any] = {
             "group_id": group_id,
@@ -929,6 +936,22 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             layer_positions_in_groups[layer["name"]] = position_in_group
             position_in_group += 1
         return layer_positions_in_groups
+    
+    def _format_created_nodes(self, group_colors):
+        """Tries to wrap all nodes of a layer group into Backdrop"""
+        scene_containers = harmony.get_scene_data()
+        for node_name, container in scene_containers.items():
+            if container["creator_identifier"] != CreateRenderLayer.identifier:
+                continue
+            group_label = container["variant"]
+            group_id = container["creator_attributes"]["group_id"]
+            group_color = group_colors[group_id]
+            harmony.send(
+                {
+                    "function": f"AyonHarmony.Creators.CreateRenderLayer.formatNodes",
+                    "args": [node_name, group_label, group_color]
+                }
+            )
 
 
 # TODO refactor
@@ -986,10 +1009,10 @@ def get_group_layer_name(
     group_idx_offset: int,
     log
 ) -> str:
+    """Calculates render layer portion (G010)"""
     new_name = None
     index_template = f"{{:0>{group_idx_padding}}}"
     group_pos = group_id * group_idx_offset
-    log.info(f"index_template::{index_template} , group_pos::{group_pos}")
     try:
         group_index = index_template.format(group_pos)
         new_name = group_template.format(
@@ -1009,14 +1032,16 @@ def get_render_pass_name(
     variant: str,
     log
 ) -> str:
+    """Calculates render pass portion.
+    
+    It was designed to follow "L{layer_index}_{variant}" 
+    (L010_CHAR01_head)
+    """
     new_name = None
     index_template = f"{{:0>{layer_idx_padding}}}"
     layer_pos = position_in_group * layer_idx_offset
-    log.info(f"pass_template::{pass_template}")
-    log.info(f"index_template::{index_template} , layer_pos::{layer_pos}")
     try:
         layer_index = index_template.format(layer_pos)
-        log.info(f"layer_index::{layer_index}")
         new_name = pass_template.format(
             layer_index=layer_index,
             variant=variant
