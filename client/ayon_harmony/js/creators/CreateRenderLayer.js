@@ -58,15 +58,15 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
         }
         var connections = groupNode.linkedOutNodes || [];
         var compositePath = "Top/" + compositeName;
-        var isConnectedToGroup = false;
+        var isConnectedToGroupCompositeAlready = false;
         for (var ci = 0; ci < connections.length; ci++) {
-                var connPath = connections[ci].fullPath; 
-                if (connPath=== compositePath) {
-                        isConnectedToGroup = true;
-                        break;
-                }
+            var connPath = connections[ci].fullPath; 
+            if (connPath=== compositePath) {
+                    isConnectedToGroupCompositeAlready = true;
+                    break;
+            }
         }
-        if (isConnectedToGroup){
+        if (isConnectedToGroupCompositeAlready){
             continue;
         }
 
