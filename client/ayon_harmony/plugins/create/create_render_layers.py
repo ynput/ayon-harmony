@@ -915,7 +915,11 @@ class AutoDetectRenderCreator(HarmonyCreator):
 
     def _get_layer_positions_in_groups(self, layers):
         layer_positions_in_groups = {}
-        sorted_layers = sorted(layers, key=lambda layer: (layer["color"], layer["position"]))
+        sorted_layers = sorted(
+            layers, 
+            key=lambda layer: (layer["color"], layer["position"]),
+            reverse=True
+        )
         last_group = None
         position_in_group = 1
         for layer in sorted_layers:
