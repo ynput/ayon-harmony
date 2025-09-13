@@ -500,7 +500,7 @@ class CreateRenderPass(HarmonyRenderCreator):
         return render_layers
 
 
-class AutoDetectRenderCreator(HarmonyCreator):
+class AutoDetectRendeLayersPasses(HarmonyCreator):
 #     """Create Render Layer and Render Pass instances based on scene data.
 
 #     This is auto-detection creator which can be triggered by user to create

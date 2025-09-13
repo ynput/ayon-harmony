@@ -95,9 +95,8 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     product types: ['renderLayer', 'renderPass']!
     """
 
-    enabled: bool = SettingsField(False)
+    enabled: bool = SettingsField()
     group_name_template: str = SettingsField(
-        "G{group_index}",
         title="Group name template",
         description="How color coded group name is calculated,"
     )
@@ -108,7 +107,6 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
         3, title="Group index Padding", ge=0
     )
     render_pass_template: str = SettingsField(
-        "L{layer_index}",
         title="RenderPass name template")
     layer_idx_offset: int = SettingsField(
         10, title="Layer index Offset", ge=1
@@ -148,7 +146,7 @@ class HarmonyCreatePlugins(BaseSettingsModel):
         default_factory=CreateRenderPassModel,
         title="RenderPass"
     )
-    AutoDetectRenderCreator: AutoDetectCreateRenderModel = SettingsField(
+    AutoDetectRendeLayersPasses: AutoDetectCreateRenderModel = SettingsField(
         default_factory=AutoDetectCreateRenderModel,
-        title="Auto-Detect Create Render",
+        title="Auto-Detect Create Render Layers and Passes",
     )

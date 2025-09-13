@@ -70,7 +70,7 @@ DEFAULT_HARMONY_SETTING = {
             "default_variants": [],
             "rename_read": True,
         },
-        "AutoDetectCreateRender": {
+        "AutoDetectRendeLayersPasses": {
             "enabled": True,
             "group_name_template": "G{group_index}",
             "group_idx_offset": 10,
