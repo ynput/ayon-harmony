@@ -1002,6 +1002,7 @@ def get_render_pass_name(
     position_in_group: int, 
     layer_idx_padding: int, 
     layer_idx_offset: int,
+    variant: str,
     log
 ) -> str:
     new_name = None
@@ -1014,6 +1015,7 @@ def get_render_pass_name(
         log.info(f"layer_index::{layer_index}")
         new_name = pass_template.format(
             layer_index=layer_index,
+            variant=variant
         )
     except Exception:
         log.warning("Failed to create new pass name", exc_info=True)
