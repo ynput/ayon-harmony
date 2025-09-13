@@ -314,13 +314,11 @@ class CreateRenderPass(HarmonyRenderCreator):
 
     order = CreateRenderLayer.order + 10
 
+    settings_category = "harmony"
     # Settings
-    render_pass_template = "{variant}"
-    layer_name_template = {"enabled": True, "template": "G{group_index}_L{layer_index}_{variant}"}
-    group_idx_offset = 10
-    group_idx_padding = 3
-    layer_idx_offset = 10
-    layer_idx_padding = 3
+    active_on_create = True
+    default_variant = ""
+    default_variants = []
     mark_for_review = True
 
     def product_impl(self, product_name, instance_data, pre_create_data):
