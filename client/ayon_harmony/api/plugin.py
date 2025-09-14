@@ -193,7 +193,6 @@ class HarmonyRenderCreator(HarmonyCreator):
         "farm": "Farm rendering",
     }
 
-    _use_current_context = True
 
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         existing_node_names = harmony.send(
