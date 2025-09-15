@@ -781,10 +781,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 variant = render_pass["variant"]
             elif name_regex is not None:
                 result = name_regex.match(layer_name)
-                groups = {}
                 if result is not None:
-                    groups = result.groupdict()
-                variant = groups.get("variant")
+                    variant = result.groupdict().get("variant")
 
             if not variant:
                 variant = layer["name"]
