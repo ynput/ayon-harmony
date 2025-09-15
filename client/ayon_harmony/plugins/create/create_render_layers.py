@@ -848,36 +848,32 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             "local": "Local machine rendering",
             "farm": "Farm rendering",
         }
-        output = []
-        output.extend(
-            [
-                BoolDef(
-                    "only_visible_groups",
-                    label="Only visible color groups",
-                    tooltip=(
-                        "Render Layers will happen only on color"
-                        " groups with visible layers."
-                    ),
-                    default=True
+        return [
+            BoolDef(
+                "only_visible_groups",
+                label="Only visible color groups",
+                tooltip=(
+                    "Render Layers will happen only on color"
+                    " groups with visible layers."
                 ),
-                BoolDef(
-                    "mark_layers_for_review",
-                    label="Mark RenderLayers for review",
-                    default=render_layer_creator.mark_for_review,
-                ),
-                BoolDef(
-                    "mark_passes_for_review",
-                    label="Mark RenderPasses for review",
-                    default=render_pass_creator.mark_for_review,
-                ),
-                EnumDef(
-                    "render_target",
-                    items=rendering_targets,
-                    label="Render target"
-                )
-            ]
-        )
-        return output
+                default=True
+            ),
+            BoolDef(
+                "mark_layers_for_review",
+                label="Mark RenderLayers for review",
+                default=render_layer_creator.mark_for_review,
+            ),
+            BoolDef(
+                "mark_passes_for_review",
+                label="Mark RenderPasses for review",
+                default=render_pass_creator.mark_for_review,
+            ),
+            EnumDef(
+                "render_target",
+                items=rendering_targets,
+                label="Render target"
+            )
+        ]
 
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         pass
