@@ -137,6 +137,13 @@ CreateRenderLayer.prototype.formatNodes = function(args) {
 
     var group = scn.root;
     var color = new $.oColorValue(groupColor);
+    var existing_backdrops = Backdrop.backdrops("Top")
+    for (var j=0; j < existing_backdrops.length; j++){
+        var existing_backdrop = existing_backdrops[j];
+        if (existing_backdrop.title.text == groupLabel){
+            Backdrop.removeBackdrop(existing_backdrop);
+        }
+    }
 
     var backdrop = group.addBackdropToNodes(groupNodes, groupLabel, "", color);
 
