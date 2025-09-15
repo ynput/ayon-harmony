@@ -642,7 +642,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 render_passes_by_render_layer_id[render_layer_instance.id]
             )
 
-        self._format_created_nodes(group_colors)
+        self._wrap_nodes_in_backdrop(group_colors)
 
     def _filter_groups(
         self,
@@ -890,7 +890,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             position_in_group += 1
         return layer_positions_in_groups
     
-    def _format_created_nodes(self, group_colors):
+    def _wrap_nodes_in_backdrop(self, group_colors):
         """Tries to wrap all nodes of a layer group into Backdrop"""
         scene_containers = harmony.get_scene_data()
         for node_name, container in scene_containers.items():
