@@ -682,7 +682,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
         task_name = task_entity["name"]
         group_idx = match_group.id
-        variant: str = get_group_layer_name(
+        variant: str = get_group_name(
             self.group_name_template,
             group_idx,
             self.group_idx_padding,
@@ -785,7 +785,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 variant = layer["name"]
 
             group_id = get_group_id(layer["color"], groups_info)
-            renderlayer = get_group_layer_name(
+            renderlayer = get_group_name(
                 self.group_name_template,
                 group_id, 
                 self.group_idx_padding, 
@@ -955,7 +955,7 @@ def get_group_id(
     return group_id
 
 
-def get_group_layer_name(
+def get_group_name(
     group_template: str, 
     group_id: int, 
     group_idx_padding: int, 
