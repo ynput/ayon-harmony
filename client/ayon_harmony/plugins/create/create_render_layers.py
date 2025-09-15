@@ -116,7 +116,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
     product_template_product_type = "renderLayer"
     identifier = "render.layer"
     icon = "fa5.images"
-    settings_category = "harmony"
 
     # Order to be executed before Render Pass creator
     order = 90
@@ -302,7 +301,6 @@ class CreateRenderPass(HarmonyRenderCreator):
 
     order = CreateRenderLayer.order + 10
 
-    settings_category = "harmony"
     # Settings
     active_on_create = True
     default_variant = ""
@@ -531,8 +529,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
     # order = CreateRenderPass.order + 10
     description = "Create Render Layers and Render Passes based on scene setup"
     detailed_description = AUTODETECT_RENDER_DETAILED_DESCRIPTION
-    
-    settings_category = "harmony"
+
     # Settings
     default_variants = ["Main"]
     active_on_create = True
