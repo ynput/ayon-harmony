@@ -502,3 +502,18 @@ AyonHarmony.getLayerInfos = function() {
 
     return layerInfos;
 };
+
+/**
+ * Rename node in Harmony.
+ * @function
+ * @param {string} node_name  Node name.
+ * @param {string} new_name  Node name.
+ */
+AyonHarmony.renameNode = function(args) {
+    var node_name = args[0];
+    var new_name = args[1];
+    var existing_node = $.scene.getNodeByPath("Top/" + node_name);
+    if (existing_node){
+        existing_node.name = new_name;
+    }
+};

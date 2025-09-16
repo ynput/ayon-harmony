@@ -699,3 +699,12 @@ def get_layers_info() -> list[dict[str, str]]:
     )["result"]
     layers_info = [layer for layer in layers_info if layer["enabled"]]
     return sorted(layers_info, key=lambda layer: layer["position"], reverse=True)
+
+def rename_node(node_name, new_name):
+    """ Rename node name """
+    send(
+        {
+            "function": "AyonHarmony.renameNode",
+            "args": [node_name, new_name]
+        }
+    )

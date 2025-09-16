@@ -510,6 +510,18 @@ class CreateRenderPass(HarmonyRenderCreator):
         if not render_layers:
             render_layers.append({"value": None, "label": "N/A"})
         return render_layers
+    
+    def remove_instances(self, instances):
+        for instance in instances:
+            # There is only ever one workfile instance
+            container_data = harmony.read(instance.transient_data["node"])
+            if (container_data["productName"] != container_data["layer_name"]):
+                harmony.rename_node(
+                    container_data["productName"], 
+                    container_data["layer_name"]
+                )
+            harmony.delete_node(instance.transient_data["node"])
+            self._remove_instance_from_context(instance)
 
 
 class AutoDetectRendeLayersPasses(HarmonyCreator):
