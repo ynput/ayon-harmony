@@ -89,6 +89,10 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     }
     groupCompositeNode.linkOutNode(linkedOutNode, undefined, lastInPortNum);
 
+    // var allGroupNodes = [groupCompositeNode, groupNodes];  // TODO use when Open Harmony fixes box issue
+
+    // scn.root.addGroup(productName, true, false, allGroupNodes);
+
     $.endUndo();
 
     MessageLog.trace("group:: " + groupWriteNode);
@@ -105,7 +109,7 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
  * @function
  * @param {array} args Arguments for instance.
  */
-CreateRenderLayer.prototype.formatNodes = function(args) {
+CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
     $.beginUndo("formatNodes");
 
     var layerGroupName = args[0];
@@ -125,15 +129,25 @@ CreateRenderLayer.prototype.formatNodes = function(args) {
     groupNodes.push(groupCompositeNode);
 
     var inNodes = groupCompositeNode.linkedInNodes;
+
+    var writerNodes = [];
+    for (var i = 0; i< inNodes.length; i++) {
+        var inNode = inNodes[i];
+        groupNodes.push(inNode);
+        for (var j=0; j<inNode.linkedOutNodes.length; j++ ){
+            var connectedOutNode = inNode.linkedOutNodes[j];
+            if (connectedOutNode.type == "WRITE"){
+                groupNodes.push(connectedOutNode);
+                writerNodes.push(connectedOutNode);
+            }
+        }
+    }
+
     groupCompositeNode.placeAtCenter(inNodes ,0, 150);
     groupCompositeNode.orderAboveNodes();
 
     groupWriteNode.centerBelow(groupCompositeNode);
-    groupWriteNode.x -= 150;
-
-    for (var i = 0; i< inNodes.length; i++) {
-        groupNodes.push(inNodes[i]);
-    }
+    groupWriteNode.x -= 250;
 
     var group = scn.root;
     var color = new $.oColorValue(groupColor);
