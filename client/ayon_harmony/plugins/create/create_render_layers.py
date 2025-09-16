@@ -288,6 +288,23 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     def _get_selected_group_colors(self):
         return {layer["color"] for layer in get_layers_info() if layer["selected"]}
+    
+    def remove_instances(self, instances):
+        for instance in instances:
+            # There is only ever one workfile instance
+            node_name = instance.transient_data["node"]
+            container_data = harmony.read(node_name)
+            harmony.delete_node(node_name)
+            harmony.delete_node(f"{node_name}_comp")
+            container_backdrop = harmony.find_backdrop_by_name(container_data["group_label"])
+            if container_backdrop:
+                harmony.send(
+                    {
+                        "function": "AyonHarmony.removeBackdrop", 
+                        "args": [container_backdrop, False]
+                    }   
+                )
+            self._remove_instance_from_context(instance)
 
 
 class CreateRenderPass(HarmonyRenderCreator):

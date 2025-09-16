@@ -47,9 +47,13 @@ class BackdropBaseLoader(load.LoaderPlugin):
             container (dict): container definition.
         """
         container_backdrop = harmony.find_backdrop_by_name(container["name"])
-        harmony.send(
-            {"function": "AyonHarmony.removeBackdropWithContents", "args": container_backdrop}
-        )
+        if container_backdrop:
+            harmony.send(
+                {
+                    "function": "AyonHarmony.removeBackdrop", 
+                    "args": [container_backdrop, True]
+                }
+            )
         harmony.remove(container["name"])
 
     def update(self, container, context):
