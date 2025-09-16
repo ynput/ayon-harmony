@@ -130,7 +130,6 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
 
     var inNodes = groupCompositeNode.linkedInNodes;
 
-    var writerNodes = [];
     for (var i = 0; i< inNodes.length; i++) {
         var inNode = inNodes[i];
         groupNodes.push(inNode);
