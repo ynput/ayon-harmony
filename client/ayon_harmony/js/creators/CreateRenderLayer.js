@@ -137,7 +137,6 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
             var connectedOutNode = inNode.linkedOutNodes[j];
             if (connectedOutNode.type == "WRITE"){
                 groupNodes.push(connectedOutNode);
-                writerNodes.push(connectedOutNode);
             }
         }
     }
