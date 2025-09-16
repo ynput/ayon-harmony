@@ -427,7 +427,7 @@ class CreateRenderPass(HarmonyRenderCreator):
             [
                 EnumDef(
                     "render_layer_instance_id",
-                    abel="Render Layer",
+                    label="Render Layer",
                     items=render_layers
                 ),
                 BoolDef(
