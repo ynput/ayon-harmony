@@ -192,13 +192,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
         enum_defs.append(
             EnumDef("group_id", label="Group", items=group_enum_values))
-        enum_defs.append(
-            BoolDef(
-                "mark_for_review",
-                label="Review",
-                default=self.mark_for_review
-            ),
-        )
         return enum_defs
 
     def get_instance_attr_defs(self):
@@ -446,11 +439,6 @@ class CreateRenderPass(HarmonyRenderCreator):
                     "render_layer_instance_id",
                     label="Render Layer",
                     items=render_layers
-                ),
-                BoolDef(
-                    "mark_for_review",
-                    label="Review",
-                    default=self.mark_for_review
                 ),
             ]
         )
