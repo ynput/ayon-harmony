@@ -17,7 +17,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
     hosts = ["harmony"]
 
     product_type_mapping = {
-        "render": ["review"],
+        "render": [],
         "harmony.template": [],
         "palette": ["palette"]
     }
@@ -35,11 +35,17 @@ class CollectInstances(pyblish.api.InstancePlugin):
         instance.data["setMembers"] = [node]
 
         families = [product_type]
-        families.extend(self.product_type_mapping.get(product_type, []))
+        
+        creator_attributes = instance.data.get("creator_attributes", {})
         if product_type == "render":
-            creator_attributes = instance.data.get("creator_attributes", {})
             render_target = creator_attributes["render_target"]
             families.append(f"render.{render_target}")
+
+        families.extend(self.product_type_mapping.get(product_type, []))
+
+        mark_for_review = creator_attributes.get("mark_for_review")
+        if mark_for_review:
+            families.append("review")
 
         instance.data["families"] = families
 

@@ -247,7 +247,8 @@ class HarmonyRenderCreator(HarmonyCreator):
         self.setup_node(node)
 
         instance_data["creator_attributes"] = {
-            "render_target": pre_create_data["render_target"]
+            "render_target": pre_create_data["render_target"],
+            "mark_for_review": pre_create_data["mark_for_review"]
         }
 
         return node
@@ -260,6 +261,11 @@ class HarmonyRenderCreator(HarmonyCreator):
                 items=self.rendering_targets,
                 label="Render target"
             ),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=True,
+            )
         ])
         return output
 
@@ -267,6 +273,11 @@ class HarmonyRenderCreator(HarmonyCreator):
         return [
             EnumDef(
                 "render_target", items=self.rendering_targets, label="Render target"
+            ),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=True,
             )
         ]
 
