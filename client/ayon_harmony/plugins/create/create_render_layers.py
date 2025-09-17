@@ -456,6 +456,27 @@ class CreateRenderPass(HarmonyRenderCreator):
         )
         return enum_defs
     
+    def get_instance_attr_defs(self):
+        render_layers = self._get_render_layers_items()
+        return [
+            EnumDef(
+                "render_layer_instance_id", 
+                label="Render Layer", 
+                items=render_layers,
+                enabled=False
+            ),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=self.mark_for_review
+            ),
+            EnumDef(
+                "render_target",
+                items=self.rendering_targets,
+                label="Render target"
+            )
+        ]
+    
     def get_product_name(
         self,
         project_name,
@@ -495,27 +516,6 @@ class CreateRenderPass(HarmonyRenderCreator):
             product_type_filter=self.product_template_product_type,
             project_entity=project_entity,
         )
-    
-    def get_instance_attr_defs(self):
-        render_layers = self._get_render_layers_items()
-        return [
-            EnumDef(
-                "render_layer_instance_id", 
-                label="Render Layer", 
-                items=render_layers,
-                enabled=False
-            ),
-            BoolDef(
-                "mark_for_review",
-                label="Review",
-                default=self.mark_for_review
-            ),
-            EnumDef(
-                "render_target",
-                items=self.rendering_targets,
-                label="Render target"
-            )
-        ]
 
     def _get_render_layers_items(self):
         current_instances = self.create_context.instances
