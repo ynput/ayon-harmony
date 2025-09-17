@@ -416,7 +416,7 @@ class CreateRenderPass(HarmonyRenderCreator):
         )
         dynamic_data["renderpass"] = "{renderpass}"
         dynamic_data["renderlayer"] = "{renderlayer}"
-        if "data" in instance: # passed from Auto creator
+        if instance and "data" in instance: # passed from Auto creator
             renderpass = instance["data"].get("renderpass")
             if renderpass:
                 dynamic_data["renderpass"] = renderpass
