@@ -285,7 +285,9 @@ class CreateRenderLayer(HarmonyRenderCreator):
             container_data = harmony.read(node_name)
             harmony.delete_node(node_name)
             harmony.delete_node(f"{node_name}_comp")
-            container_backdrop = harmony.find_backdrop_by_name(container_data["group_label"])
+            group_label = container_data.get("group_label")
+            if group_label:
+                container_backdrop = harmony.find_backdrop_by_name(group_label)
             if container_backdrop:
                 harmony.send(
                     {
