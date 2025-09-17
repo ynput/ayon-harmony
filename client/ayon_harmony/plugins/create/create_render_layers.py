@@ -99,8 +99,8 @@ to top.
 
 @dataclass
 class GroupInfo:
-    id: int
-    color: str
+    id: str  # #ffffff
+    position: int  # 1 at bottom
 
 
 class CreateRenderLayer(HarmonyRenderCreator):
@@ -142,15 +142,14 @@ class CreateRenderLayer(HarmonyRenderCreator):
     def product_impl(self, product_name, instance_data, pre_create_data):
         group_id = pre_create_data.get("group_id")
         # This creator should run only on one group
-        if group_id is None or group_id == -1:
+        if group_id is None or group_id == "-1":
             selected_groups = self._get_selected_group_colors()
             if len(selected_groups) > 1:
                 raise CreatorError("You have selected more than one group")
 
             if len(selected_groups) == 0:
                 raise CreatorError("You don't have selected any group")
-            group_color = tuple(selected_groups)[0]
-            group_id = get_group_id(group_color)
+            group_id = tuple(selected_groups)[0]
 
         for instance in self.create_context.instances:
             if instance.creator_identifier != self.identifier:
@@ -165,8 +164,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
             if instance["productName"] == product_name:
                 raise CreatorError(
                     f"Product '{product_name}' already exists.")
-            
-        group_label = instance_data["group_label"]
 
         creator_attributes = instance_data.setdefault("creator_attributes", {})
         mark_for_review = pre_create_data.get("mark_for_review")
@@ -177,7 +174,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         creator_attributes["mark_for_review"] = mark_for_review
         creator_attributes["render_target"] = pre_create_data["render_target"]
 
-        node = self._create_nodes_for_group(group_id, group_label, product_name)
+        node = self._create_nodes_for_group(group_id, product_name)
         self.log.debug(f"Created node:: {node}")
         return node
 
@@ -185,10 +182,10 @@ class CreateRenderLayer(HarmonyRenderCreator):
         enum_defs = super().get_pre_create_attr_defs()
         group_infos = get_group_infos()
         group_enum_values = [
-            {"value": group.id, "label": group.color}
+            {"value": group.id, "label": str(group.position)}
             for group in group_infos
         ]
-        group_enum_values.insert(0, {"label": "<Use selection>", "value": -1})
+        group_enum_values.insert(0, {"label": "<Use selection>", "value": "-1"})
 
         enum_defs.append(
             EnumDef("group_id", label="Group", items=group_enum_values))
@@ -198,7 +195,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         groups = get_group_infos()
 
         groups_enum = [
-            {"value": group.id, "label": group.color}
+            {"value": group.id, "label": str(group.position)}
             for group in groups
         ]
         return [
@@ -219,6 +216,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
                 label="Render target"
             ),
         ]
+
 
     def get_product_name(
         self,
@@ -260,13 +258,11 @@ class CreateRenderLayer(HarmonyRenderCreator):
             project_entity=project_entity,
         )
 
-    def _create_nodes_for_group(self, group_id, group_label, product_name):
-        group_color = get_group_color(group_id)
-
+    def _create_nodes_for_group(self, group_id, product_name):
         layers_data = get_layers_info()
         layers_full_names = [
             layer["fullName"] for layer in layers_data 
-            if layer["color"]==group_color
+            if layer["color"]==group_id
         ]
 
         self_name = self.__class__.__name__
@@ -513,7 +509,7 @@ class CreateRenderPass(HarmonyRenderCreator):
             if instance.creator_identifier == CreateRenderLayer.identifier
         ]
         if not render_layers:
-            render_layers.append({"value": None, "label": "N/A"})
+            render_layers.append({"value": None, "label": "Create Render Layer first"})
         return render_layers
     
     def remove_instances(self, instances):
@@ -600,13 +596,10 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         )
         scene_layers: list[dict[str, Any]] = get_layers_info()
         scene_groups: list[dict[str, Any]] = get_group_infos()
-        group_colors = {}
         for layer in scene_layers:
-            group_color: int = layer["color"]
-            group_id = get_group_id(group_color, scene_groups)
-            group_colors[group_id] = group_color
+            group_id = layer["color"]
+            layers_by_group_id[group_id].append(layer)
 
-            layers_by_group_id[group_id].append(layer)  
         mark_layers_for_review = pre_create_data.get(
             "mark_layers_for_review", False
         )
@@ -659,7 +652,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 render_passes_by_render_layer_id[render_layer_instance.id]
             )
 
-        self._wrap_nodes_in_backdrop(group_colors)
+        self._wrap_nodes_in_backdrop()
 
     def _filter_groups(
         self,
@@ -698,7 +691,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             return None
 
         task_name = task_entity["name"]
-        group_idx = match_group.id
+        group_idx = match_group.position
         variant: str = get_group_name(
             self.group_name_template,
             group_idx,
@@ -801,10 +794,10 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             if not variant:
                 variant = layer["name"]
 
-            group_id = get_group_id(layer["color"], groups_info)
+            group_position = get_group_position(layer["color"], groups_info)
             renderlayer = get_group_name(
                 self.group_name_template,
-                group_id, 
+                group_position, 
                 self.group_idx_padding, 
                 self.group_idx_offset,
                 self.log
@@ -907,7 +900,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             position_in_group += 1
         return layer_positions_in_groups
     
-    def _wrap_nodes_in_backdrop(self, group_colors):
+    def _wrap_nodes_in_backdrop(self):
         """Tries to wrap all nodes of a layer group into Backdrop"""
         scene_containers = harmony.get_scene_data()
         for node_name, container in scene_containers.items():
@@ -915,7 +908,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 continue
             group_label = container["variant"]
             group_id = container["creator_attributes"]["group_id"]
-            group_color = group_colors[group_id]
+            group_color = group_id
             harmony.send(
                 {
                     "function": f"AyonHarmony.Creators.CreateRenderLayer.formatNodes",  #noqa
@@ -933,48 +926,33 @@ def get_group_infos() -> list[GroupInfo]:
     # to keep order
     available_colors = {layer["color"]:layer["color"] for layer in layers_data}
 
-    group_id = 1
+    position = 1
     for color in available_colors.keys():
-        item = GroupInfo(id=group_id, color=color)
+        item = GroupInfo(id=color, position=position)
         used_group_colors.append(item)
-        group_id += 1
+        position += 1
 
     return used_group_colors
 
 
-def get_group_color(
-    group_id: int,
+def get_group_position(
+    group_id: str,
     group_infos: Optional[list[GroupInfo]]=None
 ) -> str:
     """Find appropriate color for ordinal number of group"""
     if not group_infos:
         group_infos = get_group_infos()
-    group_color = None
+    group_position = None
     for group_item in group_infos:
         if group_item.id == group_id:
-            group_color = group_item.color
+            group_position = group_item.position
             break
-    return group_color
-
-
-def get_group_id(
-    group_color: str,
-    group_infos: Optional[list[GroupInfo]]=None
-) -> int:
-    """Find ordinal number of group for particular group color"""
-    if not group_infos:
-        group_infos = get_group_infos()
-    group_id = None
-    for group_item in group_infos:
-        if group_item.color == group_color:
-            group_id = group_item.id
-            break
-    return group_id
+    return group_position
 
 
 def get_group_name(
     group_template: str, 
-    group_id: int, 
+    group_position: int, 
     group_idx_padding: int, 
     group_idx_offset: int,
     log
@@ -982,7 +960,7 @@ def get_group_name(
     """Calculates render layer portion (G010)"""
     new_name = None
     index_template = f"{{:0>{group_idx_padding}}}"
-    group_pos = group_id * group_idx_offset
+    group_pos = group_position * group_idx_offset
     try:
         group_index = index_template.format(group_pos)
         new_name = group_template.format(
