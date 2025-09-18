@@ -924,18 +924,17 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 def get_group_infos() -> list[GroupInfo]:
     """Lists all used layer colors to choose from"""
     # TODO cache this
-    used_group_colors = []
     layers_data = get_layers_info()
     # to keep order
-    available_colors = {layer["color"]:layer["color"] for layer in layers_data}
-
-    position = 1
-    for color in available_colors.keys():
-        item = GroupInfo(id=color, position=position)
-        used_group_colors.append(item)
-        position += 1
-
-    return used_group_colors
+    ordered_colors = []
+    for layer in layers_data:
+        color = layer["color"]
+        if color not in ordered_colors:
+            ordered_colors.append(color)
+    return [
+        GroupInfo(color, idx + 1)
+        for idx, color in enumerate(ordered_colors)
+    ]
 
 
 def get_group_position(
