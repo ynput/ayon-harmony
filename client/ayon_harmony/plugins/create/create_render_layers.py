@@ -99,7 +99,7 @@ to top.
 
 @dataclass
 class GroupInfo:
-    id: str  # #ffffff
+    color: str  # #ffffff
     position: int  # 1 at bottom
 
 
@@ -182,7 +182,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         enum_defs = super().get_pre_create_attr_defs()
         group_infos = get_group_infos()
         group_enum_values = [
-            {"value": group.id, "label": str(group.position)}
+            {"value": group.color, "label": str(group.position)}
             for group in group_infos
         ]
         group_enum_values.insert(0, {"label": "<Use selection>", "value": "-1"})
@@ -195,7 +195,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         groups = get_group_infos()
 
         groups_enum = [
-            {"value": group.id, "label": str(group.position)}
+            {"value": group.color, "label": str(group.position)}
             for group in groups
         ]
         return [
@@ -626,20 +626,20 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                     project_entity,
                     folder_entity,
                     task_entity,
-                    group.id,
+                    group.color,
                     filtered_groups,
                     mark_layers_for_review,
                     render_target,
-                    render_layers_by_group_id.get(group.id),
+                    render_layers_by_group_id.get(group.color),
                 )
             )
             if instance is not None:
-                render_layers_by_group_id[group.id] = instance
+                render_layers_by_group_id[group.color] = instance
 
         for group in filtered_groups:
-            layers: list[dict[str, Any]] = layers_by_group_id[group.id]
+            layers: list[dict[str, Any]] = layers_by_group_id[group.color]
             render_layer_instance: Union[CreatedInstance, None] = (
-                render_layers_by_group_id.get(group.id)
+                render_layers_by_group_id.get(group.color)
             )
             if not layers or render_layer_instance is None:
                 continue
@@ -665,7 +665,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
     ):
         filtered_groups = []
         for group in scene_groups:
-            layers: list[dict[str, Any]] = layers_by_group_id[group.id]
+            layers: list[dict[str, Any]] = layers_by_group_id[group.color]
             if not layers:
                 continue
 
@@ -681,14 +681,14 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         project_entity: dict[str, Any],
         folder_entity: dict[str, Any],
         task_entity: dict[str, Any],
-        group_id: int,
+        group_id: str,
         groups: list[GroupInfo],
         mark_for_review: bool,
         render_target: str,
         existing_instance: Optional[CreatedInstance] = None,
     ) -> Union[CreatedInstance, None]:
         match_group: Optional[dict[str, Any]] = next(
-            (group for group in groups if group.id == group_id), None
+            (group for group in groups if group.color == group_id), None
         )
         if not match_group:
             return None
@@ -946,7 +946,7 @@ def get_group_position(
         group_infos = get_group_infos()
     group_position = None
     for group_item in group_infos:
-        if group_item.id == group_id:
+        if group_item.color == group_id:
             group_position = group_item.position
             break
     return group_position
