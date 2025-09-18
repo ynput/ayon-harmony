@@ -1,5 +1,3 @@
-import time
-
 import pyblish.api
 import ayon_harmony.api as harmony
 
@@ -12,5 +10,4 @@ class ExtractSaveScene(pyblish.api.ContextPlugin):
     hosts = ["harmony"]
 
     def process(self, context):
-        harmony.save_scene()  
-        time.sleep(2)  # try to limit broken save to binary
+        harmony.save_scene(zip_and_move=True)  

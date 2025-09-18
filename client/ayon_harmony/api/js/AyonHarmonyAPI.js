@@ -162,7 +162,7 @@ AyonHarmonyAPI.disableNodes = function(nodes) {
 AyonHarmonyAPI.saveScene = function() {
     var app = QCoreApplication.instance();
     app.ayon_on_file_changed = false;
-    $.scene.save();
+    scene.saveAll();
     return (
         scene.currentProjectPath() + '/' +
           scene.currentVersionName() + '.xstage'

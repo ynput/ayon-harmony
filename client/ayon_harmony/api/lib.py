@@ -595,7 +595,7 @@ def maintained_nodes_state(nodes):
             })
 
 
-def save_scene():
+def save_scene(zip_and_move=True):
     """Save the Harmony scene safely.
 
     The built-in (to AYON) background zip and moving of the Harmony scene
@@ -609,8 +609,9 @@ def save_scene():
     scene_path = send(
         {"function": "AyonHarmonyAPI.saveScene"})["result"]
 
-    # Manually update the remote file.
-    on_file_changed(scene_path, threaded=False)
+    # # Manually update the remote file.
+    if zip_and_move:
+        on_file_changed(scene_path, threaded=False)
 
     # Re-enable the background watcher.
     send({"function": "AyonHarmonyAPI.enableFileWather"})
@@ -699,6 +700,7 @@ def get_layers_info() -> list[dict[str, str]]:
     )["result"]
     layers_info = [layer for layer in layers_info if layer["enabled"]]
     return sorted(layers_info, key=lambda layer: layer["position"], reverse=True)
+
 
 def rename_node(node_name, new_name):
     """ Rename node name """
