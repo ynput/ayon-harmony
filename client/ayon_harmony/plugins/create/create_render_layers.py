@@ -556,7 +556,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         "enabled": False,
         "template": "G{group_index}_L{layer_index}_{variant}"
     }
-    group_name_template = "G{group_index}"
+    render_layer_variant_template = "G{group_index}"
     group_idx_offset = 10
     group_idx_padding = 3
     render_pass_template = "L{layer_index}"
@@ -676,6 +676,31 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             filtered_groups.append(group)
         return filtered_groups
 
+    @staticmethod
+    def _get_render_layer_variant(
+        template: str,
+        group_position: int,
+        group_idx_padding: int,
+        group_idx_offset: int,
+        log
+    ) -> str:
+        """Calculates render layer portion (G010)"""
+        variant = None
+        index_template = f"{{:0>{group_idx_padding}}}"
+        group_pos = group_position * group_idx_offset
+        try:
+            group_index = index_template.format(group_pos)
+            variant = template.format(
+                group_index=group_index,
+            )
+        except Exception:
+            log.warning(
+                "Failed to create render layer variant",
+                exc_info=True,
+            )
+
+        return variant
+
     def _prepare_render_layer(
         self,
         project_entity: dict[str, Any],
@@ -695,8 +720,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
         task_name = task_entity["name"]
         group_idx = match_group.position
-        variant: str = get_group_name(
-            self.group_name_template,
+        variant: str = self._get_render_layer_variant(
+            self.render_layer_variant_template,
             group_idx,
             self.group_idx_padding,
             self.group_idx_offset,
@@ -798,13 +823,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 variant = layer["name"]
 
             group_position = get_group_position(layer["color"], groups_info)
-            renderlayer = get_group_name(
-                self.group_name_template,
-                group_position, 
-                self.group_idx_padding, 
-                self.group_idx_offset,
-                self.log
-            )
+            renderlayer = render_layer_instance["variant"]
 
             renderpass = get_render_pass_name(
                 self.render_pass_template,
@@ -950,28 +969,6 @@ def get_group_position(
             group_position = group_item.position
             break
     return group_position
-
-
-def get_group_name(
-    group_template: str, 
-    group_position: int, 
-    group_idx_padding: int, 
-    group_idx_offset: int,
-    log
-) -> str:
-    """Calculates render layer portion (G010)"""
-    new_name = None
-    index_template = f"{{:0>{group_idx_padding}}}"
-    group_pos = group_position * group_idx_offset
-    try:
-        group_index = index_template.format(group_pos)
-        new_name = group_template.format(
-            group_index=group_index,
-        )
-    except Exception:
-        log.warning("Failed to create new layer name", exc_info=True)
-
-    return new_name
 
 
 def get_render_pass_name(

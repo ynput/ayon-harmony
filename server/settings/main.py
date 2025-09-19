@@ -72,7 +72,7 @@ DEFAULT_HARMONY_SETTING = {
         },
         "AutoDetectRendeLayersPasses": {
             "enabled": True,
-            "group_name_template": "G{group_index}",
+            "render_layer_variant_template": "G{group_index}",
             "group_idx_offset": 10,
             "group_idx_padding": 3,
             "render_pass_template": "L{layer_index}_{variant}",

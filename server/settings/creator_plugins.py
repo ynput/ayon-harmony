@@ -96,9 +96,9 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     """
 
     enabled: bool = SettingsField()
-    group_name_template: str = SettingsField(
-        title="Group name template",
-        description="How color coded group name is calculated,"
+    render_layer_variant_template: str = SettingsField(
+        title="Render layer variant template",
+        description="Calculate variant for Render Layer"
     )
     group_idx_offset: int = SettingsField(
         10, title="Group index Offset", ge=1
