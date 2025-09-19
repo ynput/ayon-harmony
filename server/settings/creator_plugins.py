@@ -40,10 +40,6 @@ class LayerNameTemplateModel(BaseSettingsModel):
 
 
 class CreateRenderLayerModel(BaseSettingsModel):
-    """Creates single instance for all Harmony layers (read node) with same color coding.
-    
-    Attaches all these layers to composite note and adds write node to render it.
-    """
     enabled: bool = SettingsField(False)
     active_on_create: bool = SettingsField(True, title="Active by default")
     mark_for_review: bool = SettingsField(True, title="Review by default")
@@ -54,10 +50,6 @@ class CreateRenderLayerModel(BaseSettingsModel):
     
 
 class CreateRenderPassModel(BaseSettingsModel):
-    """Creates instance for each layer (read node) separately.
-    
-    It requires RenderLayer to be triggered first to be able to select matching group.
-    """
     enabled: bool = SettingsField(False)
     active_on_create: bool = SettingsField(True, title="Active by default")
     mark_for_review: bool = SettingsField(True, title="Review by default")
