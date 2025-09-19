@@ -125,7 +125,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
     detailed_description = RENDER_LAYER_DETAILED_DESCRIPTIONS
 
     # Settings
-    default_variants = ["Beauty"]
+    default_variants = ["Main"]
     active_on_create = True
 
     # - Default render pass name for beauty
