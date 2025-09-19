@@ -40,24 +40,17 @@ class LayerNameTemplateModel(BaseSettingsModel):
 
 
 class CreateRenderLayerModel(BaseSettingsModel):
-    """Creates single instance for all Harmony layers (read node) with same color coding.
-    
-    Attaches all these layers to composite note and adds write node to render it.
-    """
     enabled: bool = SettingsField(False)
     active_on_create: bool = SettingsField(True, title="Active by default")
     mark_for_review: bool = SettingsField(True, title="Review by default")
     default_pass_name: str = SettingsField(title="Default beauty pass")
     default_variant: str = SettingsField(title="Default variant")
     default_variants: list[str] = SettingsField(
-        default_factory=list, title="Default variants")
-    
+        default_factory=list, title="Default variants"
+    )
+
 
 class CreateRenderPassModel(BaseSettingsModel):
-    """Creates instance for each layer (read node) separately.
-    
-    It requires RenderLayer to be triggered first to be able to select matching group.
-    """
     enabled: bool = SettingsField(False)
     active_on_create: bool = SettingsField(True, title="Active by default")
     mark_for_review: bool = SettingsField(True, title="Review by default")
@@ -66,9 +59,12 @@ class CreateRenderPassModel(BaseSettingsModel):
         default_factory=list, title="Default variants"
     )
     rename_read: bool = SettingsField(
-        True, 
+        True,
         title="Rename Read Nodes",
-        description="Uses product_name as Read node name, original layer name in Write Node"
+        description=(
+            "Uses product_name as Read node name, original"
+            " layer name in Write Node"
+        )
     )
     render_pass_template: str = SettingsField(
         title="RenderPass name template")
@@ -98,9 +94,10 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     If this plugin is enabled, both 'CreateRenderLayer' and 'CreateRenderPass'
     must be enabled!
 
-    To fully use this 'ayon+settings://core/tools/creator/product_name_profiles' must
-    contain '{product[type]}{Task[name]}_{Renderlayer}_{Renderpass}' for host harmony and
-    product types: ['renderLayer', 'renderPass']!
+    To fully use this make sure settings in core addon
+    (ayon+settings://core/tools/creator/product_name_profiles) are
+    set to '{product[type]}{Task[name]}_{Renderlayer}_{Renderpass}' for
+    host 'harmony' and product types: ['renderLayer', 'renderPass']!
     """
 
     enabled: bool = SettingsField()
@@ -117,7 +114,10 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     layer_name_template: LayerNameTemplateModel = SettingsField(
         default_factory=LayerNameTemplateModel,
         title="Layer name template",
-        description="Final layer template to parse out variant from already renamed layers or",
+        description=(
+            "Final layer template to parse out variant from"
+            " already renamed layers or"
+        ),
     )
 
 

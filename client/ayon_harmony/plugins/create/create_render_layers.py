@@ -71,7 +71,7 @@ compositing (for example).
 
 In some cases may be needed to have sub parts of the layer. For example 'Bob'
 could be Render Layer which has 'Arm', 'Head' and 'Body' as Render Passes.
-"""
+"""  # noqa E501
 
 
 RENDER_PASS_DETAILED_DESCRIPTIONS = """Render Pass is sub part of Render Layer.
@@ -97,7 +97,8 @@ are not visible.
 There is option to auto-rename color groups before Render Layer creation. That
 is based on settings template where is filled index of used group from bottom
 to top.
-"""
+"""  # noqa E501
+
 
 @dataclass
 class GroupInfo:
@@ -177,7 +178,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         mark_for_review = pre_create_data.get("mark_for_review")
         if mark_for_review is None:
             mark_for_review = self.mark_for_review
-        
+
         creator_attributes["group_id"] = group_id
         creator_attributes["mark_for_review"] = mark_for_review
         creator_attributes["render_target"] = pre_create_data["render_target"]
@@ -193,7 +194,10 @@ class CreateRenderLayer(HarmonyRenderCreator):
             {"value": group.color, "label": str(group.position)}
             for group in group_infos
         ]
-        group_enum_values.insert(0, {"label": "<Use selection>", "value": "-1"})
+        group_enum_values.insert(
+            0,
+            {"label": "<Use selection>", "value": "-1"}
+        )
 
         enum_defs.append(
             EnumDef("group_id", label="Group", items=group_enum_values))
@@ -224,7 +228,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
                 label="Render target"
             ),
         ]
-
 
     def get_product_name(
         self,
@@ -269,14 +272,17 @@ class CreateRenderLayer(HarmonyRenderCreator):
     def _create_nodes_for_group(self, group_id, product_name):
         layers_data = get_layers_info()
         layers_full_names = [
-            layer["fullName"] for layer in layers_data 
-            if layer["color"]==group_id
+            layer["fullName"]
+            for layer in layers_data
+            if layer["color"] == group_id
         ]
 
         self_name = self.__class__.__name__
         created_node = harmony.send(
             {
-                "function": f"AyonHarmony.Creators.{self_name}.createLayerNodes",
+                "function": (
+                    f"AyonHarmony.Creators.{self_name}.createLayerNodes"
+                ),
                 "args": [layers_full_names, product_name]
             }
         )["result"]
@@ -289,7 +295,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
             for layer in get_layers_info()
             if layer["selected"]
         }
-    
+
     def remove_instances(self, instances):
         for instance in instances:
             # There is only ever one workfile instance
@@ -306,9 +312,9 @@ class CreateRenderLayer(HarmonyRenderCreator):
             if container_backdrop:
                 harmony.send(
                     {
-                        "function": "AyonHarmony.removeBackdrop", 
+                        "function": "AyonHarmony.removeBackdrop",
                         "args": [container_backdrop, False]
-                    }   
+                    }
                 )
             self._remove_instance_from_context(instance)
 
@@ -345,7 +351,7 @@ class CreateRenderPass(HarmonyRenderCreator):
             or render_layer_instance_id == "-1"
         ):
             raise CreatorError("You must select layer group")
-        
+
         render_layer_instance = self.create_context.instances_by_id.get(
             render_layer_instance_id
         )
@@ -424,12 +430,16 @@ class CreateRenderPass(HarmonyRenderCreator):
         return node
 
     def _get_selected_layers(self):
-        return {layer for layer in get_layers_info() if layer["selected"]}
-    
+        return [
+            layer
+            for layer in get_layers_info()
+            if layer["selected"]
+        ]
+
     def _create_node_for_pass(self, layer, product_name, rename_read):
         self_name = self.__class__.__name__
         layer_name = layer["name"]
-        
+
         created_node = harmony.send(
             {
                 "function": f"AyonHarmony.Creators.{self_name}.createPassNode",
@@ -438,7 +448,7 @@ class CreateRenderPass(HarmonyRenderCreator):
         )["result"]
 
         return created_node
-    
+
     def _get_used_layer(self, marked_layer_name, layers_data):
         if marked_layer_name is not None:
             layers_by_name = {layer["name"]: layer for layer in layers_data}
@@ -506,13 +516,13 @@ class CreateRenderPass(HarmonyRenderCreator):
             ]
         )
         return enum_defs
-    
+
     def get_instance_attr_defs(self):
         render_layers = self._get_render_layers_items()
         return [
             EnumDef(
-                "render_layer_instance_id", 
-                label="Render Layer", 
+                "render_layer_instance_id",
+                label="Render Layer",
                 items=render_layers,
                 enabled=False
             ),
@@ -527,7 +537,7 @@ class CreateRenderPass(HarmonyRenderCreator):
                 label="Render target"
             )
         ]
-    
+
     def get_product_name(
         self,
         project_name,
@@ -581,14 +591,14 @@ class CreateRenderPass(HarmonyRenderCreator):
                 "label": "Create Render Layer first",
             })
         return render_layers
-    
+
     def remove_instances(self, instances):
         for instance in instances:
             # There is only ever one workfile instance
             container_data = harmony.read(instance.transient_data["node"])
             if container_data["productName"] != container_data["layer_name"]:
                 harmony.rename_node(
-                    container_data["productName"], 
+                    container_data["productName"],
                     container_data["layer_name"]
                 )
             harmony.delete_node(instance.transient_data["node"])
@@ -596,15 +606,15 @@ class CreateRenderPass(HarmonyRenderCreator):
 
 
 class AutoDetectRendeLayersPasses(HarmonyCreator):
-#     """Create Render Layer and Render Pass instances based on scene data.
+    """Create Render Layer and Render Pass instances based on scene data.
 
-#     This is auto-detection creator which can be triggered by user to create
-#     instances based on information in scene. Each used color group in scene
-#     will be created as Render Layer where group name is used as variant and
-#     each Harmony layer as Render Pass where layer name is used as variant.
+    This is auto-detection creator which can be triggered by user to create
+    instances based on information in scene. Each used color group in scene
+    will be created as Render Layer where group name is used as variant and
+    each Harmony layer as Render Pass where layer name is used as variant.
 
-#     Never will have any instances, all instances belong to different creators.
-#     """
+    Never will have any instances, all instances belong to different creators.
+    """
 
     product_type = "render"
     label = "Render Layer/Passes"
@@ -822,7 +832,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             "render_target": render_target,
         }
         return creator.create(product_name, instance_data, pre_create_data)
-    
+
     def _prepare_render_passes(
         self,
         project_entity: dict[str, Any],
@@ -872,7 +882,6 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             name_regex = re.compile(name_regex)
 
         layer_positions_in_groups = get_layer_positions_in_groups(layers)
-        groups_info = get_group_infos()
 
         for layer in layers:
             layer_name = layer["name"]
@@ -892,7 +901,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
             renderpass = get_render_pass_name(
                 creator.render_pass_template,
-                layer_positions_in_groups[layer["name"]], 
+                layer_positions_in_groups[layer["name"]],
                 creator.layer_idx_padding,
                 creator.layer_idx_offset,
                 variant,
@@ -925,7 +934,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 "render_layer_instance_id": render_layer_instance.id,
                 "layer_name": layer_name,
                 "mark_for_review": mark_for_review,
-                "render_target": render_target, 
+                "render_target": render_target,
             }
             creator.create(product_name, instance_data, pre_create_data)
 
@@ -969,7 +978,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         pass
-    
+
     def _wrap_nodes_in_backdrop(self):
         """Tries to wrap all nodes of a layer group into Backdrop"""
         scene_containers = harmony.get_scene_data()
@@ -1023,16 +1032,16 @@ def get_group_position(
 
 
 def get_render_pass_name(
-    pass_template: str, 
-    position_in_group: int, 
-    layer_idx_padding: int, 
+    pass_template: str,
+    position_in_group: int,
+    layer_idx_padding: int,
     layer_idx_offset: int,
     variant: str,
     log: logging.Logger,
 ) -> str:
     """Calculates render pass portion.
-    
-    It was designed to follow "L{layer_index}_{variant}" 
+
+    It was designed to follow "L{layer_index}_{variant}"
     (L010_CHAR01_head)
     """
     new_name = None

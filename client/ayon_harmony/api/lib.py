@@ -684,9 +684,10 @@ def find_backdrop_by_name(name: str) -> dict:
 
     return None
 
+
 def get_layers_info() -> list[dict[str, str]]:
     """Returns list of dicts with info about timeline layers
-    
+
     'position' goes from 0 at the top and increases to bottom on timeline
     """
     layers_info = send(
@@ -696,7 +697,11 @@ def get_layers_info() -> list[dict[str, str]]:
         }
     )["result"]
     layers_info = [layer for layer in layers_info if layer["enabled"]]
-    return sorted(layers_info, key=lambda layer: layer["position"], reverse=True)
+    return sorted(
+        layers_info,
+        key=lambda layer: layer["position"],
+        reverse=True
+    )
 
 
 def rename_node(node_name, new_name):

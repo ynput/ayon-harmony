@@ -2,10 +2,10 @@ import re
 
 from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.pipeline import (
-    Creator, 
-    AYON_INSTANCE_ID, 
+    Creator,
+    AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
-    CreatedInstance, 
+    CreatedInstance,
     CreatorError,
     AutoCreator
 )
@@ -86,7 +86,6 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
     """
 
     settings_category = "harmony"
-
 
     def create(self, product_name, instance_data, pre_create_data):
         # Create the node
@@ -193,7 +192,6 @@ class HarmonyRenderCreator(HarmonyCreator):
         "farm": "Farm rendering",
     }
 
-
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         existing_node_names = harmony.send(
             {
@@ -272,7 +270,9 @@ class HarmonyRenderCreator(HarmonyCreator):
     def get_instance_attr_defs(self):
         return [
             EnumDef(
-                "render_target", items=self.rendering_targets, label="Render target"
+                "render_target",
+                items=self.rendering_targets,
+                label="Render target"
             ),
             BoolDef(
                 "mark_for_review",
