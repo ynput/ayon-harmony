@@ -491,12 +491,18 @@ AyonHarmony.getLayerInfos = function() {
     for (var i = 0; i < readNodes.length; i++) {
         var readNode = readNodes[i];
 
+        try {
+    		var timelineIndex = readNode.timelineIndex();
+        } catch (error) {
+            var timelineIndex = 999;
+        }
+
         info = {
             "name": readNode.name,
             "color": readNode.nodeColor.toString(),
             "fullName": readNode.toString(),
             "selected": readNode.selected,
-            "position": readNode.timelineIndex(),
+            "position": timelineIndex,
             "enabled": readNode.enabled
         };
 
