@@ -317,6 +317,10 @@ class CreateRenderPass(HarmonyRenderCreator):
     mark_for_review = True
     rename_read = True
 
+    render_pass_template = "L{layer_index}_{variant}"
+    layer_idx_offset = 10
+    layer_idx_padding = 3
+
     def product_impl(self, product_name, instance_data, pre_create_data):
         render_layer_instance_id = pre_create_data.get("render_layer_instance_id")
         # This creator should run only on one group
@@ -559,10 +563,6 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
     render_layer_variant_template = "G{group_index}"
     group_idx_offset = 10
     group_idx_padding = 3
-    render_pass_template = "L{layer_index}"
-    layer_idx_offset = 10
-    layer_idx_padding = 3
-
 
     def create(self, product_name, instance_data, pre_create_data):
 
@@ -826,10 +826,10 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             renderlayer = render_layer_instance["variant"]
 
             renderpass = get_render_pass_name(
-                self.render_pass_template,
+                creator.render_pass_template,
                 layer_positions_in_groups[layer["name"]], 
-                self.layer_idx_padding, 
-                self.layer_idx_offset,
+                creator.layer_idx_padding,
+                creator.layer_idx_offset,
                 variant,
                 self.log
             )

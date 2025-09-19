@@ -70,6 +70,14 @@ class CreateRenderPassModel(BaseSettingsModel):
         title="Rename Read Nodes",
         description="Uses product_name as Read node name, original layer name in Write Node"
     )
+    render_pass_template: str = SettingsField(
+        title="RenderPass name template")
+    layer_idx_offset: int = SettingsField(
+        10, title="Layer index Offset", ge=1
+    )
+    layer_idx_padding: int = SettingsField(
+        3, title="Layer index Padding", ge=0
+    )
 
 
 class AutoDetectCreateRenderModel(BaseSettingsModel):
@@ -105,14 +113,6 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     )
     group_idx_padding: int = SettingsField(
         3, title="Group index Padding", ge=0
-    )
-    render_pass_template: str = SettingsField(
-        title="RenderPass name template")
-    layer_idx_offset: int = SettingsField(
-        10, title="Layer index Offset", ge=1
-    )
-    layer_idx_padding: int = SettingsField(
-        3, title="Layer index Padding", ge=0
     )
     layer_name_template: LayerNameTemplateModel = SettingsField(
         default_factory=LayerNameTemplateModel,
