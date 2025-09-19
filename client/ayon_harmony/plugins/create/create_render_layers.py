@@ -355,6 +355,45 @@ class CreateRenderPass(HarmonyRenderCreator):
         creator_attributes["render_target"] = pre_create_data["render_target"]
         creator_attributes["render_layer_instance_id"] = render_layer_instance_id
 
+        # NOTE @iLLiCiTiT I think this should be filled dynamically
+        #   in the future
+        # /////////////////////////////////////////////////////////
+        render_layer = instance_data.get("renderLayer")
+        if not render_layer:
+            render_layer = render_layer_instance["variant"]
+
+        render_pass = instance_data.get("renderPass")
+        if not render_pass:
+            scene_layers = get_layers_info()
+            group_id = render_layer_instance.creator_attributes["group_id"]
+            filtered_layers = [
+                layer
+                for layer in scene_layers
+                if layer["color"] == group_id
+            ]
+            layer_positions_in_groups = get_layer_positions_in_groups(
+                filtered_layers
+            )
+            render_pass = get_render_pass_name(
+                self.render_pass_template,
+                layer_positions_in_groups[layer["name"]],
+                self.layer_idx_padding,
+                self.layer_idx_offset,
+                instance_data["variant"],
+                self.log
+            )
+
+        product_name = instance_data["productName"]
+        product_name = product_name.format_map(prepare_template_data({
+            "renderPass": render_pass,
+            "renderLayer": render_layer,
+        }))
+        # /////////////////////////////////////////////////////////
+
+        instance_data["renderPass"] = render_pass
+        instance_data["renderLayer"] = render_layer
+        instance_data["productName"] = product_name
+
         instance_data["layer_name"] = marked_layer_name
 
         node = self._create_node_for_pass(layer, product_name, self.rename_read)
@@ -902,23 +941,6 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         pass
-
-    def _get_layer_positions_in_groups(self, layers):
-        layer_positions_in_groups = {}
-        sorted_layers = sorted(
-            layers, 
-            key=lambda layer: (layer["color"], layer["position"]),
-            reverse=True
-        )
-        last_group = None
-        position_in_group = 1
-        for layer in sorted_layers:
-            if last_group is None or last_group != layer["color"]:
-                position_in_group = 1
-                last_group = layer["color"]
-            layer_positions_in_groups[layer["name"]] = position_in_group
-            position_in_group += 1
-        return layer_positions_in_groups
     
     def _wrap_nodes_in_backdrop(self):
         """Tries to wrap all nodes of a layer group into Backdrop"""
@@ -995,3 +1017,22 @@ def get_render_pass_name(
         log.warning("Failed to create new pass name", exc_info=True)
 
     return new_name
+
+
+
+def get_layer_positions_in_groups(layers):
+    layer_positions_in_groups = {}
+    sorted_layers = sorted(
+        layers,
+        key=lambda layer: (layer["color"], layer["position"]),
+        reverse=True
+    )
+    last_group = None
+    position_in_group = 1
+    for layer in sorted_layers:
+        if last_group is None or last_group != layer["color"]:
+            position_in_group = 1
+            last_group = layer["color"]
+        layer_positions_in_groups[layer["name"]] = position_in_group
+        position_in_group += 1
+    return layer_positions_in_groups
