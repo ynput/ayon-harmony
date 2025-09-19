@@ -46,8 +46,9 @@ class CreateRenderLayerModel(BaseSettingsModel):
     default_pass_name: str = SettingsField(title="Default beauty pass")
     default_variant: str = SettingsField(title="Default variant")
     default_variants: list[str] = SettingsField(
-        default_factory=list, title="Default variants")
-    
+        default_factory=list, title="Default variants"
+    )
+
 
 class CreateRenderPassModel(BaseSettingsModel):
     enabled: bool = SettingsField(False)
@@ -58,9 +59,12 @@ class CreateRenderPassModel(BaseSettingsModel):
         default_factory=list, title="Default variants"
     )
     rename_read: bool = SettingsField(
-        True, 
+        True,
         title="Rename Read Nodes",
-        description="Uses product_name as Read node name, original layer name in Write Node"
+        description=(
+            "Uses product_name as Read node name, original"
+            " layer name in Write Node"
+        )
     )
     render_pass_template: str = SettingsField(
         title="RenderPass name template")
@@ -110,7 +114,10 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     layer_name_template: LayerNameTemplateModel = SettingsField(
         default_factory=LayerNameTemplateModel,
         title="Layer name template",
-        description="Final layer template to parse out variant from already renamed layers or",
+        description=(
+            "Final layer template to parse out variant from"
+            " already renamed layers or"
+        ),
     )
 
 
