@@ -90,9 +90,10 @@ class AutoDetectCreateRenderModel(BaseSettingsModel):
     If this plugin is enabled, both 'CreateRenderLayer' and 'CreateRenderPass'
     must be enabled!
 
-    To fully use this 'ayon+settings://core/tools/creator/product_name_profiles' must
-    contain '{product[type]}{Task[name]}_{Renderlayer}_{Renderpass}' for host harmony and
-    product types: ['renderLayer', 'renderPass']!
+    To fully use this make sure settings in core addon
+    (ayon+settings://core/tools/creator/product_name_profiles) are
+    set to '{product[type]}{Task[name]}_{Renderlayer}_{Renderpass}' for
+    host 'harmony' and product types: ['renderLayer', 'renderPass']!
     """
 
     enabled: bool = SettingsField()
