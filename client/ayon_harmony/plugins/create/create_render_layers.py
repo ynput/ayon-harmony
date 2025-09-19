@@ -406,16 +406,14 @@ class CreateRenderPass(HarmonyRenderCreator):
                 self.log
             )
 
-        product_name = instance_data["productName"]
         product_name = product_name.format_map(prepare_template_data({
-            "renderPass": render_pass,
-            "renderLayer": render_layer,
+            "renderpass": render_pass,
+            "renderlayer": render_layer,
         }))
         # /////////////////////////////////////////////////////////
 
         instance_data["renderPass"] = render_pass
         instance_data["renderLayer"] = render_layer
-        instance_data["productName"] = product_name
 
         instance_data["layer_name"] = marked_layer_name
 
