@@ -1027,12 +1027,11 @@ def get_layer_positions_in_groups(layers):
         key=lambda layer: (layer["color"], layer["position"]),
         reverse=True
     )
-    last_group = None
-    position_in_group = 1
+    layer_idx_by_group = {}
     for layer in sorted_layers:
-        if last_group is None or last_group != layer["color"]:
-            position_in_group = 1
-            last_group = layer["color"]
-        layer_positions_in_groups[layer["name"]] = position_in_group
-        position_in_group += 1
+        color = layer["color"]
+        layer_idx = layer_idx_by_group.setdefault(color, 1)
+        layer_idx_by_group[color] += 1
+        layer_positions_in_groups[layer["name"]] = layer_idx
+
     return layer_positions_in_groups
