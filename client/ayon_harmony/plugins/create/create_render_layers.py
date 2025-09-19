@@ -605,15 +605,15 @@ class CreateRenderPass(HarmonyRenderCreator):
 
 
 class AutoDetectRendeLayersPasses(HarmonyCreator):
-#     """Create Render Layer and Render Pass instances based on scene data.
+    """Create Render Layer and Render Pass instances based on scene data.
 
-#     This is auto-detection creator which can be triggered by user to create
-#     instances based on information in scene. Each used color group in scene
-#     will be created as Render Layer where group name is used as variant and
-#     each Harmony layer as Render Pass where layer name is used as variant.
+    This is auto-detection creator which can be triggered by user to create
+    instances based on information in scene. Each used color group in scene
+    will be created as Render Layer where group name is used as variant and
+    each Harmony layer as Render Pass where layer name is used as variant.
 
-#     Never will have any instances, all instances belong to different creators.
-#     """
+    Never will have any instances, all instances belong to different creators.
+    """
 
     product_type = "render"
     label = "Render Layer/Passes"
