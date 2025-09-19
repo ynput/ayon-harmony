@@ -272,8 +272,9 @@ class CreateRenderLayer(HarmonyRenderCreator):
     def _create_nodes_for_group(self, group_id, product_name):
         layers_data = get_layers_info()
         layers_full_names = [
-            layer["fullName"] for layer in layers_data 
-            if layer["color"]==group_id
+            layer["fullName"]
+            for layer in layers_data
+            if layer["color"] == group_id
         ]
 
         self_name = self.__class__.__name__
