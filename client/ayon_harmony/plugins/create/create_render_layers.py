@@ -411,24 +411,22 @@ class CreateRenderPass(HarmonyRenderCreator):
         host_name,
         instance
     ):
-        dynamic_data = super().get_dynamic_data(
-            project_name,
-            folder_entity,
-            task_entity,
-            variant,
-            host_name,
-            instance
-        )
-        dynamic_data["renderpass"] = "{renderpass}"
-        dynamic_data["renderlayer"] = "{renderlayer}"
-        if instance and "data" in instance: # passed from Auto creator
-            renderpass = instance["data"].get("renderpass")
-            if renderpass:
-                dynamic_data["renderpass"] = renderpass
-            renderlayer = instance["data"].get("renderlayer")
-            if renderlayer:
-                dynamic_data["renderlayer"] = renderlayer
-        return dynamic_data
+        render_pass = None
+        render_layer = None
+        if instance is not None:
+            render_pass = instance.get("renderPass")
+            render_layer = instance.get("renderLayer")
+
+        if not render_pass:
+            render_pass = "{renderpass}"
+
+        if not render_layer:
+            render_layer = "{renderlayer}"
+
+        return {
+            "renderpass": render_pass,
+            "renderlayer": render_layer,
+        }
 
     def get_pre_create_attr_defs(self):
         # Find available Render Layers
@@ -834,10 +832,10 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 self.log
             )
             if not render_pass:
-                render_pass = {"data": {}}
+                render_pass = {}
 
-            render_pass["data"]["renderpass"] = renderpass
-            render_pass["data"]["renderlayer"] = renderlayer
+            render_pass["renderPass"] = renderpass
+            render_pass["renderLayer"] = renderlayer
 
             product_name = creator.get_product_name(
                 project_entity["name"],
