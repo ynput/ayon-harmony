@@ -881,7 +881,6 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             name_regex = re.compile(name_regex)
 
         layer_positions_in_groups = get_layer_positions_in_groups(layers)
-        groups_info = get_group_infos()
 
         for layer in layers:
             layer_name = layer["name"]
