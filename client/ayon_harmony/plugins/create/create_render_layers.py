@@ -429,8 +429,12 @@ class CreateRenderPass(HarmonyRenderCreator):
         return node
 
     def _get_selected_layers(self):
-        return {layer for layer in get_layers_info() if layer["selected"]}
-    
+        return [
+            layer
+            for layer in get_layers_info()
+            if layer["selected"]
+        ]
+
     def _create_node_for_pass(self, layer, product_name, rename_read):
         self_name = self.__class__.__name__
         layer_name = layer["name"]
