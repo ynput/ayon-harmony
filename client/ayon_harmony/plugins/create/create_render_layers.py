@@ -890,7 +890,6 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             if not variant:
                 variant = layer["name"]
 
-            group_position = get_group_position(layer["color"], groups_info)
             renderlayer = render_layer_instance["variant"]
 
             renderpass = get_render_pass_name(
