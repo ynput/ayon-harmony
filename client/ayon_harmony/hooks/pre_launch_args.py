@@ -76,7 +76,7 @@ class HarmonyPrelaunchHook(PreLaunchHook):
             and workfile_path
             and os.path.exists(workfile_path)
         ):
-            new_launch_args.append(unzip_scene_file(workfile_path))
+            new_launch_args.append(workfile_path)
 
         # Append as whole list as these arguments should not be separated
         self.launch_context.launch_args.append(new_launch_args)

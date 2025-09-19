@@ -20,7 +20,7 @@ import collections
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from ayon_core.lib import is_using_ayon_console
+from ayon_core.lib import is_using_ayon_console, env_value_to_bool
 from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
@@ -199,17 +199,15 @@ def launch(application_path, *args):
     setup_startup_scripts()
     check_libs()
 
-    if not os.environ.get("AYON_HARMONY_WORKFILES_ON_LAUNCH", False):
-        open_empty_workfile()
-        return
-
-    if len(args) > 0 and (scene_path := Path(args[-1])).suffix == ".xstage":
+    if len(args) > 0 and (scene_path := Path(args[-1])).suffix == ".zip":
         launch_zip_file(scene_path)
-        return
-    
-    ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
-    host_tools.show_workfiles(save=False)
-    ProcessContext.execute_in_main_thread(check_workfiles_tool)
+
+    open_workfile_app = env_value_to_bool("AYON_HARMONY_WORKFILES_ON_LAUNCH")
+    workfile_already_open = ProcessContext.workfile_path
+    if open_workfile_app or not workfile_already_open:
+        ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
+        host_tools.show_workfiles(save=False)
+        ProcessContext.execute_in_main_thread(check_workfiles_tool)
 
 
 def check_workfiles_tool():
