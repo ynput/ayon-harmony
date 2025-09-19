@@ -693,7 +693,7 @@ def get_layers_info() -> list[dict[str, str]]:
     """
     layers_info = send(
         {
-            "function": f"AyonHarmony.getLayerInfos",
+            "function": "AyonHarmony.getLayerInfos",
             "args": []
         }
     )["result"]

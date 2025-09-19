@@ -1053,7 +1053,6 @@ def get_render_pass_name(
     return new_name
 
 
-
 def get_layer_positions_in_groups(layers):
     layer_positions_in_groups = {}
     sorted_layers = sorted(
