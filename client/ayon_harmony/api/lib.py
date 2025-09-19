@@ -254,14 +254,14 @@ def unzip_scene_file(filepath: str) -> str:
     """
     print(f"Localizing {filepath}")
 
-    temp_path = get_local_harmony_path(filepath)
-    scene_name = os.path.basename(temp_path)
-    if os.path.exists(os.path.join(temp_path, scene_name)):
+    local_scene_dir_path = get_local_harmony_path(filepath)
+    scene_name = os.path.basename(local_scene_dir_path)
+    if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
         # unzipped with duplicated scene_name
-        temp_path = os.path.join(temp_path, scene_name)
+        local_scene_dir_path = os.path.join(local_scene_dir_path, scene_name)
 
     scene_path = os.path.join(
-        temp_path, scene_name + ".xstage"
+        local_scene_dir_path, scene_name + ".xstage"
     )
 
     unzip = False
@@ -269,7 +269,7 @@ def unzip_scene_file(filepath: str) -> str:
         # Check remote scene is newer than local.
         if os.path.getmtime(scene_path) < os.path.getmtime(filepath):
             try:
-                shutil.rmtree(temp_path)
+                shutil.rmtree(local_scene_dir_path)
             except Exception as e:
                 log.error(e)
                 raise Exception("Cannot delete working folder") from e
@@ -279,40 +279,39 @@ def unzip_scene_file(filepath: str) -> str:
 
     if unzip:
         with _ZipFile(filepath, "r") as zip_ref:
-            zip_ref.extractall(temp_path)
+            zip_ref.extractall(local_scene_dir_path)
 
-        if os.path.exists(os.path.join(temp_path, scene_name)):
+        if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
             # unzipped with duplicated scene_name
-            temp_path = os.path.join(temp_path, scene_name)
+            local_scene_dir_path = os.path.join(local_scene_dir_path, scene_name)
 
     # find any xstage files is directory, prefer the one with the same name
     # as directory (plus extension)
     xstage_files = []
-    for _, _, files in os.walk(temp_path):
+    for root, _, files in os.walk(local_scene_dir_path):
         for file in files:
             if os.path.splitext(file)[1] == ".xstage":
-                xstage_files.append(file)
+                full_path = os.path.join(root, file)
+                relative_path = os.path.relpath(full_path, local_scene_dir_path)
+                xstage_files.append(relative_path)
 
     if not os.path.basename("temp.zip"):
         if not xstage_files:
             raise Exception("No xstage file was found.")
 
-    # try to use first available
-    scene_path = os.path.join(
-        temp_path, xstage_files[0]
-    )
-
     # prefer the one named as zip file
     zip_based_name = "{}.xstage".format(
         os.path.splitext(os.path.basename(filepath))[0])
-
-    if zip_based_name in xstage_files:
+    
+    xstage_files.reverse()  # prefer 0 found xstage
+    for relative_path_xstage in xstage_files:
         scene_path = os.path.join(
-            temp_path, zip_based_name
+            local_scene_dir_path, relative_path_xstage
         )
-
+        if zip_based_name in relative_path_xstage:
+            break
     if not os.path.exists(scene_path):
-        raise Exception(f"Cannot determine scene file {scene_path}.")
+        raise Exception(f"Expected '{scene_path}' not found in '{local_scene_dir_path}'.")
 
     return scene_path
 
