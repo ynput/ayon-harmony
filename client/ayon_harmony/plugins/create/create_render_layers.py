@@ -35,6 +35,7 @@ Todos:
 """
 
 import re
+import logging
 import collections
 from typing import Any, Optional, Union
 from dataclasses import dataclass
@@ -43,6 +44,7 @@ from ayon_core.lib import (
     AbstractAttrDef,
     EnumDef,
     BoolDef,
+    prepare_template_data,
 )
 from ayon_core.pipeline.create import (
     CreatedInstance,
@@ -132,7 +134,13 @@ class CreateRenderLayer(HarmonyRenderCreator):
     mark_for_review = True
 
     def get_dynamic_data(
-        self, project_name, folder_entity, task_entity, variant, host_name, instance
+        self,
+        project_name,
+        folder_entity,
+        task_entity,
+        variant,
+        host_name,
+        instance
     ):
         return {
             "renderpass": self.default_pass_name,
@@ -276,7 +284,11 @@ class CreateRenderLayer(HarmonyRenderCreator):
         return created_node
 
     def _get_selected_group_colors(self):
-        return {layer["color"] for layer in get_layers_info() if layer["selected"]}
+        return {
+            layer["color"]
+            for layer in get_layers_info()
+            if layer["selected"]
+        }
     
     def remove_instances(self, instances):
         for instance in instances:
@@ -288,7 +300,9 @@ class CreateRenderLayer(HarmonyRenderCreator):
             group_label = container_data.get("group_label")
             container_backdrop = None
             if group_label:
-                container_backdrop = harmony.find_backdrop_by_name(group_label)
+                container_backdrop = harmony.find_backdrop_by_name(
+                    group_label
+                )
             if container_backdrop:
                 harmony.send(
                     {
@@ -322,9 +336,14 @@ class CreateRenderPass(HarmonyRenderCreator):
     layer_idx_padding = 3
 
     def product_impl(self, product_name, instance_data, pre_create_data):
-        render_layer_instance_id = pre_create_data.get("render_layer_instance_id")
+        render_layer_instance_id = pre_create_data.get(
+            "render_layer_instance_id"
+        )
         # This creator should run only on one group
-        if render_layer_instance_id is None or render_layer_instance_id == "-1":
+        if (
+            render_layer_instance_id is None
+            or render_layer_instance_id == "-1"
+        ):
             raise CreatorError("You must select layer group")
         
         render_layer_instance = self.create_context.instances_by_id.get(
@@ -347,13 +366,17 @@ class CreateRenderPass(HarmonyRenderCreator):
                 raise CreatorError(
                     f"Product '{product_name}' already exists.")
 
-        creator_attributes = instance_data.setdefault("creator_attributes", {})
+        creator_attributes = instance_data.setdefault(
+            "creator_attributes", {}
+        )
         mark_for_review = pre_create_data.get("mark_for_review")
         if mark_for_review is None:
             mark_for_review = self.mark_for_review
         creator_attributes["mark_for_review"] = mark_for_review
         creator_attributes["render_target"] = pre_create_data["render_target"]
-        creator_attributes["render_layer_instance_id"] = render_layer_instance_id
+        creator_attributes["render_layer_instance_id"] = (
+            render_layer_instance_id
+        )
 
         # NOTE @iLLiCiTiT I think this should be filled dynamically
         #   in the future
@@ -396,7 +419,9 @@ class CreateRenderPass(HarmonyRenderCreator):
 
         instance_data["layer_name"] = marked_layer_name
 
-        node = self._create_node_for_pass(layer, product_name, self.rename_read)
+        node = self._create_node_for_pass(
+            layer, product_name, self.rename_read
+        )
         self.log.info(f"Created node:: {node}")
         return node
 
@@ -553,14 +578,17 @@ class CreateRenderPass(HarmonyRenderCreator):
             if instance.creator_identifier == CreateRenderLayer.identifier
         ]
         if not render_layers:
-            render_layers.append({"value": None, "label": "Create Render Layer first"})
+            render_layers.append({
+                "value": None,
+                "label": "Create Render Layer first",
+            })
         return render_layers
     
     def remove_instances(self, instances):
         for instance in instances:
             # There is only ever one workfile instance
             container_data = harmony.read(instance.transient_data["node"])
-            if (container_data["productName"] != container_data["layer_name"]):
+            if container_data["productName"] != container_data["layer_name"]:
                 harmony.rename_node(
                     container_data["productName"], 
                     container_data["layer_name"]
@@ -650,7 +678,9 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             "render_target", False
         )
 
-        only_visible_groups = pre_create_data.get("only_visible_groups", False)
+        only_visible_groups = pre_create_data.get(
+            "only_visible_groups", False
+        )
         filtered_groups = self._filter_groups(
             layers_by_group_id,
             scene_groups,
@@ -842,7 +872,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             ):
                 name_regex = name_regex.replace(src, regex)
             name_regex = re.compile(name_regex)
-        layer_positions_in_groups = self._get_layer_positions_in_groups(layers)
+
+        layer_positions_in_groups = get_layer_positions_in_groups(layers)
         groups_info = get_group_infos()
 
         for layer in layers:
@@ -946,14 +977,17 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         """Tries to wrap all nodes of a layer group into Backdrop"""
         scene_containers = harmony.get_scene_data()
         for node_name, container in scene_containers.items():
-            if container["creator_identifier"] != CreateRenderLayer.identifier:
+            identifier = container["creator_identifier"]
+            if identifier != CreateRenderLayer.identifier:
                 continue
             group_label = container["variant"]
             group_id = container["creator_attributes"]["group_id"]
             group_color = group_id
             harmony.send(
                 {
-                    "function": f"AyonHarmony.Creators.CreateRenderLayer.formatNodes",  #noqa
+                    "function": (
+                        "AyonHarmony.Creators.CreateRenderLayer.formatNodes"
+                    ),
                     "args": [node_name, group_label, group_color]
                 }
             )
@@ -978,8 +1012,8 @@ def get_group_infos() -> list[GroupInfo]:
 
 def get_group_position(
     group_id: str,
-    group_infos: Optional[list[GroupInfo]]=None
-) -> str:
+    group_infos: Optional[list[GroupInfo]] = None
+) -> Optional[str]:
     """Find appropriate color for ordinal number of group"""
     if not group_infos:
         group_infos = get_group_infos()
@@ -997,7 +1031,7 @@ def get_render_pass_name(
     layer_idx_padding: int, 
     layer_idx_offset: int,
     variant: str,
-    log
+    log: logging.Logger,
 ) -> str:
     """Calculates render pass portion.
     
