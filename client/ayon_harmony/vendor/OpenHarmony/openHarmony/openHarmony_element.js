@@ -4,7 +4,7 @@
 //                            openHarmony Library v0.01
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney...
+//         Developped by Mathieu Chaptel, Chris Fourney...
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -16,7 +16,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -54,14 +54,17 @@
  * @constructor
  * @classdesc  $.oElement Class
  * @param   {int}                   id                          The element ID.
+ * @param   {str}                   synchedLayer                The value of the Drawing Node drawing.element.layer attribute for synched layers
  * @param   {$.oColumn}             oColumnObject               The column object associated to the element.
  *
  * @property {int}                  id                          The element ID.
  * @property {$.oColumn}            oColumnObject               The column object associated to the element.
  */
-$.oElement = function( id, oColumnObject){
+$.oElement = function( id, synchedLayer, oColumnObject){
+  if (typeof synchedLayer === 'undefined' || !synchedLayer) synchedLayer = null;
   this._type = "element";
 
+  this._synchedLayer = synchedLayer;
   this.id = id;
   this.column = oColumnObject;
 }
@@ -106,7 +109,7 @@ Object.defineProperty($.oElement.prototype, 'drawings', {
     var _drawingsNumber = Drawing.numberOf(this.id);
     var _drawings = [];
     for (var i=0; i<_drawingsNumber; i++){
-      _drawings.push( new this.$.oDrawing(Drawing.name(this.id, i), this) );
+      _drawings.push( new this.$.oDrawing(Drawing.name(this.id, i), this._synchedLayer, this) );
     }
     return _drawings;
   }
@@ -141,6 +144,20 @@ Object.defineProperty($.oElement.prototype, 'palettes', {
     }
 
     return _palettes;
+  }
+})
+
+
+/**
+ * A list of the other elements synched with this one.
+ * @name $.oElement#synchedElements
+ * @readonly
+ * @type {$.oDrawing[]}
+ */
+Object.defineProperty($.oElement.prototype, 'synchedElements', {
+  get : function(){
+    var _id = this.id;
+    return $.scene.elements.filter(function(e){return e.id == _id});
   }
 })
 
@@ -186,7 +203,7 @@ $.oElement.prototype.addDrawing = function( atFrame, name, filename, convertToTv
   var _fileExists = filename.exists;
   Drawing.create (this.id, name, _fileExists, true);
 
-  var _drawing = new this.$.oDrawing( name, this );
+  var _drawing = new this.$.oDrawing( name, this._synchedLayer, this );
 
   if (_fileExists) _drawing.importBitmap(filename, convertToTvg);
 
@@ -213,6 +230,20 @@ $.oElement.prototype.getDrawingByName = function ( name ){
   return null;
 }
 
+
+/**
+ * Gets a drawing object by the id.
+ * @param   {string}  id  The id of the drawing to get.
+ *
+ * @return  {$.oDrawing}      The drawing found by the search
+ */
+ $.oElement.prototype.getDrawingById = function ( id ){
+  var _drawings = this.drawings;
+  for (var i in _drawings){
+    if (_drawings[i].id == id) return _drawings[i];
+  }
+  return null;
+}
 
 /**
  * Link a provided palette to an element as an Element palette.
@@ -278,7 +309,7 @@ $.oElement.prototype.duplicate = function(name){
       var duplicateDrawing = _duplicateElement.addDrawing(0, _drawings[i].name, _drawingFile);
       _drawingFile.copy(_elementFolder, duplicateDrawing.name, true);
     }catch(err){
-      this.debug("could not copy drawing file "+drawingFile.name+" into element "+_duplicateElement.name, this.DEBUG_LEVEL.ERROR);
+      this.debug("could not copy drawing file "+_drawingFile.name+" into element "+_duplicateElement.name, this.$.DEBUG_LEVEL.ERROR);
     }
   }
   return _duplicateElement;

@@ -2,10 +2,10 @@ import re
 
 from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.pipeline import (
-    Creator, 
-    AYON_INSTANCE_ID, 
+    Creator,
+    AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
-    CreatedInstance, 
+    CreatedInstance,
     CreatorError,
     AutoCreator
 )
@@ -87,7 +87,6 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
     settings_category = "harmony"
 
-
     def create(self, product_name, instance_data, pre_create_data):
         # Create the node
         node = self.product_impl(product_name, instance_data, pre_create_data)
@@ -102,6 +101,8 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
         harmony.imprint(node, instance.data_to_store())
 
         self._add_instance_to_context(instance)
+
+        return instance
 
     def update_instances(self, update_list):
         for created_inst, _changes in update_list:
@@ -244,7 +245,8 @@ class HarmonyRenderCreator(HarmonyCreator):
         self.setup_node(node)
 
         instance_data["creator_attributes"] = {
-            "render_target": pre_create_data["render_target"]
+            "render_target": pre_create_data["render_target"],
+            "mark_for_review": pre_create_data["mark_for_review"]
         }
 
         return node
@@ -257,13 +259,25 @@ class HarmonyRenderCreator(HarmonyCreator):
                 items=self.rendering_targets,
                 label="Render target"
             ),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=True,
+            )
         ])
         return output
 
     def get_instance_attr_defs(self):
         return [
             EnumDef(
-                "render_target", items=self.rendering_targets, label="Render target"
+                "render_target",
+                items=self.rendering_targets,
+                label="Render target"
+            ),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=True,
             )
         ]
 

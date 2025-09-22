@@ -53,6 +53,35 @@ DEFAULT_HARMONY_SETTING = {
             ],
             "auto_connect": False,
             "composition_node_pattern": "Composite"
+        },
+        "CreateRenderLayer": {
+            "enabled": True,
+            "mark_for_review": False,
+            "active_on_create": True,
+            "default_pass_name": "beauty",
+            "default_variant": "Main",
+            "default_variants": []
+        },
+        "CreateRenderPass": {
+            "enabled": True,
+            "mark_for_review": False,
+            "active_on_create": True,
+            "default_variant": "",
+            "default_variants": [],
+            "rename_read": True,
+            "render_pass_template": "L{layer_index}_{variant}",
+            "layer_idx_offset": 10,
+            "layer_idx_padding": 3,
+        },
+        "AutoDetectRendeLayersPasses": {
+            "enabled": True,
+            "render_layer_variant_template": "G{group_index}",
+            "group_idx_offset": 10,
+            "group_idx_padding": 3,
+            "layer_name_template": {
+                "enabled": False,
+                "template": "G{group_index}_L{layer_index}_{variant}"
+            }
         }
     },
     "publish": {

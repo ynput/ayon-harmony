@@ -7,7 +7,10 @@ import re
 import pyblish.api
 
 import ayon_harmony.api as harmony
-from ayon_core.pipeline import PublishXmlValidationError
+from ayon_core.pipeline import (
+    PublishXmlValidationError,
+    OptionalPyblishPluginMixin
+)
 
 
 class ValidateSceneSettingsRepair(pyblish.api.Action):
@@ -34,7 +37,7 @@ class ValidateSceneSettingsRepair(pyblish.api.Action):
             harmony.save_scene_as(scene_path)
 
 
-class ValidateSceneSettings(pyblish.api.InstancePlugin):
+class ValidateSceneSettings(OptionalPyblishPluginMixin, pyblish.api.InstancePlugin):
     """Ensure the scene settings are in sync with database."""
 
     order = pyblish.api.ValidatorOrder
@@ -56,6 +59,8 @@ class ValidateSceneSettings(pyblish.api.InstancePlugin):
 
     def process(self, instance):
         """Plugin entry point."""
+        if not self.is_active(instance.data):
+            return
 
         # TODO 'get_current_context_settings' could expect folder entity
         #   as an argument which is available on 'context.data["folderEntity"]'

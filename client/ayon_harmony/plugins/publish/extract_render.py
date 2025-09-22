@@ -50,7 +50,7 @@ class ExtractRender(pyblish.api.InstancePlugin):
                          path + "/" + instance.data["name"]]
             }
         )
-        harmony.save_scene()
+        harmony.save_scene(zip_and_move=False)
 
         # Execute rendering. Ignoring error cause Harmony returns error code
         # always.
