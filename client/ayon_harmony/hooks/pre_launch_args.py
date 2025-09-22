@@ -8,7 +8,6 @@ from ayon_core.lib import (
 )
 from ayon_applications import PreLaunchHook, LaunchTypes
 from ayon_harmony import get_launch_script_path
-from ayon_harmony.api import unzip_scene_file
 
 
 def get_launch_kwargs(kwargs):
