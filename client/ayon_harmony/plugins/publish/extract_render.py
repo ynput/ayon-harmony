@@ -85,12 +85,18 @@ class ExtractRender(pyblish.api.InstancePlugin):
             )
         )
         self.log.debug(collections)
+        collection = None
         if len(collections) > 1:
             for col in collections:
                 if len(list(col)) > 1:
                     collection = col
         else:
             collection = collections[0]
+
+        if collection is None:
+            raise KnownPublishError(
+                "Failed to find a collection with multiple files."
+            )
 
         thumbnail_source = os.path.join(path, list(collections[0])[0])
         instance.data["thumbnailSource"] = thumbnail_source
