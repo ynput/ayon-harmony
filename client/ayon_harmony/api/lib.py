@@ -517,15 +517,16 @@ def get_all_top_names() -> set:
 
     Returns:
         set: Set of top node names.
+
     """
-    return set(
-        send({"function": "node.subNodes", "args": ["Top"]})["result"]
-    ) | {
+    nodes = send({"function": "node.subNodes", "args": ["Top"]})["result"]
+    backdrops = {
         backdrop["title"]["text"]
         for backdrop in send(
             {"function": "Backdrop.backdrops", "args": ["Top"]}
         )["result"]
     }
+    return set(nodes) | backdrops
 
 
 def get_palettes_paths() -> set:
