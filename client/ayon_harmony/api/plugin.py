@@ -304,8 +304,6 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
         task_entity = self.create_context.get_current_task_entity()
 
         project_name = project_entity["name"]
-        folder_path = folder_entity["path"]
-        task_name = task_entity["name"]
         host_name = self.create_context.host_name
 
         if current_instance is None:
