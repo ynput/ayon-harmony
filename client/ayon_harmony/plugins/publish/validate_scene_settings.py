@@ -70,7 +70,7 @@ class ValidateSceneSettings(
         #   as an argument which is available on 'context.data["folderEntity"]'
         #   - the same approach can be used in 'ValidateSceneSettingsRepair'
         expected_settings = harmony.get_current_context_settings()
-        self.log.info("scene settings from DB:{}".format(expected_settings))
+        self.log.info(f"scene settings from DB:{expected_settings}")
 
         _update_frames(expected_settings)
         expected_settings["frameEndHandle"] = (
