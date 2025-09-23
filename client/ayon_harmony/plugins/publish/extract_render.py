@@ -14,7 +14,9 @@ class ExtractRender(pyblish.api.InstancePlugin):
     """
 
     label = "Extract Render"
-    order = pyblish.api.ExtractorOrder - 0.0001 # TODO remove decrement after ayon-core ExtractThumbnailFromSource is set later
+    # TODO remove decrement after ayon-core ExtractThumbnailFromSource
+    #   is set later
+    order = pyblish.api.ExtractorOrder - 0.0001
     hosts = ["harmony"]
     families = ["render.local"]
 
@@ -65,9 +67,9 @@ class ExtractRender(pyblish.api.InstancePlugin):
             stderr=subprocess.STDOUT,
             stdin=subprocess.PIPE
         )
-        output, error = proc.communicate()
+        stdout, _stderr = proc.communicate()
         self.log.info("Click on the line below to see more details.")
-        self.log.info(output.decode("utf-8"))
+        self.log.info(stdout.decode("utf-8"))
 
         # Collect rendered files.
         self.log.debug(f"collecting from: {path}")
@@ -105,7 +107,7 @@ class ExtractRender(pyblish.api.InstancePlugin):
             "fps": frame_rate
         }
         representations = [representation]
-        
+
         instance.data["representations"] = representations
 
         if audio_path and os.path.exists(audio_path):

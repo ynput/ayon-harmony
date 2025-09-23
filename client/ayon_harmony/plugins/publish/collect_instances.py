@@ -35,7 +35,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
         instance.data["setMembers"] = [node]
 
         families = [product_type]
-        
+
         creator_attributes = instance.data.get("creator_attributes", {})
         if product_type == "render":
             render_target = creator_attributes["render_target"]
@@ -51,13 +51,14 @@ class CollectInstances(pyblish.api.InstancePlugin):
 
         # If set in plugin, pair the scene Version with
         # thumbnails and review media.
-        if (self.pair_media and product_type == "scene"):
+        if self.pair_media and product_type == "scene":
             instance.context.data["scene_instance"] = instance
 
         # Produce diagnostic message for any graphical
         # user interface interested in visualising it.
         self.log.info(
-            "Processed: \"{0}\": \n{1}".format(
-                instance.data["name"], json.dumps(instance.data, indent=4)
+            "Processed: \"{}\":\n{}".format(
+                instance.data["name"],
+                json.dumps(instance.data, indent=4)
             )
         )

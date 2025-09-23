@@ -23,7 +23,7 @@ class BackdropBaseLoader(load.LoaderPlugin):
         """
         self_name = self.__class__.__name__
         filepath = get_representation_path(context["representation"])
-        
+
         backdrop_name = harmony.send(
             {
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
@@ -50,7 +50,7 @@ class BackdropBaseLoader(load.LoaderPlugin):
         if container_backdrop:
             harmony.send(
                 {
-                    "function": "AyonHarmony.removeBackdrop", 
+                    "function": "AyonHarmony.removeBackdrop",
                     "args": [container_backdrop, True]
                 }
             )
@@ -81,7 +81,9 @@ class BackdropBaseLoader(load.LoaderPlugin):
 
         # Replace template container
         self.remove(container)  # Before load to avoid node name incrementation
-        container = self.load(context, container["name"], container["namespace"])
+        container = self.load(
+            context, container["name"], container["namespace"]
+        )
 
         # Restore backdrop links
         harmony.send(

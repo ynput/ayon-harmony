@@ -38,7 +38,9 @@ class HarmonyCreatorBase:
             scene_data = harmony.get_scene_data()
             all_top_names = harmony.get_all_top_names()
             cleaned_scene_data = False
-            for entity_name, entity_data in reversed(scene_data.copy().items()):
+            for entity_name, entity_data in reversed(
+                scene_data.copy().items()
+            ):
                 # Filter orphaned instances
                 if entity_name not in all_top_names:
                     del scene_data[entity_name]
@@ -63,7 +65,9 @@ class HarmonyCreatorBase:
                         # must be a broken instance
                         continue
 
-                    cache_legacy.setdefault(product_type, []).append(entity_name)
+                    cache_legacy.setdefault(product_type, []).append(
+                        entity_name
+                    )
 
             shared_data["harmony_cached_scene_data"] = scene_data
             shared_data["harmony_cached_instance_data"] = cache

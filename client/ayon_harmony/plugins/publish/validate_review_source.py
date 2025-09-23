@@ -24,6 +24,7 @@ class ValidateTopDisplay(pyblish.api.InstancePlugin):
 
         if not display_node_name:
             raise PublishXmlValidationError(
-                self, "No display node named 'Top/Display'.")
-        
+                self, "No display node named 'Top/Display'."
+            )
+
         instance.data["display_node_name"] = display_node_name

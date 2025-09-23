@@ -25,8 +25,9 @@ class ValidateSceneSettingsRepair(pyblish.api.Action):
         expected = harmony.get_current_context_settings()
         expected_settings = _update_frames(dict.copy(expected))
         expected_settings["frameStart"] = 1
-        expected_settings["frameEnd"] = expected_settings["frameEnd"] + \
-            expected_settings["handleEnd"]
+        expected_settings["frameEnd"] = (
+            expected_settings["frameEnd"] + expected_settings["handleEnd"]
+        )
         harmony.set_scene_settings(expected_settings)
         if not os.path.exists(context.data["scenePath"]):
             self.log.info("correcting scene name")
@@ -37,7 +38,10 @@ class ValidateSceneSettingsRepair(pyblish.api.Action):
             harmony.save_scene_as(scene_path)
 
 
-class ValidateSceneSettings(OptionalPyblishPluginMixin, pyblish.api.InstancePlugin):
+class ValidateSceneSettings(
+    OptionalPyblishPluginMixin,
+    pyblish.api.InstancePlugin
+):
     """Ensure the scene settings are in sync with database."""
 
     order = pyblish.api.ValidatorOrder
@@ -68,36 +72,44 @@ class ValidateSceneSettings(OptionalPyblishPluginMixin, pyblish.api.InstancePlug
         expected_settings = harmony.get_current_context_settings()
         self.log.info("scene settings from DB:{}".format(expected_settings))
 
-        expected_settings = _update_frames(dict.copy(expected_settings))
-        expected_settings["frameEndHandle"] = expected_settings["frameEnd"] +\
-            expected_settings["handleEnd"]
+        _update_frames(expected_settings)
+        expected_settings["frameEndHandle"] = (
+            expected_settings["frameEnd"] + expected_settings["handleEnd"]
+        )
 
         task_name = instance.context.data["task"]
 
-        if (any(re.search(pattern, task_name)
-                for pattern in self.skip_resolution_check)):
-            self.log.info("Skipping resolution check because of "
-                          "task name and pattern {}".format(
-                              self.skip_resolution_check))
+        if any(
+            re.search(pattern, task_name)
+            for pattern in self.skip_resolution_check
+        ):
+            self.log.info(
+                "Skipping resolution check because of task name"
+                f" and pattern {self.skip_resolution_check}"
+            )
             expected_settings.pop("resolutionWidth")
             expected_settings.pop("resolutionHeight")
 
-        if (any(re.search(pattern, os.getenv('AYON_TASK_NAME'))
-                for pattern in self.skip_timelines_check)):
-            self.log.info("Skipping frames check because of "
-                          "task name and pattern {}".format(
-                              self.skip_timelines_check))
-            expected_settings.pop('frameStart', None)
-            expected_settings.pop('frameEnd', None)
-            expected_settings.pop('frameStartHandle', None)
-            expected_settings.pop('frameEndHandle', None)
+        if any(
+            re.search(pattern, task_name)
+            for pattern in self.skip_timelines_check
+        ):
+            self.log.info(
+                "Skipping frames check because of task name"
+                f" and pattern {self.skip_timelines_check}"
+            )
+            expected_settings.pop("frameStart", None)
+            expected_settings.pop("frameEnd", None)
+            expected_settings.pop("frameStartHandle", None)
+            expected_settings.pop("frameEndHandle", None)
 
         folder_name = instance.context.data["folderPath"].rsplit("/", 1)[-1]
         if any(re.search(pattern, folder_name)
                 for pattern in self.frame_check_filter):
-            self.log.info("Skipping frames check because of "
-                          "task name and pattern {}".format(
-                              self.frame_check_filter))
+            self.log.info(
+                "Skipping frames check because of task name"
+                f" and pattern {self.frame_check_filter}"
+            )
             expected_settings.pop('frameStart', None)
             expected_settings.pop('frameEnd', None)
             expected_settings.pop('frameStartHandle', None)
@@ -130,15 +142,21 @@ class ValidateSceneSettings(OptionalPyblishPluginMixin, pyblish.api.InstancePlug
         for key, value in expected_settings.items():
             if value != current_settings[key]:
                 invalid_settings.append(
-                    "{} expected: {}  found: {}".format(key, value,
-                                                        current_settings[key]))
+                    f"{key} expected: {value}  found: {current_settings[key]}"
+                )
                 invalid_keys.add(key)
 
-        if ((expected_settings["handleStart"]
-            or expected_settings["handleEnd"])
-           and invalid_settings):
-            msg = "Handles included in calculation. Remove handles in DB " +\
-                  "or extend frame range in timeline."
+        if (
+            (
+                expected_settings["handleStart"]
+                or expected_settings["handleEnd"]
+            )
+            and invalid_settings
+        ):
+            msg = (
+                "Handles included in calculation. Remove handles in DB"
+                " or extend frame range in timeline."
+            )
             invalid_settings[-1]["reason"] = msg
 
         msg = "Found invalid settings:\n{}".format(
@@ -147,16 +165,19 @@ class ValidateSceneSettings(OptionalPyblishPluginMixin, pyblish.api.InstancePlug
 
         if invalid_settings:
             invalid_keys_str = ",".join(invalid_keys)
-            break_str = "<br/>"
-            invalid_setting_str = "<b>Found invalid settings:</b><br/>{}".\
-                format(break_str.join(invalid_settings))
+            invalid_setting_str = (
+                "<b>Found invalid settings:</b><br/>{}".format(
+                    "<br/>".join(invalid_settings)
+                )
+            )
 
             formatting_data = {
                 "invalid_setting_str": invalid_setting_str,
                 "invalid_keys_str": invalid_keys_str
             }
-            raise PublishXmlValidationError(self, msg,
-                                            formatting_data=formatting_data)
+            raise PublishXmlValidationError(
+                self, msg, formatting_data=formatting_data
+            )
 
         scene_url = instance.context.data.get("scenePath")
         if not os.path.exists(scene_url):
@@ -166,26 +187,34 @@ class ValidateSceneSettings(OptionalPyblishPluginMixin, pyblish.api.InstancePlug
             formatting_data = {
                 "scene_url": scene_url
             }
-            raise PublishXmlValidationError(self, msg, key="file_not_found",
-                                            formatting_data=formatting_data)
+            raise PublishXmlValidationError(
+                self,
+                msg,
+                key="file_not_found",
+                formatting_data=formatting_data
+            )
 
 
 def _update_frames(expected_settings):
-    """
-        Calculate proper frame range including handles set in DB.
+    """Calculate proper frame range including handles set in DB.
 
-        Harmony requires rendering from 1, so frame range is always moved
+    Harmony requires rendering from 1, so frame range is always moved
         to 1.
+
     Args:
         expected_settings (dict): pulled from DB
 
     Returns:
         modified expected_setting (dict)
-    """
-    frames_count = expected_settings["frameEnd"] - \
-        expected_settings["frameStart"] + 1
 
-    expected_settings["frameStart"] = 1.0 + expected_settings["handleStart"]
-    expected_settings["frameEnd"] = \
-        expected_settings["frameStart"] + frames_count - 1
+    """
+    frame_start = expected_settings["frameStart"]
+    frame_end = expected_settings["frameEnd"]
+    frames_count = frame_end - frame_start + 1
+
+    new_frame_start = 1.0 + expected_settings["handleStart"]
+    new_frame_end = new_frame_start + frames_count - 1
+
+    expected_settings["frameStart"] = new_frame_start
+    expected_settings["frameEnd"] = new_frame_end
     return expected_settings

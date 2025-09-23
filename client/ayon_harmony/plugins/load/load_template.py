@@ -40,7 +40,8 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         backdrop_name = harmony.send(
             {
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
-                # Published tpl name is not consistent, use first found, must be only one
+                # Published tpl name is not consistent, use first found,
+                #   must be only one
                 "args": next(Path(temp_dir).glob("*.tpl")).as_posix(),
             }
         )["result"]

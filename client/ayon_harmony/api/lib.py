@@ -17,6 +17,7 @@ import signal
 import time
 from uuid import uuid4
 import collections
+from typing import Optional
 
 from qtpy import QtWidgets, QtCore, QtGui
 
@@ -240,15 +241,17 @@ def get_local_harmony_path(filepath):
 
 def unzip_scene_file(filepath: str) -> str:
     """Unzip a Harmony scene file and return the path to the .xstage file.
-    
+
     Args:
         filepath (str): Path to the zip file.
-        
+
     Returns:
         str: Path to the .xstage file.
-        
+
     Raises:
-        Exception: If no .xstage file is found or if the working folder cannot be deleted.
+        Exception: If no .xstage file is found or if the working
+            folder cannot be deleted.
+
     """
     print(f"Localizing {filepath}")
 
@@ -281,7 +284,9 @@ def unzip_scene_file(filepath: str) -> str:
 
         if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
             # unzipped with duplicated scene_name
-            local_scene_dir_path = os.path.join(local_scene_dir_path, scene_name)
+            local_scene_dir_path = os.path.join(
+                local_scene_dir_path, scene_name
+            )
 
     # find any xstage files is directory, prefer the one with the same name
     # as directory (plus extension)
@@ -290,7 +295,9 @@ def unzip_scene_file(filepath: str) -> str:
         for file in files:
             if os.path.splitext(file)[1] == ".xstage":
                 full_path = os.path.join(root, file)
-                relative_path = os.path.relpath(full_path, local_scene_dir_path)
+                relative_path = os.path.relpath(
+                    full_path, local_scene_dir_path
+                )
                 xstage_files.append(relative_path)
 
     if not os.path.basename("temp.zip"):
@@ -300,7 +307,7 @@ def unzip_scene_file(filepath: str) -> str:
     # prefer the one named as zip file
     zip_based_name = "{}.xstage".format(
         os.path.splitext(os.path.basename(filepath))[0])
-    
+
     xstage_files.reverse()  # prefer 0 found xstage
     for relative_path_xstage in xstage_files:
         scene_path = os.path.join(
@@ -308,8 +315,11 @@ def unzip_scene_file(filepath: str) -> str:
         )
         if zip_based_name in relative_path_xstage:
             break
+
     if not os.path.exists(scene_path):
-        raise Exception(f"Expected '{scene_path}' not found in '{local_scene_dir_path}'.")
+        raise Exception(
+            f"Expected '{scene_path}' not found in '{local_scene_dir_path}'."
+        )
 
     return scene_path
 
@@ -502,17 +512,20 @@ def delete_node(node):
         }
     )
 
+
 def get_all_top_names() -> set:
     """Get all top node and backdrop names in the scene.
 
     Returns:
         set: Set of top node names.
     """
-    return set(send({"function": "node.subNodes", "args": ["Top"]})["result"]) | {
+    return set(
+        send({"function": "node.subNodes", "args": ["Top"]})["result"]
+    ) | {
         backdrop["title"]["text"]
-        for backdrop in send({"function": "Backdrop.backdrops", "args": ["Top"]})[
-            "result"
-        ]
+        for backdrop in send(
+            {"function": "Backdrop.backdrops", "args": ["Top"]}
+        )["result"]
     }
 
 
@@ -522,7 +535,9 @@ def get_palettes_paths() -> set:
     Returns:
         set: Set of palettes paths.
     """
-    return {pal["_path"] for pal in send({"function": "AyonHarmony.getAllPalettesPaths"})["result"]}
+    return {pal["_path"] for pal in send(
+        {"function": "AyonHarmony.getAllPalettesPaths"}
+    )["result"]}
 
 
 def imprint(node_id, data, remove=False):
@@ -666,7 +681,8 @@ def find_node_by_name(name, node_type):
 
     return None
 
-def find_backdrop_by_name(name: str) -> dict:
+
+def find_backdrop_by_name(name: str) -> Optional[dict]:
     """Find backdrop by its name.
 
     Args:
