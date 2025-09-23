@@ -88,6 +88,7 @@ class ExtractRender(pyblish.api.InstancePlugin):
             raise KnownPublishError(
                 f"There should not be a remainder for {member}: {remainder}"
             )
+
         self.log.debug(collections)
         collection = None
         if len(collections) > 1:
