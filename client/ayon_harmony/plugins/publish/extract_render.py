@@ -3,9 +3,11 @@ import tempfile
 import subprocess
 
 import pyblish.api
-import ayon_harmony.api as harmony
-
 import clique
+
+from ayon_core.pipeline.publish import PublishError, KnownPublishError
+
+import ayon_harmony.api as harmony
 
 
 class ExtractRender(pyblish.api.InstancePlugin):
@@ -74,16 +76,18 @@ class ExtractRender(pyblish.api.InstancePlugin):
         # Collect rendered files.
         self.log.debug(f"collecting from: {path}")
         files = os.listdir(path)
-        assert files, (
-            "No rendered files found, render failed."
-        )
+        if not files:
+            raise PublishError(
+                "No rendered files found, render failed."
+            )
+
         self.log.debug(f"files there: {files}")
         collections, remainder = clique.assemble(files, minimum_items=1)
-        assert not remainder, (
-            "There should not be a remainder for {0}: {1}".format(
-                instance.data["setMembers"][0], remainder
+        if remainder:
+            member = instance.data["setMembers"][0]
+            raise KnownPublishError(
+                f"There should not be a remainder for {member}: {remainder}"
             )
-        )
         self.log.debug(collections)
         collection = None
         if len(collections) > 1:
