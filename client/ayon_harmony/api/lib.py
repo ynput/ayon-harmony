@@ -265,8 +265,9 @@ def unzip_scene_file(filepath: str) -> str:
         local_scene_dir_path, f"{scene_name}.xstage"
     )
 
-    unzip = False
+    unzip = True
     if os.path.exists(scene_path):
+        unzip = False
         # Check remote scene is newer than local.
         if os.path.getmtime(scene_path) < os.path.getmtime(filepath):
             try:
@@ -275,8 +276,6 @@ def unzip_scene_file(filepath: str) -> str:
                 log.error(e)
                 raise Exception("Cannot delete working folder") from e
             unzip = True
-    else:
-        unzip = True
 
     if unzip:
         with _ZipFile(filepath, "r") as zip_ref:
