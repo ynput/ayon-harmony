@@ -52,7 +52,8 @@ class CollectPalettes(pyblish.api.ContextPlugin):
                 "family": product_type,
                 "families": [product_type],
                 "folderPath": folder_path,
-                "productName": "{}{}".format("palette", name)
+                # TODO use product name template to calculate product name
+                "productName": f"palette{name}"
             })
             self.log.info(
                 "Created instance:\n" + json.dumps(
