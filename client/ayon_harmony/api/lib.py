@@ -262,7 +262,7 @@ def unzip_scene_file(filepath: str) -> str:
         local_scene_dir_path = os.path.join(local_scene_dir_path, scene_name)
 
     scene_path = os.path.join(
-        local_scene_dir_path, scene_name + ".xstage"
+        local_scene_dir_path, f"{scene_name}.xstage"
     )
 
     unzip = False
