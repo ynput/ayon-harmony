@@ -5,9 +5,6 @@ import tempfile
 import zipfile
 import shutil
 
-from ayon_core.pipeline import (
-    get_representation_path,
-)
 import ayon_harmony.api as harmony
 
 
@@ -32,7 +29,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         # Load template.
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
-        zip_file = get_representation_path(context["representation"])
+        zip_file = self.filepath_from_context(context)
 
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(temp_dir)

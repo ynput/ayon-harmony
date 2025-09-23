@@ -1,10 +1,7 @@
 from pathlib import Path
 import shutil
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
 
 import ayon_harmony.api as harmony
 
@@ -22,7 +19,8 @@ class LinkPaletteLoader(load.LoaderPlugin):
 
     def load(self, context, name=None, namespace=None, data=None):
         representation = context["representation"]
-        palette_path = self.load_palette(get_representation_path(representation))
+        repre_filepath = self.filepath_from_context(context)
+        palette_path = self.load_palette(repre_filepath)
 
         product_name = representation["context"]["product"]["name"]
         name = product_name.replace("palette", "")

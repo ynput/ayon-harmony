@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 """Base classes for loaders."""
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
+
 import ayon_harmony.api as harmony
 
 
@@ -22,7 +20,7 @@ class BackdropBaseLoader(load.LoaderPlugin):
 
         """
         self_name = self.__class__.__name__
-        filepath = get_representation_path(context["representation"])
+        filepath = self.filepath_from_context(context)
 
         backdrop_name = harmony.send(
             {
