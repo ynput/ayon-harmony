@@ -1,7 +1,5 @@
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
+
 import ayon_harmony.api as harmony
 
 sig = harmony.signature()
@@ -40,7 +38,7 @@ class ImportAudioLoader(load.LoaderPlugin):
     label = "Import Audio"
 
     def load(self, context, name=None, namespace=None, data=None):
-        wav_file = get_representation_path(context["representation"])
+        wav_file = self.filepath_from_context(context)
         harmony.send(
             {"function": func, "args": [context["product"]["name"], wav_file]}
         )

@@ -3,10 +3,8 @@ import zipfile
 import os
 import shutil
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
+
 import ayon_harmony.api as harmony
 
 
@@ -20,7 +18,7 @@ class ImportTemplateLoader(load.LoaderPlugin):
     def load(self, context, name=None, namespace=None, data=None):
         # Import template.
         temp_dir = tempfile.mkdtemp()
-        zip_file = get_representation_path(context["representation"])
+        zip_file = self.filepath_from_context(context)
         template_path = os.path.join(temp_dir, "temp.tpl")
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(template_path)

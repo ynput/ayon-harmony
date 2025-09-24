@@ -71,8 +71,7 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
             for node_name in node_names:
                 creator_identifier = self.product_type_to_id[product_type]
                 self.log.info(
-                    "Converting {} to {}".format(node_name,
-                                                 creator_identifier)
+                    f"Converting {node_name} to {creator_identifier}"
                 )
                 changed_data = {
                     "creator_identifier": creator_identifier,
@@ -88,4 +87,3 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
                         "farm"
 
                 harmony.imprint(node_name, data=changed_data)
- 

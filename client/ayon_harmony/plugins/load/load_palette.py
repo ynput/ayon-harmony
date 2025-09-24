@@ -1,10 +1,8 @@
 from pathlib import Path
 import shutil
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
+
 import ayon_harmony.api as harmony
 
 
@@ -21,7 +19,8 @@ class LinkPaletteLoader(load.LoaderPlugin):
 
     def load(self, context, name=None, namespace=None, data=None):
         representation = context["representation"]
-        palette_path = self.load_palette(get_representation_path(representation))
+        repre_filepath = self.filepath_from_context(context)
+        palette_path = self.load_palette(repre_filepath)
 
         product_name = representation["context"]["product"]["name"]
         name = product_name.replace("palette", "")
@@ -29,8 +28,9 @@ class LinkPaletteLoader(load.LoaderPlugin):
         return harmony.containerise(
             name,
             namespace,
-            # Because of sh*tty Harmony API, the only consistent value is the palette path
-            # palette["id"] changes at every file opening and the index can be modified by user
+            # Because of sh*tty Harmony API, the only consistent value is
+            #   the palette path palette["id"] changes at every file opening
+            #   and the index can be modified by user
             palette_path,
             context,
             self.__class__.__name__,
@@ -45,39 +45,48 @@ class LinkPaletteLoader(load.LoaderPlugin):
 
         Returns:
             str: Palette path.
+
         """
         harmony.send(
             {
-                "function": "PaletteObjectManager.getScenePaletteList().addPalette",
+                "function": (
+                    "PaletteObjectManager.getScenePaletteList().addPalette"
+                ),
                 "args": Path(palette_path).with_suffix("").as_posix(),
             }
         )["result"]
         return palette_path
 
-    def remove(self, container)->int:
+    def remove(self, container) -> int:
         """Remove the palette from the scene.
-        
+
         Args:
             container (dict): Container data.
-            
+
         Returns:
             int: Removed palette index.
         """
         palette_path = container["nodes"][0]
         removed_idx = harmony.send(
-            {"function": "AyonHarmony.removePaletteByPath", "args": palette_path}
+            {
+                "function": "AyonHarmony.removePaletteByPath",
+                "args": palette_path,
+            }
         )["result"]
         harmony.remove(palette_path)
 
         return removed_idx
-        
+
     def switch(self, container, context):
         palette_idx = self.remove(container)
         palette_path = self.load(context)
 
         # Move loaded palette to the index of the removed one
         harmony.send(
-            {"function": "AyonHarmony.movePaletteToIndex", "args": [palette_path, palette_idx]}
+            {
+                "function": "AyonHarmony.movePaletteToIndex",
+                "args": [palette_path, palette_idx]
+            }
         )
 
     def update(self, container, context):
@@ -106,7 +115,9 @@ class ImportPaletteLoader(LinkPaletteLoader):
         Returns:
             str: Palette ID.
         """
-        scene_path = harmony.send({"function": "scene.currentProjectPath"})["result"]
+        scene_path = harmony.send(
+            {"function": "scene.currentProjectPath"}
+        )["result"]
 
         dst = Path(
             scene_path,

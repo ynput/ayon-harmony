@@ -30,26 +30,30 @@ class CollectPalettes(pyblish.api.ContextPlugin):
 
         # skip collecting if not in allowed task
         if self.allowed_tasks:
-            task_name = context.data["anatomyData"]["task"]["name"].lower()
-            if (not any([re.search(pattern, task_name)
-                         for pattern in self.allowed_tasks])):
+            task_name = context.data["task"].lower()
+            if not any(
+                re.search(pattern, task_name)
+                for pattern in self.allowed_tasks
+            ):
                 self.log.info(
-                    "Skipping collecting palettes, task is not in allowed tasks: "
-                    f"{self.allowed_tasks}"
+                    "Skipping collecting palettes, task is not in"
+                    f" allowed tasks: {self.allowed_tasks}"
                 )
                 return
+
         folder_path = context.data["folderPath"]
 
         product_type = "harmony.palette"
-        for name, id in palettes.items():
+        for name, palette_id in palettes.items():
             instance = context.create_instance(name)
             instance.data.update({
-                "id": id,
+                "id": palette_id,
                 "productType": product_type,
                 "family": product_type,
                 "families": [product_type],
                 "folderPath": folder_path,
-                "productName": "{}{}".format("palette", name)
+                # TODO use product name template to calculate product name
+                "productName": f"palette{name}"
             })
             self.log.info(
                 "Created instance:\n" + json.dumps(

@@ -3,9 +3,11 @@ import tempfile
 import subprocess
 
 import pyblish.api
-import ayon_harmony.api as harmony
-
 import clique
+
+from ayon_core.pipeline.publish import PublishError, KnownPublishError
+
+import ayon_harmony.api as harmony
 
 
 class ExtractRender(pyblish.api.InstancePlugin):
@@ -14,7 +16,9 @@ class ExtractRender(pyblish.api.InstancePlugin):
     """
 
     label = "Extract Render"
-    order = pyblish.api.ExtractorOrder - 0.0001 # TODO remove decrement after ayon-core ExtractThumbnailFromSource is set later
+    # TODO remove decrement after ayon-core ExtractThumbnailFromSource
+    #   is set later
+    order = pyblish.api.ExtractorOrder - 0.0001
     hosts = ["harmony"]
     families = ["render.local"]
 
@@ -65,30 +69,39 @@ class ExtractRender(pyblish.api.InstancePlugin):
             stderr=subprocess.STDOUT,
             stdin=subprocess.PIPE
         )
-        output, error = proc.communicate()
+        stdout, _stderr = proc.communicate()
         self.log.info("Click on the line below to see more details.")
-        self.log.info(output.decode("utf-8"))
+        self.log.info(stdout.decode("utf-8"))
 
         # Collect rendered files.
         self.log.debug(f"collecting from: {path}")
         files = os.listdir(path)
-        assert files, (
-            "No rendered files found, render failed."
-        )
+        if not files:
+            raise PublishError(
+                "No rendered files found, render failed."
+            )
+
         self.log.debug(f"files there: {files}")
         collections, remainder = clique.assemble(files, minimum_items=1)
-        assert not remainder, (
-            "There should not be a remainder for {0}: {1}".format(
-                instance.data["setMembers"][0], remainder
+        if remainder:
+            member = instance.data["setMembers"][0]
+            raise KnownPublishError(
+                f"There should not be a remainder for {member}: {remainder}"
             )
-        )
+
         self.log.debug(collections)
+        collection = None
         if len(collections) > 1:
             for col in collections:
                 if len(list(col)) > 1:
                     collection = col
         else:
             collection = collections[0]
+
+        if collection is None:
+            raise KnownPublishError(
+                "Failed to find a collection with multiple files."
+            )
 
         thumbnail_source = os.path.join(path, list(collections[0])[0])
         instance.data["thumbnailSource"] = thumbnail_source
@@ -105,7 +118,7 @@ class ExtractRender(pyblish.api.InstancePlugin):
             "fps": frame_rate
         }
         representations = [representation]
-        
+
         instance.data["representations"] = representations
 
         if audio_path and os.path.exists(audio_path):
