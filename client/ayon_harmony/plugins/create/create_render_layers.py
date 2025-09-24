@@ -257,12 +257,12 @@ class CreateRenderLayer(HarmonyRenderCreator):
             task_type = task_entity["taskType"]
 
         return get_product_name(
-            project_name,
-            task_name,
-            task_type,
-            host_name,
-            self.product_type,
-            variant,
+            project_name=project_name,
+            task_name=task_name,
+            task_type=task_type,
+            host_name=host_name,
+            product_type=self.product_type,
+            variant=variant,
             dynamic_data=dynamic_data,
             project_settings=self.project_settings,
             product_type_filter=self.product_template_product_type,
@@ -566,12 +566,12 @@ class CreateRenderPass(HarmonyRenderCreator):
             task_type = task_entity["taskType"]
 
         return get_product_name(
-            project_name,
-            task_name,
-            task_type,
-            host_name,
-            self.product_type,
-            variant,
+            project_name=project_name,
+            task_name=task_name,
+            task_type=task_type,
+            host_name=host_name,
+            product_type=self.product_type,
+            variant=variant,
             dynamic_data=dynamic_data,
             project_settings=self.project_settings,
             product_type_filter=self.product_template_product_type,

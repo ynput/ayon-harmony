@@ -303,18 +303,21 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
                 if instance.creator_identifier == self.identifier
             ), None)
 
-        project_name = self.project_name
+        project_entity = self.create_context.get_current_project_entity()
         folder_entity = self.create_context.get_current_folder_entity()
         task_entity = self.create_context.get_current_task_entity()
+
+        project_name = project_entity["name"]
         host_name = self.create_context.host_name
 
         if current_instance is None:
             product_name = self.get_product_name(
-                project_name,
-                folder_entity,
-                task_entity,
-                variant,
-                host_name,
+                project_name=project_name,
+                project_entity=project_entity,
+                folder_entity=folder_entity,
+                task_entity=task_entity,
+                variant=variant,
+                host_name=host_name,
             )
             data = {
                 "folderPath": folder_entity["path"],
@@ -343,11 +346,12 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
         ):
             # Update instance context if is not the same
             product_name = self.get_product_name(
-                project_name,
-                folder_entity,
-                task_entity,
-                variant,
-                host_name,
+                project_name=project_name,
+                project_entity=project_entity,
+                folder_entity=folder_entity,
+                task_entity=task_entity,
+                variant=variant,
+                host_name=host_name,
             )
 
             current_instance["folderPath"] = folder_entity["path"]
