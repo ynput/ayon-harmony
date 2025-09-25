@@ -151,6 +151,11 @@ class ExtractConvertToEXR(pyblish.api.ContextPlugin):
     order = pyblish.api.ExtractorOrder + 0.1
     label = "Extract Sequence EXR"
     hosts = ["harmony"]
+    # This won't work on farm
+    # - this plugin requires having render layer and all related render pass
+    #   instances in a single publishing process which does not happen on farm
+    #   where each instance has own publish job
+    targets = ["local"]
 
     settings_category = "harmony"
 
