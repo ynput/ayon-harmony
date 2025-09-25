@@ -13,7 +13,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
     """
 
     label = "Instances"
-    order = pyblish.api.CollectorOrder
+    order = pyblish.api.CollectorOrder - 0.4
     hosts = ["harmony"]
 
     product_type_mapping = {
