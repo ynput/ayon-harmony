@@ -18,7 +18,7 @@ class ExtractRender(pyblish.api.InstancePlugin):
     label = "Extract Render"
     # TODO remove decrement after ayon-core ExtractThumbnailFromSource
     #   is set later
-    order = pyblish.api.ExtractorOrder - 0.0001
+    order = pyblish.api.ExtractorOrder - 0.45
     hosts = ["harmony"]
     families = ["render.local"]
 
