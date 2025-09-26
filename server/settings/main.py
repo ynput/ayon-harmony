@@ -107,6 +107,11 @@ DEFAULT_HARMONY_SETTING = {
             "enabled": True,
             "optional": True,
             "active": True
-        }
+        },
+        "ExtractConvertToEXR": {
+            "enabled": False,
+            "replace_pngs": True,
+            "exr_compression": "ZIP"
+        },
     }
 }

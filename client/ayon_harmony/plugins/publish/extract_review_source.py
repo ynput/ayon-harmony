@@ -20,7 +20,7 @@ class ExtractSourceForReview(publish.Extractor):
     label = "Extract sources for Review"
     # TODO remove decrement after ayon-core ExtractThumbnailFromSource
     #   is set later
-    order = pyblish.api.ExtractorOrder - 0.0001
+    order = pyblish.api.ExtractorOrder - 0.45
     hosts = ["harmony"]
     families = ["review"]
 
