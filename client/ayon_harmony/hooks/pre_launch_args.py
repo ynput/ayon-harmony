@@ -79,7 +79,9 @@ class HarmonyPrelaunchHook(PreLaunchHook):
         
         workfile_startup = self.data.get("workfile_startup", True)
 
-        self.launch_context.env["AYON_HARMONY_WORKFILES_ON_LAUNCH"] = str(workfile_startup).lower()
+        self.launch_context.env["AYON_HARMONY_WORKFILES_ON_LAUNCH"] = str(
+            int(workfile_startup)
+        )
 
         # Append as whole list as these arguments should not be separated
         self.launch_context.launch_args.append(new_launch_args)
