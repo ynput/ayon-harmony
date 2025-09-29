@@ -213,7 +213,7 @@ def launch(application_path, *args):
         ProcessContext.workfile_tool = host_tools.get_tool_by_name(
             "workfiles"
         )
-        host_tools.show_workfiles(save=False)
+        host_tools.show_workfiles(save=True)
         ProcessContext.execute_in_main_thread(check_workfiles_tool)
 
 
