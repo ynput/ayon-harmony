@@ -129,7 +129,11 @@ def setup_startup_scripts():
         env_harmony_startup = os.path.join(
             os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"), startup_js)
 
-        if not filecmp.cmp(ayon_harmony_startup, env_harmony_startup):
+        # Check if destination file exists or if files are different
+        needs_copy = (not os.path.exists(env_harmony_startup) or 
+                     not filecmp.cmp(ayon_harmony_startup, env_harmony_startup))
+        
+        if needs_copy:
             try:
                 shutil.copy(ayon_harmony_startup, env_harmony_startup)
             except Exception as e:
