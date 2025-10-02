@@ -285,6 +285,48 @@ AyonHarmony.getRootBackdrop = function(backdrops) {
 
 
 /**
+ * Substitute one node with another.
+ * @function
+ * @param {string} nodePath Path to node.
+ * @param {string} newNodePath Path to new node to substitute with.
+ */
+AyonHarmony.substituteNode = function(nodePath, newNodePath) {
+    var oldNode = $.scn.$node(nodePath);
+    var newNode = $.scn.$node(newNodePath);
+
+    // Links
+    var allLinks = oldNode.getInLinks().concat(oldNode.getOutLinks());
+    allLinks.forEach(function(link) {
+        link.insertNode(newNode);
+    });
+
+    // Exposure
+    if (oldNode instanceof $.oDrawingNode) {
+        var oldDrawing = oldNode.getAttributeByName("DRAWING.ELEMENT");
+        var newDrawing = newNode.getAttributeByName("DRAWING.ELEMENT");
+
+        // Clear keyframes
+        newDrawing.frames.forEach(function(frame) {
+            newDrawing.setValue("", frame.frameNumber);
+        });
+
+        // Set keyframes
+        oldDrawing.keyframes.forEach(function(kf) {
+            newDrawing.setValue(kf.value, kf.frameNumber);
+        });
+    }
+
+    // Position
+    newNode.nodePosition = oldNode.nodePosition;
+
+    // Delete old node
+    var name = oldNode.name;
+    oldNode.remove();
+    newNode.name = name;
+}
+
+
+/**
  * Set nodes links.
  * @function
  * @param {array} links List of nodes links.
@@ -356,6 +398,96 @@ AyonHarmony.copyFile = function(src, dst) {
     var dstFile = new PermanentFile(dst);
     srcFile.copy(dstFile);
 };
+
+
+/**
+ * Import image file.
+ * @function
+ * @param {array} args Arguments, see example.
+ * @return {string} Resulting node.
+ * 
+ * @example
+ * // arguments are in following order:
+ * var args = [
+ *  filepath,
+ *  exposeOnlyCurrentFrame
+ * ];
+ */
+AyonHarmony.importImageFile = function(args) {
+    var filepath = args[0];
+    var exposeOnlyCurrentFrame = args[1];
+
+    // Create in the active node group
+    var activeGroup = AyonHarmony.getActiveNodeGroup();
+    var drawingNode = activeGroup.importImage(filepath);
+
+    if (exposeOnlyCurrentFrame) {
+        drawing = drawingNode.getAttributeByName("DRAWING.ELEMENT");
+        var currentFrame = frame.current();
+        drawing.frames.forEach(function(f) {
+            if (f.frameNumber == currentFrame) {
+                f.isKeyframe = true;
+            }
+        });
+        drawing.frames.forEach(function(f) {
+            // Skip "0" ghost frame to avoid deleting it
+            if (f.frameNumber != currentFrame && f.frameNumber != 0) {
+                drawing.setValue("", f.frameNumber);
+            }
+        });
+    }
+
+    return drawingNode.path;
+}
+
+/**
+ * Replace image file.
+ * @function
+ * @param {array} args Arguments, see example.
+ * @return {string} Resulting node.
+ * 
+ * @example
+ * // arguments are in following order:
+ * var args = [
+ *  node,
+ *  filepath,
+ * ];
+ */
+AyonHarmony.replaceImageFile = function(args) {
+    var imageNodePath = args[0];
+    var filePath = args[1];
+
+    var newImageNode = $.scn.root.importImage(filePath);
+    AyonHarmony.substituteNode(imageNodePath, newImageNode.path);
+
+    return newImageNode.path;
+}
+
+
+/**
+ * Get active node group path.
+ * @function
+ * @return {$.oGroupNode} Currently opened node group path, default is "Top" group if no node view is opened.
+ */
+AyonHarmony.getActiveNodeGroup = function() {
+    var nodeView = null;
+    for (var i = 0; i < 200; i++) {
+        var viewName = 'View' + i;
+        if (view.type(viewName) == 'Node View') {
+            nodeView = viewName;
+            break;
+        }
+    }
+
+    var currentGroup;
+    if (nodeView === null) { // No node view found
+        currentGroup = $.scn.root;
+    } else {
+        currentGroup = $.scn.$node(view.group(nodeView));
+    }
+
+    return currentGroup;
+}
 
 
 /**
