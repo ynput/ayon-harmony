@@ -211,7 +211,7 @@ def launch(application_path, *args):
     workfile_already_open = ProcessContext.workfile_path
     if open_workfile_app or not workfile_already_open:
         ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
-        host_tools.show_workfiles(save=False)
+        host_tools.show_workfiles(save=True)
         ProcessContext.execute_in_main_thread(check_workfiles_tool)
 
 
