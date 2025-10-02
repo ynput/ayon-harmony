@@ -210,7 +210,9 @@ def launch(application_path, *args):
     open_workfile_app = env_value_to_bool("AYON_HARMONY_WORKFILES_ON_LAUNCH")
     workfile_already_open = ProcessContext.workfile_path
     if open_workfile_app or not workfile_already_open:
-        ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
+        ProcessContext.workfile_tool = host_tools.get_tool_by_name(
+            "workfiles"
+        )
         host_tools.show_workfiles(save=False)
         ProcessContext.execute_in_main_thread(check_workfiles_tool)
 
@@ -428,8 +430,8 @@ def show(tool_name):
         module_name (str): Name of module to call "show" on.
 
     """
-    # Requests often get doubled up when showing tools, so we wait a second for
-    # requests to be received properly.
+    # Requests often get doubled up when showing tools, so we wait a second
+    #   for requests to be received properly.
     time.sleep(1)
 
     kwargs = {}
@@ -615,9 +617,10 @@ def save_scene(zip_and_move=True):
     """Save the Harmony scene safely.
 
     The built-in (to AYON) background zip and moving of the Harmony scene
-    folder, interferes with server/client communication by sending two requests
-    at the same time. This only happens when sending "scene.saveAll()". This
-    method prevents this double request and safely saves the scene.
+    folder, interferes with server/client communication by sending two
+    requests at the same time. This only happens when sending
+    "scene.saveAll()". This method prevents this double request and safely
+    saves the scene.
 
     """
     # Need to turn off the background watcher else the communication with
