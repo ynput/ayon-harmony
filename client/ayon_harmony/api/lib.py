@@ -120,33 +120,34 @@ def setup_startup_scripts():
         * Use TB_sceneOpenedUI.js instead to manage startup logic
         * Add their startup logic to ayon/harmony/TB_sceneOpened.js
     """
-    ayon_dcc_dir = os.path.join(HARMONY_ADDON_ROOT, "api")
+    ayon_host_dir = os.path.join(HARMONY_ADDON_ROOT, "api")
     startup_js = "TB_sceneOpened.js"
 
-    if os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"):
+    env_location = os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
+    if not env_location:
+        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_host_dir
+        return
 
-        ayon_harmony_startup = os.path.join(ayon_dcc_dir, startup_js)
+    ayon_harmony_startup = os.path.join(ayon_host_dir, startup_js)
+    env_harmony_startup = os.path.join(env_location, startup_js)
 
-        env_harmony_startup = os.path.join(
-            os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"), startup_js)
+    # Check if destination file exists or if files are the same
+    if (
+        os.path.exists(env_harmony_startup)
+        and filecmp.cmp(ayon_harmony_startup, env_harmony_startup)
+    ):
+        return
 
-        # Check if destination file exists or if files are different
-        needs_copy = (not os.path.exists(env_harmony_startup) or 
-                     not filecmp.cmp(ayon_harmony_startup, env_harmony_startup))
-        
-        if needs_copy:
-            try:
-                shutil.copy(ayon_harmony_startup, env_harmony_startup)
-            except Exception as e:
-                log.error(e)
-                log.warning(
-                    "Failed to copy {0} to {1}! "
-                    "Defaulting to AYON TOONBOOM_GLOBAL_SCRIPT_LOCATION."
-                    .format(ayon_harmony_startup, env_harmony_startup))
+    try:
+        shutil.copy(ayon_harmony_startup, env_harmony_startup)
+    except Exception:
+        log.warning(
+            f"Failed to copy {ayon_harmony_startup} to {env_harmony_startup}!"
+            " Defaulting to AYON's TOONBOOM_GLOBAL_SCRIPT_LOCATION.",
+            exc_info=True
+        )
 
-                os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
-    else:
-        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
+        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_host_dir
 
 
 def check_libs():
@@ -162,23 +163,21 @@ def check_libs():
         https://github.com/cfourney/OpenHarmony
 
     """
-    if not os.getenv("LIB_OPENHARMONY_PATH"):
+    if os.getenv("LIB_OPENHARMONY_PATH"):
+        return
 
-        if os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"):
-            if os.path.exists(
-                os.path.join(
-                    os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"),
-                    "openHarmony.js")):
+    script_location = os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
+    if not script_location:
+        log.error(
+            "Cannot find OpenHarmony library."
+            " Please set path to it in LIB_OPENHARMONY_PATH"
+            " environment variable."
+        )
+        raise RuntimeError("Missing OpenHarmony library.")
 
-                os.environ["LIB_OPENHARMONY_PATH"] = \
-                    os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
-                return
-
-        else:
-            log.error(("Cannot find OpenHarmony library. "
-                       "Please set path to it in LIB_OPENHARMONY_PATH "
-                       "environment variable."))
-            raise RuntimeError("Missing OpenHarmony library.")
+    script_path = os.path.join(script_location, "openHarmony.js")
+    if os.path.exists(script_path):
+        os.environ["LIB_OPENHARMONY_PATH"] = script_location
 
 
 def launch(application_path, *args):
