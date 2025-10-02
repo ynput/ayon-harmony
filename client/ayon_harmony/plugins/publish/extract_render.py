@@ -47,11 +47,17 @@ class ExtractRender(pyblish.api.InstancePlugin):
         }
         %s
         """ % (sig, sig)
+
+        node = instance.data["setMembers"][0]
+        filename = instance.data["name"]
+        # Add underscode if basename ends with digits to make sure frame
+        #   number is separated from the name.
+        if filename[-1].isdigit():
+            filename += "_"
         harmony.send(
             {
                 "function": func,
-                "args": [instance.data["setMembers"][0],
-                         path + "/" + instance.data["name"]]
+                "args": [node, f"{path}/{filename}"]
             }
         )
         harmony.save_scene(zip_and_move=False)
@@ -59,9 +65,11 @@ class ExtractRender(pyblish.api.InstancePlugin):
         # Execute rendering. Ignoring error cause Harmony returns error code
         # always.
 
-        args = [application_path, "-batch",
-                "-frames", str(frame_start), str(frame_end),
-                scene_path]
+        args = [
+            application_path, "-batch",
+            "-frames", str(frame_start), str(frame_end),
+            scene_path
+        ]
         self.log.info(f"running: {' '.join(args)}")
         proc = subprocess.Popen(
             args,
