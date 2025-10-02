@@ -113,13 +113,6 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
             node = created_inst.transient_data["node"]
             new_data = created_inst.data_to_store()
 
-            # Use the node's active state to store the instance's active state
-            active = new_data.pop("active", True)
-            harmony.send(
-                {"function": "AyonHarmonyAPI.setState",
-                 "args": [[node], [active]]}
-            )
-
             harmony.imprint(node, new_data)
 
     def remove_instances(self, instances):
@@ -145,11 +138,20 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
             instance.transient_data["node"] = node_name
 
             # Active state is based of the node's active state
-            instance.data["active"] = harmony.send(
-                {"function": "AyonHarmonyAPI.isEnabled", "args": [node_name]}
-            )["result"]
+            instance.data["active"] = self.get_active_state(instance)
 
             self._add_instance_to_context(instance)
+
+    def get_active_state(self, instance: CreatedInstance):
+        """Get active state of the instance.
+        
+        Args:
+            instance (CreatedInstance): Instance.
+
+        Returns:
+            bool: Active state of the instance.
+        """
+        return instance.data.get("active", True)
 
     def setup_node(self, node):
         """Prepare node as container.
@@ -284,6 +286,27 @@ class HarmonyRenderCreator(HarmonyCreator):
                 default=True,
             )
         ]
+
+    def update_instances(self, update_list):
+        super().update_instances(update_list)
+
+        # Use the node's active state to store the instance's active state
+        for created_inst, _changes in update_list:
+            node = created_inst.transient_data["node"]
+            new_data = created_inst.data_to_store()
+
+            active = new_data.get("active", True)
+            harmony.send(
+                {"function": "AyonHarmonyAPI.setState",
+                 "args": [[node], [active]]}
+            )
+
+    def get_active_state(self, instance: CreatedInstance):
+        if node_name := instance.transient_data.get("node"):
+            return harmony.send(
+                {"function": "AyonHarmonyAPI.isEnabled", "args": [node_name]}
+            )["result"]
+        return True
 
 
 class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
