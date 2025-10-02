@@ -26,6 +26,8 @@ from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
 
+from ayon_harmony import HARMONY_ADDON_ROOT
+
 from .server import Server
 
 # Setup logging.
@@ -118,8 +120,7 @@ def setup_startup_scripts():
         * Use TB_sceneOpenedUI.js instead to manage startup logic
         * Add their startup logic to ayon/harmony/TB_sceneOpened.js
     """
-    ayon_dcc_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                                  "api")
+    ayon_dcc_dir = os.path.join(HARMONY_ADDON_ROOT, "api")
     startup_js = "TB_sceneOpened.js"
 
     if os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"):
