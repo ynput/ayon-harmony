@@ -26,6 +26,8 @@ from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
 
+from ayon_harmony import HARMONY_ADDON_ROOT
+
 from .server import Server
 
 # Setup logging.
@@ -118,30 +120,34 @@ def setup_startup_scripts():
         * Use TB_sceneOpenedUI.js instead to manage startup logic
         * Add their startup logic to ayon/harmony/TB_sceneOpened.js
     """
-    ayon_dcc_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                                  "api")
+    ayon_host_dir = os.path.join(HARMONY_ADDON_ROOT, "api")
     startup_js = "TB_sceneOpened.js"
 
-    if os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"):
+    env_location = os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
+    if not env_location:
+        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_host_dir
+        return
 
-        ayon_harmony_startup = os.path.join(ayon_dcc_dir, startup_js)
+    ayon_harmony_startup = os.path.join(ayon_host_dir, startup_js)
+    env_harmony_startup = os.path.join(env_location, startup_js)
 
-        env_harmony_startup = os.path.join(
-            os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"), startup_js)
+    # Check if destination file exists or if files are the same
+    if (
+        os.path.exists(env_harmony_startup)
+        and filecmp.cmp(ayon_harmony_startup, env_harmony_startup)
+    ):
+        return
 
-        if not filecmp.cmp(ayon_harmony_startup, env_harmony_startup):
-            try:
-                shutil.copy(ayon_harmony_startup, env_harmony_startup)
-            except Exception as e:
-                log.error(e)
-                log.warning(
-                    "Failed to copy {0} to {1}! "
-                    "Defaulting to AYON TOONBOOM_GLOBAL_SCRIPT_LOCATION."
-                    .format(ayon_harmony_startup, env_harmony_startup))
+    try:
+        shutil.copy(ayon_harmony_startup, env_harmony_startup)
+    except Exception:
+        log.warning(
+            f"Failed to copy {ayon_harmony_startup} to {env_harmony_startup}!"
+            " Defaulting to AYON's TOONBOOM_GLOBAL_SCRIPT_LOCATION.",
+            exc_info=True
+        )
 
-                os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
-    else:
-        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
+        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_host_dir
 
 
 def check_libs():
@@ -157,23 +163,21 @@ def check_libs():
         https://github.com/cfourney/OpenHarmony
 
     """
-    if not os.getenv("LIB_OPENHARMONY_PATH"):
+    if os.getenv("LIB_OPENHARMONY_PATH"):
+        return
 
-        if os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"):
-            if os.path.exists(
-                os.path.join(
-                    os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"),
-                    "openHarmony.js")):
+    script_location = os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
+    if not script_location:
+        log.error(
+            "Cannot find OpenHarmony library."
+            " Please set path to it in LIB_OPENHARMONY_PATH"
+            " environment variable."
+        )
+        raise RuntimeError("Missing OpenHarmony library.")
 
-                os.environ["LIB_OPENHARMONY_PATH"] = \
-                    os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
-                return
-
-        else:
-            log.error(("Cannot find OpenHarmony library. "
-                       "Please set path to it in LIB_OPENHARMONY_PATH "
-                       "environment variable."))
-            raise RuntimeError("Missing OpenHarmony library.")
+    script_path = os.path.join(script_location, "openHarmony.js")
+    if os.path.exists(script_path):
+        os.environ["LIB_OPENHARMONY_PATH"] = script_location
 
 
 def launch(application_path, *args):
@@ -206,7 +210,9 @@ def launch(application_path, *args):
     open_workfile_app = env_value_to_bool("AYON_HARMONY_WORKFILES_ON_LAUNCH")
     workfile_already_open = ProcessContext.workfile_path
     if open_workfile_app or not workfile_already_open:
-        ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
+        ProcessContext.workfile_tool = host_tools.get_tool_by_name(
+            "workfiles"
+        )
         host_tools.show_workfiles(save=False)
         ProcessContext.execute_in_main_thread(check_workfiles_tool)
 
@@ -424,8 +430,8 @@ def show(tool_name):
         module_name (str): Name of module to call "show" on.
 
     """
-    # Requests often get doubled up when showing tools, so we wait a second for
-    # requests to be received properly.
+    # Requests often get doubled up when showing tools, so we wait a second
+    #   for requests to be received properly.
     time.sleep(1)
 
     kwargs = {}
@@ -611,9 +617,10 @@ def save_scene(zip_and_move=True):
     """Save the Harmony scene safely.
 
     The built-in (to AYON) background zip and moving of the Harmony scene
-    folder, interferes with server/client communication by sending two requests
-    at the same time. This only happens when sending "scene.saveAll()". This
-    method prevents this double request and safely saves the scene.
+    folder, interferes with server/client communication by sending two
+    requests at the same time. This only happens when sending
+    "scene.saveAll()". This method prevents this double request and safely
+    saves the scene.
 
     """
     # Need to turn off the background watcher else the communication with
