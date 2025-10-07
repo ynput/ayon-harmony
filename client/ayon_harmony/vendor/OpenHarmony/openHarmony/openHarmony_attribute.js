@@ -4,7 +4,7 @@
 //                            openHarmony Library v0.01
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney...
+//         Developped by Mathieu Chaptel, Chris Fourney...
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -16,7 +16,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -338,7 +338,7 @@ Object.defineProperty($.oAttribute.prototype, "useSeparate", {
  * Returns the default value of the attribute for most keywords
  * @name $.oAttribute#defaultValue
  * @type {bool}
- * @todo switch the implementation to types?
+ * @todo switch the implentation to types?
  * @example
  * // to reset an attribute to its default value:
  * // (mostly used for position/angle/skew parameters of pegs and drawing nodes)
@@ -449,7 +449,7 @@ $.oAttribute.prototype.getLinkedColumns = function(){
 
 /**
  * Recursively sets an attribute to the same value as another. Both must have the same keyword.
- * @param {bool}    [duplicateColumns=false]      In the case that the attribute has a column, whether to duplicate the column before linking
+ * @param {bool}    [duplicateColumns=false]      In the case that the attribute has a column, wether to duplicate the column before linking
  * @private
  */
 $.oAttribute.prototype.setToAttributeValue = function(attributeToCopy, duplicateColumns){
@@ -518,6 +518,7 @@ $.oAttribute.prototype.getValue = function (frame) {
             _value = new this.$.oPoint(_value.x, _value.y)
             break;
 
+        case 'QUATERNION_PATH':
         case 'POSITION_3D':
             _value = _attr.pos3dValueAt(frame)
             _value = new this.$.oPoint(_value.x, _value.y, _value.z)
@@ -550,8 +551,11 @@ $.oAttribute.prototype.getValue = function (frame) {
             _value = column.getEntry(_column.uniqueName, 1, frame);
 
             // Convert to an instance of oDrawing, with a safety in case of psd import
-            _drawing = _column.element.getDrawingByName(_value);
-            if (_drawing) _value = _drawing;
+            _drawing = this.node.element.getDrawingByName(_value);
+
+            if (_drawing) {
+              _value = _drawing;
+            }
             break;
 
         // TODO: How does QUATERNION_PATH work? subcolumns I imagine
@@ -622,10 +626,10 @@ $.oAttribute.prototype.setValue = function (value, frame) {
 
         case "PATH_3D" :
           // check if frame is tied to a column or an attribute
-          var _frame = _column?(new this.$.oFrame(frame, this.column)):(new this.$.oFrame(frame, _attr));
+          var _frame = _column?(new this.$.oFrame(frame, _column)):(new this.$.oFrame(frame, _attr));
           if (_column){
             if (!_frame.isKeyframe) _frame.isKeyframe = true;
-            var _point = new this.$.oPathPoint (this.column, _frame);
+            var _point = new this.$.oPathPoint (_column, _frame);
             _point.set(value);
           }else{
             // TODO: create keyframe?
@@ -638,6 +642,7 @@ $.oAttribute.prototype.setValue = function (value, frame) {
             _animate ? _attr.setValueAt(value, frame) : _attr.setValue(value);
             break;
 
+        case 'QUATERNION_PATH':
         case "POSITION_3D":
             value = Point3d(value.x, value.y, value.z);
             _animate ? _attr.setValueAt(value, frame) : _attr.setValue(value);
@@ -648,9 +653,6 @@ $.oAttribute.prototype.setValue = function (value, frame) {
             value = (value instanceof this.$.oDrawing) ? value.name : value;
             column.setEntry(_column.uniqueName, 1, frame, value+"");
             break;
-
-        case "QUATERNIONPATH" :
-            // set quaternion paths as textattr until a better way is found
 
         default :
             try{
@@ -688,12 +690,12 @@ $.oAttribute.prototype.addColumn = function(){
       _columnType = "BEZIER";
       break;
 
-    case "QUATERNIONPATH" :
-      _columnName = "QUARTERNION";
+    case "QUATERNION_PATH" :
+      _columnType = "QUATERNIONPATH";
       break;
 
       case "PATH_3D" :
-      _columnName = "3DPATH";
+      _columnType = "3DPATH";
       break;
 
     case "ELEMENT" :

@@ -3,10 +3,11 @@ import tempfile
 import subprocess
 
 import pyblish.api
-import ayon_harmony.api as harmony
-import ayon_core.lib
-
 import clique
+
+from ayon_core.pipeline.publish import PublishError, KnownPublishError
+
+import ayon_harmony.api as harmony
 
 
 class ExtractRender(pyblish.api.InstancePlugin):
@@ -15,13 +16,14 @@ class ExtractRender(pyblish.api.InstancePlugin):
     """
 
     label = "Extract Render"
-    order = pyblish.api.ExtractorOrder
+    # TODO remove decrement after ayon-core ExtractThumbnailFromSource
+    #   is set later
+    order = pyblish.api.ExtractorOrder - 0.45
     hosts = ["harmony"]
     families = ["render.local"]
 
     def process(self, instance):
         # Collect scene data.
-
         application_path = instance.context.data.get("applicationPath")
         scene_path = instance.context.data.get("scenePath")
         frame_rate = instance.context.data.get("frameRate")
@@ -44,21 +46,29 @@ class ExtractRender(pyblish.api.InstancePlugin):
         }
         %s
         """ % (sig, sig)
+
+        node = instance.data["setMembers"][0]
+        filename = instance.data["name"]
+        # Add underscode if basename ends with digits to make sure frame
+        #   number is separated from the name.
+        if filename[-1].isdigit():
+            filename += "_"
         harmony.send(
             {
                 "function": func,
-                "args": [instance.data["setMembers"][0],
-                         path + "/" + instance.data["name"]]
+                "args": [node, f"{path}/{filename}"]
             }
         )
-        harmony.save_scene()
+        harmony.save_scene(zip_and_move=False)
 
         # Execute rendering. Ignoring error cause Harmony returns error code
         # always.
 
-        args = [application_path, "-batch",
-                "-frames", str(frame_start), str(frame_end),
-                scene_path]
+        args = [
+            application_path, "-batch",
+            "-frames", str(frame_start), str(frame_end),
+            scene_path
+        ]
         self.log.info(f"running: {' '.join(args)}")
         proc = subprocess.Popen(
             args,
@@ -66,47 +76,28 @@ class ExtractRender(pyblish.api.InstancePlugin):
             stderr=subprocess.STDOUT,
             stdin=subprocess.PIPE
         )
-        output, error = proc.communicate()
+        stdout, _stderr = proc.communicate()
         self.log.info("Click on the line below to see more details.")
-        self.log.info(output.decode("utf-8"))
+        self.log.info(stdout.decode("utf-8"))
 
         # Collect rendered files.
         self.log.debug(f"collecting from: {path}")
         files = os.listdir(path)
-        assert files, (
-            "No rendered files found, render failed."
-        )
+        if not files:
+            raise PublishError(
+                "No rendered files found, render failed."
+            )
+
         self.log.debug(f"files there: {files}")
         collections, remainder = clique.assemble(files, minimum_items=1)
-        assert not remainder, (
-            "There should not be a remainder for {0}: {1}".format(
-                instance.data["setMembers"][0], remainder
+        if remainder:
+            member = instance.data["setMembers"][0]
+            raise KnownPublishError(
+                f"There should not be a remainder for {member}: {remainder}"
             )
-        )
 
-        # Generate thumbnail.
-        thumbnail_path = os.path.join(path, "thumbnail.png")
-        args = ayon_core.lib.get_ffmpeg_tool_args(
-            "ffmpeg",
-            "-y",
-            "-i", os.path.join(path, list(collections[0])[0]),
-            "-vf", "scale=300:-1",
-            "-vframes", "1",
-            thumbnail_path
-        )
-        process = subprocess.Popen(
-            args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            stdin=subprocess.PIPE
-        )
-
-        output = process.communicate()[0]
-
-        if process.returncode != 0:
-            raise ValueError(output.decode("utf-8", errors="backslashreplace"))
-
-        self.log.debug(output.decode("utf-8", errors="backslashreplace"))
+        thumbnail_source = os.path.join(path, list(collections[0])[0])
+        instance.data["thumbnailSource"] = thumbnail_source
 
         # Select the main render collection:
         # 1. Iterate collections in reverse order (prioritizes later outputs)
@@ -125,28 +116,28 @@ class ExtractRender(pyblish.api.InstancePlugin):
         else:
             # If there is only one collection, use it
             collection = collections[0]
+            
+        if collection is None:
+            raise KnownPublishError(
+                "Failed to find a collection with multiple files."
+            )
 
         self.log.debug(f"Selected collection: {collection} with {len(collection.indexes)} files")
 
         # Generate representations
         extension = collection.tail[1:]
+        files = list(collection)
         representation = {
             "name": extension,
             "ext": extension,
-            "files": list(collection),
+            "files": files if len(files) > 1 else files[0],
             "stagingDir": path,
             "tags": ["review"],
             "fps": frame_rate
         }
+        representations = [representation]
 
-        thumbnail = {
-            "name": "thumbnail",
-            "ext": "png",
-            "files": os.path.basename(thumbnail_path),
-            "stagingDir": path,
-            "tags": ["thumbnail"]
-        }
-        instance.data["representations"] = [representation, thumbnail]
+        instance.data["representations"] = representations
 
         if audio_path and os.path.exists(audio_path):
             instance.data["audio"] = [{"filename": audio_path}]

@@ -328,24 +328,27 @@ AyonHarmony.setNodesLinks = function(links) {
 /**
  * Remove backdrop and its contents.
  * @function
- * @param {string} backdrop Backdrop object.
  * 
  */
-AyonHarmony.removeBackdropWithContents = function(backdrop) {
+AyonHarmony.removeBackdrop = function(args) {
     // Delete all nodes in backdrop
-    Backdrop.nodes(backdrop).forEach(function(n) {
-        // Unlink node first to avoid default relinking
-        for (var i = 0; i < node.numberOfInputPorts(n); i++) {
-            node.unlink(n, i);
-        }
+    var backdrop = args[0];
+    var removeContents = args[1];
+    if (removeContents){
+        Backdrop.nodes(backdrop).forEach(function(n) {
+            // Unlink node first to avoid default relinking
+            for (var i = 0; i < node.numberOfInputPorts(n); i++) {
+                node.unlink(n, i);
+            }
 
-        AyonHarmony.deleteNode(n);
-    });
+            AyonHarmony.deleteNode(n);
+        });
 
-    // Delete subbackdrops
-    AyonHarmony.getSubBackdrops(backdrop).forEach(function(b) {
-        Backdrop.removeBackdrop(b);
-    });
+        // Delete subbackdrops
+        AyonHarmony.getSubBackdrops(backdrop).forEach(function(b) {
+            Backdrop.removeBackdrop(b);
+        });
+    }
 
     // Delete backdrop
     Backdrop.removeBackdrop(backdrop);
@@ -499,4 +502,57 @@ AyonHarmony.movePaletteToIndex = function(args) {
             PaletteObjectManager.getScenePaletteList().movePaletteDown(palette.id);
         }
     }
-}   
+}
+
+
+/**
+ * Get layers info
+ * 
+ * Return information about name, fullName, selection etc.
+ * @function
+* @return {object} Object with info about node/layer.
+ */
+AyonHarmony.getLayerInfos = function() {
+    var scn = $.scene;
+    var readNodes = scn.getNodesByType("READ");
+    var layerInfos = [];
+    var info = {};
+
+    for (var i = 0; i < readNodes.length; i++) {
+        var readNode = readNodes[i];
+
+        try {
+    		var timelineIndex = readNode.timelineIndex();
+        } catch (error) {
+            var timelineIndex = 999;
+        }
+
+        info = {
+            "name": readNode.name,
+            "color": readNode.nodeColor.toString(),
+            "fullName": readNode.toString(),
+            "selected": readNode.selected,
+            "position": timelineIndex,
+            "enabled": readNode.enabled
+        };
+
+    layerInfos.push(info);
+    }
+
+    return layerInfos;
+};
+
+/**
+ * Rename node in Harmony.
+ * @function
+ * @param {string} node_name  Node name.
+ * @param {string} new_name  Node name.
+ */
+AyonHarmony.renameNode = function(args) {
+    var node_name = args[0];
+    var new_name = args[1];
+    var existing_node = $.scene.getNodeByPath("Top/" + node_name);
+    if (existing_node){
+        existing_node.name = new_name;
+    }
+};

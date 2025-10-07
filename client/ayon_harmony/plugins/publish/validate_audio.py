@@ -2,10 +2,16 @@ import pyblish.api
 
 import ayon_harmony.api as harmony
 
-from ayon_core.pipeline import OptionalPyblishPluginMixin, PublishXmlValidationError
+from ayon_core.pipeline import (
+    OptionalPyblishPluginMixin,
+    PublishXmlValidationError,
+)
 
 
-class ValidateAudio(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
+class ValidateAudio(
+    pyblish.api.InstancePlugin,
+    OptionalPyblishPluginMixin,
+):
     """Ensures that there is an audio file in the scene.
 
     If you are sure that you want to send render without audio, you can
@@ -29,11 +35,12 @@ class ValidateAudio(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
 
         if not node:
             return
-        
+
         sound_cols = harmony.send(
             {"function": "column.getColumnListOfType", "args": "SOUND"}
         )["result"]
 
         if not sound_cols:
-            raise PublishXmlValidationError(self, "No sound file imported in scene.")
-        
+            raise PublishXmlValidationError(
+                self, "No sound file imported in scene."
+            )

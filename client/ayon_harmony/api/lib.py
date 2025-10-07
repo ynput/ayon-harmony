@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Utility functions used for AYON - Harmony integration."""
+from pathlib import Path
 import platform
 import subprocess
 import threading
@@ -16,13 +17,16 @@ import signal
 import time
 from uuid import uuid4
 import collections
+from typing import Optional
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from ayon_core.lib import is_using_ayon_console
+from ayon_core.lib import is_using_ayon_console, env_value_to_bool
 from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
+
+from ayon_harmony import HARMONY_ADDON_ROOT
 
 from .server import Server
 
@@ -116,30 +120,34 @@ def setup_startup_scripts():
         * Use TB_sceneOpenedUI.js instead to manage startup logic
         * Add their startup logic to ayon/harmony/TB_sceneOpened.js
     """
-    ayon_dcc_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                                  "api")
+    ayon_host_dir = os.path.join(HARMONY_ADDON_ROOT, "api")
     startup_js = "TB_sceneOpened.js"
 
-    if os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"):
+    env_location = os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
+    if not env_location:
+        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_host_dir
+        return
 
-        ayon_harmony_startup = os.path.join(ayon_dcc_dir, startup_js)
+    ayon_harmony_startup = os.path.join(ayon_host_dir, startup_js)
+    env_harmony_startup = os.path.join(env_location, startup_js)
 
-        env_harmony_startup = os.path.join(
-            os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"), startup_js)
+    # Check if destination file exists or if files are the same
+    if (
+        os.path.exists(env_harmony_startup)
+        and filecmp.cmp(ayon_harmony_startup, env_harmony_startup)
+    ):
+        return
 
-        if not filecmp.cmp(ayon_harmony_startup, env_harmony_startup):
-            try:
-                shutil.copy(ayon_harmony_startup, env_harmony_startup)
-            except Exception as e:
-                log.error(e)
-                log.warning(
-                    "Failed to copy {0} to {1}! "
-                    "Defaulting to AYON TOONBOOM_GLOBAL_SCRIPT_LOCATION."
-                    .format(ayon_harmony_startup, env_harmony_startup))
+    try:
+        shutil.copy(ayon_harmony_startup, env_harmony_startup)
+    except Exception:
+        log.warning(
+            f"Failed to copy {ayon_harmony_startup} to {env_harmony_startup}!"
+            " Defaulting to AYON's TOONBOOM_GLOBAL_SCRIPT_LOCATION.",
+            exc_info=True
+        )
 
-                os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
-    else:
-        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_dcc_dir
+        os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = ayon_host_dir
 
 
 def check_libs():
@@ -155,23 +163,21 @@ def check_libs():
         https://github.com/cfourney/OpenHarmony
 
     """
-    if not os.getenv("LIB_OPENHARMONY_PATH"):
+    if os.getenv("LIB_OPENHARMONY_PATH"):
+        return
 
-        if os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"):
-            if os.path.exists(
-                os.path.join(
-                    os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION"),
-                    "openHarmony.js")):
+    script_location = os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
+    if not script_location:
+        log.error(
+            "Cannot find OpenHarmony library."
+            " Please set path to it in LIB_OPENHARMONY_PATH"
+            " environment variable."
+        )
+        raise RuntimeError("Missing OpenHarmony library.")
 
-                os.environ["LIB_OPENHARMONY_PATH"] = \
-                    os.getenv("TOONBOOM_GLOBAL_SCRIPT_LOCATION")
-                return
-
-        else:
-            log.error(("Cannot find OpenHarmony library. "
-                       "Please set path to it in LIB_OPENHARMONY_PATH "
-                       "environment variable."))
-            raise RuntimeError("Missing OpenHarmony library.")
+    script_path = os.path.join(script_location, "openHarmony.js")
+    if os.path.exists(script_path):
+        os.environ["LIB_OPENHARMONY_PATH"] = script_location
 
 
 def launch(application_path, *args):
@@ -198,13 +204,17 @@ def launch(application_path, *args):
     setup_startup_scripts()
     check_libs()
 
-    if not os.environ.get("AYON_HARMONY_WORKFILES_ON_LAUNCH", False):
-        open_empty_workfile()
-        return
+    if len(args) > 0 and (scene_path := Path(args[-1])).suffix == ".zip":
+        launch_zip_file(scene_path)
 
-    ProcessContext.workfile_tool = host_tools.get_tool_by_name("workfiles")
-    host_tools.show_workfiles(save=False)
-    ProcessContext.execute_in_main_thread(check_workfiles_tool)
+    open_workfile_app = env_value_to_bool("AYON_HARMONY_WORKFILES_ON_LAUNCH")
+    workfile_already_open = ProcessContext.workfile_path
+    if open_workfile_app or not workfile_already_open:
+        ProcessContext.workfile_tool = host_tools.get_tool_by_name(
+            "workfiles"
+        )
+        host_tools.show_workfiles(save=False)
+        ProcessContext.execute_in_main_thread(check_workfiles_tool)
 
 
 def check_workfiles_tool():
@@ -235,45 +245,96 @@ def get_local_harmony_path(filepath):
     return os.path.join(harmony_path, basename)
 
 
+def unzip_scene_file(filepath: str) -> str:
+    """Unzip a Harmony scene file and return the path to the .xstage file.
+
+    Args:
+        filepath (str): Path to the zip file.
+
+    Returns:
+        str: Path to the .xstage file.
+
+    Raises:
+        Exception: If no .xstage file is found or if the working
+            folder cannot be deleted.
+
+    """
+    print(f"Localizing {filepath}")
+
+    local_scene_dir_path = get_local_harmony_path(filepath)
+    scene_name = os.path.basename(local_scene_dir_path)
+    if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
+        # unzipped with duplicated scene_name
+        local_scene_dir_path = os.path.join(local_scene_dir_path, scene_name)
+
+    scene_path = os.path.join(
+        local_scene_dir_path, f"{scene_name}.xstage"
+    )
+
+    unzip = True
+    if os.path.exists(scene_path):
+        unzip = False
+        # Check remote scene is newer than local.
+        if os.path.getmtime(scene_path) < os.path.getmtime(filepath):
+            try:
+                shutil.rmtree(local_scene_dir_path)
+            except Exception as e:
+                log.error(e)
+                raise Exception("Cannot delete working folder") from e
+            unzip = True
+
+    if unzip:
+        with _ZipFile(filepath, "r") as zip_ref:
+            zip_ref.extractall(local_scene_dir_path)
+
+        if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
+            # unzipped with duplicated scene_name
+            local_scene_dir_path = os.path.join(
+                local_scene_dir_path, scene_name
+            )
+
+    # find any xstage files is directory, prefer the one with the same name
+    # as directory (plus extension)
+    xstage_files = []
+    for root, _, files in os.walk(local_scene_dir_path):
+        for file in files:
+            if os.path.splitext(file)[1] == ".xstage":
+                full_path = os.path.join(root, file)
+                relative_path = os.path.relpath(
+                    full_path, local_scene_dir_path
+                )
+                xstage_files.append(relative_path)
+
+    if not os.path.basename("temp.zip"):
+        if not xstage_files:
+            raise Exception("No xstage file was found.")
+
+    # prefer the one named as zip file
+    zip_based_name = "{}.xstage".format(
+        os.path.splitext(os.path.basename(filepath))[0])
+
+    xstage_files.reverse()  # prefer 0 found xstage
+    for relative_path_xstage in xstage_files:
+        scene_path = os.path.join(
+            local_scene_dir_path, relative_path_xstage
+        )
+        if zip_based_name in relative_path_xstage:
+            break
+
+    if not os.path.exists(scene_path):
+        raise Exception(
+            f"Expected '{scene_path}' not found in '{local_scene_dir_path}'."
+        )
+
+    return scene_path
+
+
 def launch_zip_file(filepath):
     """Launch a Harmony application instance with the provided zip file.
 
     Args:
         filepath (str): Path to file.
     """
-    print(f"Localizing {filepath}")
-
-    temp_path = get_local_harmony_path(filepath)
-    scene_name = os.path.basename(temp_path)
-    if os.path.exists(os.path.join(temp_path, scene_name)):
-        # unzipped with duplicated scene_name
-        temp_path = os.path.join(temp_path, scene_name)
-
-    scene_path = os.path.join(
-        temp_path, scene_name + ".xstage"
-    )
-
-    unzip = False
-    if os.path.exists(scene_path):
-        # Check remote scene is newer than local.
-        if os.path.getmtime(scene_path) < os.path.getmtime(filepath):
-            try:
-                shutil.rmtree(temp_path)
-            except Exception as e:
-                log.error(e)
-                raise Exception("Cannot delete working folder") from e
-            unzip = True
-    else:
-        unzip = True
-
-    if unzip:
-        with _ZipFile(filepath, "r") as zip_ref:
-            zip_ref.extractall(temp_path)
-
-        if os.path.exists(os.path.join(temp_path, scene_name)):
-            # unzipped with duplicated scene_name
-            temp_path = os.path.join(temp_path, scene_name)
-
     # Close existing scene.
     if ProcessContext.pid:
         os.kill(ProcessContext.pid, signal.SIGTERM)
@@ -292,36 +353,11 @@ def launch_zip_file(filepath):
     # Save workfile path for later.
     ProcessContext.workfile_path = filepath
 
-    # find any xstage files is directory, prefer the one with the same name
-    # as directory (plus extension)
-    xstage_files = []
-    for _, _, files in os.walk(temp_path):
-        for file in files:
-            if os.path.splitext(file)[1] == ".xstage":
-                xstage_files.append(file)
-
-    if not os.path.basename("temp.zip"):
-        if not xstage_files:
-            ProcessContext.server.stop()
-            print("no xstage file was found")
-            return
-
-    # try to use first available
-    scene_path = os.path.join(
-        temp_path, xstage_files[0]
-    )
-
-    # prefer the one named as zip file
-    zip_based_name = "{}.xstage".format(
-        os.path.splitext(os.path.basename(filepath))[0])
-
-    if zip_based_name in xstage_files:
-        scene_path = os.path.join(
-            temp_path, zip_based_name
-        )
-
-    if not os.path.exists(scene_path):
-        print("error: cannot determine scene file {}".format(scene_path))
+    # Unzip the scene file and get the .xstage path
+    try:
+        scene_path = unzip_scene_file(filepath)
+    except Exception as e:
+        print(f"Error unzipping scene file: {e}")
         ProcessContext.server.stop()
         return
 
@@ -394,8 +430,8 @@ def show(tool_name):
         module_name (str): Name of module to call "show" on.
 
     """
-    # Requests often get doubled up when showing tools, so we wait a second for
-    # requests to be received properly.
+    # Requests often get doubled up when showing tools, so we wait a second
+    #   for requests to be received properly.
     time.sleep(1)
 
     kwargs = {}
@@ -481,18 +517,22 @@ def delete_node(node):
         }
     )
 
+
 def get_all_top_names() -> set:
     """Get all top node and backdrop names in the scene.
 
     Returns:
         set: Set of top node names.
+
     """
-    return set(send({"function": "node.subNodes", "args": ["Top"]})["result"]) | {
+    nodes = send({"function": "node.subNodes", "args": ["Top"]})["result"]
+    backdrops = {
         backdrop["title"]["text"]
-        for backdrop in send({"function": "Backdrop.backdrops", "args": ["Top"]})[
-            "result"
-        ]
+        for backdrop in send(
+            {"function": "Backdrop.backdrops", "args": ["Top"]}
+        )["result"]
     }
+    return set(nodes) | backdrops
 
 
 def get_palettes_paths() -> set:
@@ -501,7 +541,9 @@ def get_palettes_paths() -> set:
     Returns:
         set: Set of palettes paths.
     """
-    return {pal["_path"] for pal in send({"function": "AyonHarmony.getAllPalettesPaths"})["result"]}
+    return {pal["_path"] for pal in send(
+        {"function": "AyonHarmony.getAllPalettesPaths"}
+    )["result"]}
 
 
 def imprint(node_id, data, remove=False):
@@ -571,13 +613,14 @@ def maintained_nodes_state(nodes):
             })
 
 
-def save_scene():
+def save_scene(zip_and_move=True):
     """Save the Harmony scene safely.
 
     The built-in (to AYON) background zip and moving of the Harmony scene
-    folder, interferes with server/client communication by sending two requests
-    at the same time. This only happens when sending "scene.saveAll()". This
-    method prevents this double request and safely saves the scene.
+    folder, interferes with server/client communication by sending two
+    requests at the same time. This only happens when sending
+    "scene.saveAll()". This method prevents this double request and safely
+    saves the scene.
 
     """
     # Need to turn off the background watcher else the communication with
@@ -585,8 +628,9 @@ def save_scene():
     scene_path = send(
         {"function": "AyonHarmonyAPI.saveScene"})["result"]
 
-    # Manually update the remote file.
-    on_file_changed(scene_path, threaded=False)
+    # # Manually update the remote file.
+    if zip_and_move:
+        on_file_changed(scene_path, threaded=False)
 
     # Re-enable the background watcher.
     send({"function": "AyonHarmonyAPI.enableFileWather"})
@@ -644,7 +688,8 @@ def find_node_by_name(name, node_type):
 
     return None
 
-def find_backdrop_by_name(name: str) -> dict:
+
+def find_backdrop_by_name(name: str) -> Optional[dict]:
     """Find backdrop by its name.
 
     Args:
@@ -661,3 +706,32 @@ def find_backdrop_by_name(name: str) -> dict:
             return backdrop
 
     return None
+
+
+def get_layers_info() -> list[dict[str, str]]:
+    """Returns list of dicts with info about timeline layers
+
+    'position' goes from 0 at the top and increases to bottom on timeline
+    """
+    layers_info = send(
+        {
+            "function": "AyonHarmony.getLayerInfos",
+            "args": []
+        }
+    )["result"]
+    layers_info = [layer for layer in layers_info if layer["enabled"]]
+    return sorted(
+        layers_info,
+        key=lambda layer: layer["position"],
+        reverse=True
+    )
+
+
+def rename_node(node_name, new_name):
+    """ Rename node name """
+    send(
+        {
+            "function": "AyonHarmony.renameNode",
+            "args": [node_name, new_name]
+        }
+    )

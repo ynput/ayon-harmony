@@ -26,6 +26,7 @@ from .lib import (
     save_scene_as,
     remove,
     delete_node,
+    rename_node,
     find_node_by_name,
     find_backdrop_by_name,
     signature,
@@ -34,6 +35,7 @@ from .lib import (
     set_scene_data,
     get_all_top_names,
     get_palettes_paths,
+    unzip_scene_file,
 )
 
 from .workio import (
@@ -70,6 +72,7 @@ __all__ = [
     "save_scene_as",
     "remove",
     "delete_node",
+    "rename_node",
     "find_node_by_name",
     "find_backdrop_by_name",
     "signature",
@@ -78,6 +81,7 @@ __all__ = [
     "set_scene_data",
     "get_all_top_names",
     "get_palettes_paths",
+    "unzip_scene_file",
 
     # Workfiles API
     "open_file",
@@ -90,4 +94,3 @@ __all__ = [
     # Loaders
     "BackdropBaseLoader",
 ]
-

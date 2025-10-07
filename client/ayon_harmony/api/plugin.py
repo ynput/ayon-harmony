@@ -2,9 +2,14 @@ import re
 
 from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.pipeline import (
-    Creator, AYON_INSTANCE_ID, AVALON_INSTANCE_ID,
-    CreatedInstance, CreatorError
+    Creator,
+    AYON_INSTANCE_ID,
+    AVALON_INSTANCE_ID,
+    CreatedInstance,
+    CreatorError,
+    AutoCreator
 )
+
 import ayon_harmony.api as harmony
 
 
@@ -33,7 +38,9 @@ class HarmonyCreatorBase:
             scene_data = harmony.get_scene_data()
             all_top_names = harmony.get_all_top_names()
             cleaned_scene_data = False
-            for entity_name, entity_data in reversed(scene_data.copy().items()):
+            for entity_name, entity_data in reversed(
+                scene_data.copy().items()
+            ):
                 # Filter orphaned instances
                 if entity_name not in all_top_names:
                     del scene_data[entity_name]
@@ -58,7 +65,9 @@ class HarmonyCreatorBase:
                         # must be a broken instance
                         continue
 
-                    cache_legacy.setdefault(product_type, []).append(entity_name)
+                    cache_legacy.setdefault(product_type, []).append(
+                        entity_name
+                    )
 
             shared_data["harmony_cached_scene_data"] = scene_data
             shared_data["harmony_cached_instance_data"] = cache
@@ -82,7 +91,6 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
     settings_category = "harmony"
 
-
     def create(self, product_name, instance_data, pre_create_data):
         # Create the node
         node = self.product_impl(product_name, instance_data, pre_create_data)
@@ -98,17 +106,12 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
         self._add_instance_to_context(instance)
 
+        return instance
+
     def update_instances(self, update_list):
         for created_inst, _changes in update_list:
             node = created_inst.transient_data["node"]
             new_data = created_inst.data_to_store()
-
-            # Use the node's active state to store the instance's active state
-            active = new_data.pop("active", True)
-            harmony.send(
-                {"function": "AyonHarmonyAPI.setState",
-                 "args": [[node], [active]]}
-            )
 
             harmony.imprint(node, new_data)
 
@@ -135,11 +138,20 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
             instance.transient_data["node"] = node_name
 
             # Active state is based of the node's active state
-            instance.data["active"] = harmony.send(
-                {"function": "AyonHarmonyAPI.isEnabled", "args": [node_name]}
-            )["result"]
+            instance.data["active"] = self.get_active_state(instance)
 
             self._add_instance_to_context(instance)
+
+    def get_active_state(self, instance: CreatedInstance):
+        """Get active state of the instance.
+
+        Args:
+            instance (CreatedInstance): Instance.
+
+        Returns:
+            bool: Active state of the instance.
+        """
+        return instance.data.get("active", True)
 
     def setup_node(self, node):
         """Prepare node as container.
@@ -241,7 +253,8 @@ class HarmonyRenderCreator(HarmonyCreator):
         self.setup_node(node)
 
         instance_data["creator_attributes"] = {
-            "render_target": pre_create_data["render_target"]
+            "render_target": pre_create_data["render_target"],
+            "mark_for_review": pre_create_data["mark_for_review"]
         }
 
         return node
@@ -254,6 +267,11 @@ class HarmonyRenderCreator(HarmonyCreator):
                 items=self.rendering_targets,
                 label="Render target"
             ),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=True,
+            )
         ])
         return output
 
@@ -263,5 +281,127 @@ class HarmonyRenderCreator(HarmonyCreator):
                 "render_target",
                 items=self.rendering_targets,
                 label="Render target"
+            ),
+            BoolDef(
+                "mark_for_review",
+                label="Review",
+                default=True,
             )
         ]
+
+    def update_instances(self, update_list):
+        super().update_instances(update_list)
+
+        # Use the node's active state to store the instance's active state
+        for created_inst, _changes in update_list:
+            node = created_inst.transient_data["node"]
+            new_data = created_inst.data_to_store()
+
+            active = new_data.get("active", True)
+            harmony.send(
+                {"function": "AyonHarmonyAPI.setState",
+                 "args": [[node], [active]]}
+            )
+
+    def get_active_state(self, instance: CreatedInstance):
+        if node_name := instance.transient_data.get("node"):
+            return harmony.send(
+                {"function": "AyonHarmonyAPI.isEnabled", "args": [node_name]}
+            )["result"]
+        return True
+
+
+class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
+
+    settings_category = "harmony"
+    enabled = True
+
+    def create(self):
+
+        variant = None
+        if self.default_variants:
+            variant = self.default_variants[0]
+
+        current_instance = next(
+            (
+                instance for instance in self.create_context.instances
+                if instance.creator_identifier == self.identifier
+            ), None)
+
+        project_entity = self.create_context.get_current_project_entity()
+        folder_entity = self.create_context.get_current_folder_entity()
+        task_entity = self.create_context.get_current_task_entity()
+
+        project_name = project_entity["name"]
+        host_name = self.create_context.host_name
+
+        if current_instance is None:
+            product_name = self.get_product_name(
+                project_name=project_name,
+                project_entity=project_entity,
+                folder_entity=folder_entity,
+                task_entity=task_entity,
+                variant=variant,
+                host_name=host_name,
+            )
+            data = {
+                "folderPath": folder_entity["path"],
+                "task": task_entity["name"],
+                "variant": variant
+            }
+            data.update(
+                self.get_dynamic_data(
+                    project_name,
+                    folder_entity,
+                    task_entity,
+                    variant,
+                    host_name,
+                    current_instance)
+            )
+            if not self.active_on_create:
+                data["active"] = False
+            self.log.info(f"Auto-creating {self.product_type} instance...")
+            current_instance = CreatedInstance(
+                self.product_type, product_name, data, self
+            )
+            self._add_instance_to_context(current_instance)
+        elif (
+            current_instance["folderPath"] != folder_entity["path"]
+            or current_instance["task"] != task_entity["name"]
+        ):
+            # Update instance context if is not the same
+            product_name = self.get_product_name(
+                project_name=project_name,
+                project_entity=project_entity,
+                folder_entity=folder_entity,
+                task_entity=task_entity,
+                variant=variant,
+                host_name=host_name,
+            )
+
+            current_instance["folderPath"] = folder_entity["path"]
+            current_instance["task"] = task_entity["name"]
+            current_instance["productName"] = product_name
+
+        current_instance.transient_data["node"] = self._node_name
+
+    def collect_instances(self):
+        cache = self.cache_instance_data(self.collection_shared_data)
+        for node in cache.get("harmony_cached_instance_data").get(
+                self.identifier, []):
+            data = cache.get("harmony_cached_scene_data")[node]
+            created_instance = CreatedInstance.from_existing(data, self)
+            created_instance.transient_data["node"] = self._node_name
+            self._add_instance_to_context(created_instance)
+
+    def update_instances(self, update_list):
+        for created_inst, _changes in update_list:
+            harmony.lib.imprint(self._node_name, created_inst.data_to_store())
+
+    def remove_instances(self, instances):
+        for instance in instances:
+            scene_data = harmony.lib.get_scene_data()
+            scene_data.pop(self._node_name, None)
+            harmony.lib.set_scene_data(scene_data)
+
+            self._remove_instance_from_context(instance)
