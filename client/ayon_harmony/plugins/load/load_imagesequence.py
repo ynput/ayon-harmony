@@ -6,10 +6,7 @@ from pathlib import Path
 
 import clique
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
 from ayon_core.pipeline.context_tools import is_representation_from_latest
 import ayon_harmony.api as harmony
 
@@ -92,7 +89,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
         node = container.get("nodes").pop()
 
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = self.filepath_from_context(context)
         collections, remainder = clique.assemble(
             os.listdir(os.path.dirname(path))
         )

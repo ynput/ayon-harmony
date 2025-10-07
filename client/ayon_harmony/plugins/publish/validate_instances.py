@@ -1,7 +1,10 @@
 import pyblish.api
 
 import ayon_harmony.api as harmony
-from ayon_core.pipeline import get_current_folder_path, OptionalPyblishPluginMixin
+from ayon_core.pipeline import (
+    get_current_folder_path,
+    OptionalPyblishPluginMixin,
+)
 from ayon_core.pipeline.publish import (
     ValidateContentsOrder,
     PublishXmlValidationError,
@@ -16,13 +19,16 @@ class ValidateInstanceRepair(pyblish.api.Action):
     on = "failed"
 
     def process(self, context, plugin):
-
         # Get the errored instances
         failed = []
         for result in context.data["results"]:
-            if (result["error"] is not None and result["instance"] is not None
-                    and result["instance"] not in failed):
-                failed.append(result["instance"])
+            instance = result["instance"]
+            if (
+                result["error"] is not None
+                and instance is not None
+                and instance not in failed
+            ):
+                failed.append(instance)
 
         # Apply pyblish.logic to get the instances for the plug-in
         instances = pyblish.api.instances_by_plugin(failed, plugin)
@@ -34,7 +40,10 @@ class ValidateInstanceRepair(pyblish.api.Action):
             harmony.imprint(instance.data["setMembers"][0], data)
 
 
-class ValidateInstance(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
+class ValidateInstance(
+    pyblish.api.InstancePlugin,
+    OptionalPyblishPluginMixin,
+):
     """Validate the instance folder is the current folder."""
 
     label = "Validate Instance"
@@ -60,5 +69,6 @@ class ValidateInstance(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
             "expected": current_folder_path
         }
         if instance_folder_path != current_folder_path:
-            raise PublishXmlValidationError(self, msg,
-                                            formatting_data=formatting_data)
+            raise PublishXmlValidationError(
+                self, msg, formatting_data=formatting_data
+            )

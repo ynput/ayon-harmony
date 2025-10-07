@@ -10,4 +10,4 @@ class ExtractSaveScene(pyblish.api.ContextPlugin):
     hosts = ["harmony"]
 
     def process(self, context):
-        harmony.save_scene()
+        harmony.save_scene(zip_and_move=True)

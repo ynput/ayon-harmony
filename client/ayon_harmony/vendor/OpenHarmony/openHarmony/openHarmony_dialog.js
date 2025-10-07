@@ -5,7 +5,7 @@
 //                            openHarmony Library
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney
+//         Developped by Mathieu Chaptel, Chris Fourney
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -17,7 +17,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -194,15 +194,26 @@ $.oDialog.prototype.toast = function(labelText, position, duration, color){
 
   if (typeof duration === 'undefined') var duration = 2000;
   if (typeof color === 'undefined') var color = new $.oColorValue(0,0,0);
-  if (typeof position === 'undefined'){
-    var center = QApplication.desktop().screen().rect.center();
-    var position = new $.oPoint(center.x(), center.y()+UiLoader.dpiScale(150))
-  }
-
+  
   var toast = new QWidget()
-  var flags = new Qt.WindowFlags(Qt.Popup|Qt.FramelessWindowHint|Qt.WA_TransparentForMouseEvents);
-  toast.setWindowFlags(flags);
-  toast.setAttribute(Qt.WA_TranslucentBackground);
+  if (this.$.app.version + this.$.app.minorVersion > 21){
+    // above Harmony 21.1
+    if (typeof position === 'undefined'){
+      var center = QApplication.desktop().availableGeometry.center();
+      var position = new $.oPoint(center.x(), center.y()+UiLoader.dpiScale(150))
+    }
+    var flags = new Qt.WindowFlags(Qt.Tool|Qt.FramelessWindowHint); // https://qtcentre.org/threads/71912-Qt-WA_TransparentForMouseEvents
+    toast.setWindowFlags(flags);
+    toast.setAttribute(Qt.WA_TranslucentBackground);
+  } else {
+    if (typeof position === 'undefined'){
+      var center = QApplication.desktop().screen().rect.center();
+      var position = new $.oPoint(center.x(), center.y()+UiLoader.dpiScale(150))
+    }
+    var flags = new Qt.WindowFlags(Qt.Popup|Qt.FramelessWindowHint|Qt.WA_TransparentForMouseEvents);
+    toast.setWindowFlags(flags);
+    toast.setAttribute(Qt.WA_TranslucentBackground);
+  }
   toast.setAttribute(Qt.WA_DeleteOnClose);
 
   var styleSheet = "QWidget {" +
@@ -250,7 +261,7 @@ $.oDialog.prototype.prompt = function( labelText, title, prefilledText){
 /**
  * Prompts with a file selector window
  * @param   {string}           [text="Select a file:"]       The title of the confirmation dialog.
- * @param   {string}           [filter="*"]                  The filter for the file type and/or file name that can be selected. Accepts wildcard character "*".
+ * @param   {string}           [filter="*"]                  The filter for the file type and/or file name that can be selected. Accepts wildcard charater "*".
  * @param   {string}           [getExisting=true]            Whether to select an existing file or a save location
  * @param   {string}           [acceptMultiple=false]        Whether or not selecting more than one file is ok. Is ignored if getExisting is falses.
  * @param   {string}           [startDirectory]              The directory showed at the opening of the dialog.
@@ -310,6 +321,76 @@ $.oDialog.prototype.browseForFolder = function(text, startDirectory){
 }
 
 
+/**
+ * Prompts with a file selector window
+ * @param   {string}           [text="Select a file:"]       The title of the file browser dialog.
+ * @param   {string}           [filter="*"]                  The filter for the file type and/or file name that can be selected. Accepts wildcard charater "*".
+ * @param   {string}           [getExisting=true]            Whether to select an existing file or a save location
+ * @param   {string}           [acceptMultiple=false]        Whether or not selecting more than one file is ok. Is ignored if getExisting is false.
+ * @param   {string}           [startDirectory]              The directory showed at the opening of the dialog.
+ *
+ * @return  {oFile[]}           An oFile array, or 'undefined' if the dialog is cancelled
+ */
+$.oDialog.prototype.chooseFile = function( text, filter, getExisting, acceptMultiple, startDirectory){
+  if (this.$.batchMode) {
+    this.$.debug("$.oDialog.chooseFile not supported in batch mode", this.$.DEBUG_LEVEL.WARNING)
+    return;
+  }
+
+  if (typeof text === 'undefined') var text = "Select a file:";
+  if (typeof filter === 'undefined') var filter = "*"
+  if (typeof getExisting === 'undefined') var getExisting = true;
+  if (typeof acceptMultiple === 'undefined') var acceptMultiple = false;
+
+
+  if (getExisting){
+    if (acceptMultiple){
+      var _chosen = QFileDialog.getOpenFileNames(0, text, startDirectory, filter);
+    }else{
+      var _chosen = QFileDialog.getOpenFileName(0, text, startDirectory, filter);
+    }
+  }else{
+    var _chosen = QFileDialog.getSaveFileName(0, text, startDirectory, filter);
+  }
+
+  // If acceptMultiple is true, we get an empty array on cancel, otherwise we get an empty string
+  // length is 0 for both cases, but an empty array is truthy in my testing
+  if (!_chosen.length) return undefined;
+
+  try {
+    _chosen = _chosen.map(function(thisFile){return new $.oFile(thisFile);});
+  } catch (err) {
+    // No "map" method means not an array
+    _chosen = [new $.oFile(_chosen)];
+  }
+
+  this.$.debug(_chosen);
+  return _chosen;
+}
+
+
+/**
+ * Prompts with a browse for folder dialog.
+ * @param   {string}           [text]                        The title of the file browser dialog.
+ * @param   {string}           [startDirectory]              The directory showed at the opening of the dialog.
+ *
+ * @return  {oFolder}           An oFolder for the selected folder, or undefined if dialog was cancelled
+ */
+$.oDialog.prototype.chooseFolder = function(text, startDirectory){
+  if (this.$.batchMode) {
+    this.$.debug("$.oDialog.chooseFolder not supported in batch mode", this.$.DEBUG_LEVEL.WARNING)
+    return;
+  }
+
+  if (typeof text === 'undefined') var text = "Select a folder:";
+
+  var _folder = QFileDialog.getExistingDirectory(0, text, startDirectory);
+
+  if (!_folder) return undefined; // User cancelled
+
+  return new $.oFolder(_folder);
+}
+
 //////////////////////////////////////
 //////////////////////////////////////
 //                                  //
@@ -327,14 +408,14 @@ $.oDialog.prototype.browseForFolder = function(text, startDirectory){
  * @constructor
  * @classdesc   An simple progress dialog to display the progress of a task.
  * To react to the user clicking the cancel button, connect a function to $.oProgressDialog.canceled() signal.
- * When $.batchmode is true, the progress will be outputted as a "Progress : value/range" string to the Harmony stdout.
+ * When $.batchmode is true, the progress will be outputed as a "Progress : value/range" string to the Harmony stdout.
  * @param       {string}              [labelText]                The text displayed above the progress bar.
  * @param       {string}              [range=100]                The maximum value that represents a full progress bar.
  * @param       {string}              [title]                    The title of the dialog
  * @param       {bool}                [show=false]               Whether to immediately show the dialog.
  *
  * @property    {bool}                wasCanceled                Whether the progress bar was cancelled.
- * @property    {$.oSignal}           canceled                   A Signal emitted when the dialog is canceled. Can be connected to a callback.
+ * @property    {$.oSignal}           canceled                   A Signal emited when the dialog is canceled. Can be connected to a callback.
  */
 $.oProgressDialog = function( labelText, range, title, show ){
   if (typeof title === 'undefined') var title = "Progress";
@@ -608,7 +689,7 @@ $.oPieMenu = function( name, widgets, show, minAngle, maxAngle, radius, position
   this.maxAngle = maxAngle;
   this.globalCenter = position;
 
-  // how wide outside the icons is the slice drawn
+  // how wide outisde the icons is the slice drawn
   this._circleMargin = 30;
 
   // set these values before calling show() to customize the menu appearance
@@ -742,10 +823,17 @@ $.oPieMenu.prototype.buildWidget = function(){
   this.minimumHeight = this.maximumHeight = this.widgetSize;
   this.minimumWidth = this.maximumWidth = this.widgetSize;
 
-  var flags = new Qt.WindowFlags(Qt.Popup|Qt.FramelessWindowHint|Qt.WA_TransparentForMouseEvents);
-  this.setWindowFlags(flags);
-  this.setAttribute(Qt.WA_TranslucentBackground);
-  this.setAttribute(Qt.WA_DeleteOnClose);
+  if (this.$.app.version + this.$.app.minorVersion > 21){
+    // above Harmony 21.1
+    var flags = new Qt.WindowFlags(Qt.Window|Qt.FramelessWindowHint|Qt.NoDropShadowWindowHint);
+    this.setWindowFlags(flags);
+  } else {
+    var flags = new Qt.WindowFlags(Qt.Popup|Qt.FramelessWindowHint|Qt.WA_TransparentForMouseEvents);
+    this.setWindowFlags(flags);
+  }
+  this.setAttribute(Qt.WA_MouseTracking, true);
+  this.setAttribute(Qt.WA_TranslucentBackground, true);
+  this.setAttribute(Qt.WA_DeleteOnClose, true);
 
   // draw background pie slice
   this.slice = this.drawSlice();
@@ -788,9 +876,14 @@ $.oPieMenu.prototype.drawSlice = function(){
   var sliceWidget = new QWidget(this);
   sliceWidget.objectName = "slice";
   // make widget background invisible
-  sliceWidget.setStyleSheet("background-color: rgba(0, 0, 0, 0.5%);");
-  var flags = new Qt.WindowFlags(Qt.FramelessWindowHint);
-  sliceWidget.setWindowFlags(flags)
+  sliceWidget.setStyleSheet("background-color: rgba(0, 0, 0, 1%);");
+  if (this.$.app.version + this.$.app.minorVersion > 21){
+    sliceWidget.setAttribute(Qt.WA_TranslucentBackground);
+    sliceWidget.mouseTracking = true
+  }else{
+    var flags = new Qt.WindowFlags(Qt.FramelessWindowHint);
+  }
+  sliceWidget.setWindowFlags(flags);
   sliceWidget.minimumHeight = this.height;
   sliceWidget.minimumWidth = this.width;
   sliceWidget.lower();
@@ -829,7 +922,24 @@ $.oPieMenu.prototype.drawSlice = function(){
   sliceWidget.mouseTracking = true;
 
   var pieMenu = this;
-  var currentDistance = false;
+  var indexWidget = null;
+  sliceWidget.leaveEvent = function(event){
+    var localPos = sliceWidget.mapFromGlobal(QCursor.pos())
+    var position = new pieMenu.$.oPoint(localPos.x(), localPos.y());
+    var distance = position.distance(center);
+    if (distance < pieMenu.minRadius) {
+      // leave from the bottom
+      if (pieMenu.deactivate){
+        pieMenu.deactivate();
+      } else if (indexWidget.deactivate) 
+        indexWidget.deactivate();
+
+    } else if (distance > pieMenu.maxRadius){
+      // leave from the top
+      if (indexWidget.activate) indexWidget.activate();
+    }
+  }
+
   sliceWidget.mouseMoveEvent = function(mousePos){
     // work out the index based on relative position to the center
     var position = new pieMenu.$.oPoint(mousePos.x(), mousePos.y());
@@ -841,32 +951,17 @@ $.oPieMenu.prototype.drawSlice = function(){
     // on distance value change, if the distance is greater than the maxRadius, activate the widget
     var indexChanged = (index != currentIndex)
     var indexWithinRange = (currentIndex >= 0 && currentIndex < pieMenu.widgets.length)
-    var distanceWithinRange = (distance > pieMenu.minRadius && distance < pieMenu.maxRadius)
-    var distanceChanged = (distanceWithinRange != currentDistance)
 
     // react to distance/angle change when the mouse moves on the pieMenu
     if (indexWithinRange){
-      var indexWidget = pieMenu.widgets[currentIndex];
+      indexWidget = pieMenu.widgets[currentIndex];
 
-      if (indexChanged && distance < pieMenu.maxRadius){
+      if (indexChanged && distance){
         index = currentIndex;
         sliceWidget.update();
         indexWidget.setFocus(true);
       }
 
-      if (distanceChanged){
-        currentDistance = distanceWithinRange;
-        if (distance > pieMenu.maxRadius){
-          // activate the button
-          if (indexWidget.activate) indexWidget.activate();
-        }else if (distance < pieMenu.minRadius){
-          // cursor reentered the widget: close the subMenu
-          if (indexWidget.deactivate) indexWidget.deactivate();
-        }
-        if (distance < pieMenu.minRadius){
-          if (pieMenu.deactivate) pieMenu.deactivate();
-        }
-      }
     }
   }
 
@@ -974,7 +1069,7 @@ $.oPieMenu.prototype.getMenuRadius = function(){
   var _minRadius = UiLoader.dpiScale(30);
   var _speed = 10; // the higher the value, the slower the progression
 
-  // hyperbolic tangent function to determine the radius
+  // hyperbolic tangent function to determin the radius
   var exp = Math.exp(2*itemsNumber/_speed);
   var _radius = ((exp-1)/(exp+1))*_maxRadius+_minRadius;
 
@@ -1029,7 +1124,7 @@ $.oPieSubMenu.prototype = Object.create($.oPieMenu.prototype)
  * function called when main button is clicked
  */
 $.oPieSubMenu.prototype.deactivate = function(){
-  this.toggleMenu()
+  this.showMenu(false);
 }
 
 /**
@@ -1123,6 +1218,7 @@ $.oPieSubMenu.prototype.setParent = function(parent){
 $.oPieSubMenu.prototype.buildButton = function(){
   // add main button in constructor because it needs to exist before show()
   var button = new this.$.oPieButton(this.menuIcon, this.name, this);
+  button.activate = function(){}; // prevent the button from closing the entire pie menu 
   button.objectName = this.name+"_button";
 
   return button;
@@ -1134,12 +1230,13 @@ $.oPieSubMenu.prototype.buildButton = function(){
  * @param {*} visibility
  */
 $.oPieSubMenu.prototype.showMenu = function(visibility){
-  this.slice.visible = visibility;
   for (var i in this.widgets){
     this.widgets[i].visible = visibility;
   }
+  this.slice.visible = visibility;
   var icon = visibility?this.closeIcon:this.menuIcon;
   UiLoader.setSvgIcon(this.button, icon);
+  this.slice.mouseTracking = visibility;
 }
 
 
@@ -1206,6 +1303,8 @@ $.oPieSubMenu.prototype.buildWidget = function(){
   if (typeof iconFile === 'undefined') var iconFile = specialFolders.resource+"/icons/script/qtgeneric.svg"
 
   QPushButton.call(this, text, parent);
+  this.name = "PieButton " + text
+  this.setParent(parent)
 
   this.minimumHeight = 24;
   this.minimumWidth = 24;
@@ -1213,8 +1312,12 @@ $.oPieSubMenu.prototype.buildWidget = function(){
   // set during addition to the pie Menu
   this.pieIndex = undefined;
 
-  UiLoader.setSvgIcon(this, iconFile)
-  this.setIconSize(new QSize(this.minimumWidth, this.minimumHeight));
+  try{
+    UiLoader.setSvgIcon(this, iconFile)
+    this.setIconSize(new QSize(this.minimumWidth, this.minimumHeight));
+  }catch(e){
+    $.log("failed to load icon "+iconFile)
+  }
   this.cursor = new QCursor(Qt.PointingHandCursor);
 
   var styleSheet = "QPushButton{ background-color: rgba(0, 0, 0, 1%); }" +
@@ -1283,13 +1386,19 @@ $.oPieButton.prototype.setParent = function(parent){
  * @param {QWidget}  parent                   The parent QWidget for the button. Automatically set during initialisation of the menu.
  *
  */
- $.oToolButton = function(toolName, iconFile, parent) {
+ $.oToolButton = function(toolName, showName, iconFile, parent) {
   this.toolName = toolName;
+  if (typeof showName === "undefined") var showName = false;
 
   if (typeof iconFile === "undefined"){
     // find an icon for the function in the script-icons folder
     var scriptIconsFolder = new this.$.oFolder(specialFolders.resource+"/icons/drawingtool");
-    var iconFiles = scriptIconsFolder.getFiles(toolName.replace(" ", "").toLowerCase() + ".*");
+    try{
+      var iconFiles = scriptIconsFolder.getFiles(toolName.replace(" ", "").toLowerCase() + ".*");
+    }catch(e){
+      $.log("error was caught " + e);
+      var iconFiles = [];
+    }
 
     if (iconFiles.length > 0){
       var iconFile = iconFiles[0].path;
@@ -1299,7 +1408,7 @@ $.oPieButton.prototype.setParent = function(parent){
       var iconFile = specialFolders.resource+"/icons/script/qtgeneric.svg";
     }
   }
-  this.$.oPieButton.call(this, iconFile, parent);
+  this.$.oPieButton.call(this, iconFile, showName?toolName:"", parent);
 
   this.toolTip = this.toolName;
 }
@@ -1383,7 +1492,7 @@ $.oActionButton.prototype.activate = function(){
  * This class is a subclass of QPushButton and all the methods from that class are available to modify this button.
  * @param {string}   paletteName              The name of the palette that contains the color
  * @param {string}   colorName                The name of the color (if more than one is present, will pick the first match)
- * @param {bool}     showName                 Whether to display the name of the color on the button
+ * @param {bool}     showName                 Wether to display the name of the color on the button
  * @param {QWidget}  parent                   The parent QWidget for the button. Automatically set during initialisation of the menu.
  *
  */
@@ -1437,7 +1546,7 @@ $.oColorButton.prototype.activate = function(){
  * @name          $.oScriptButton
  * @constructor
  * @classdescription This subclass of QPushButton provides an easy way to create a button for a widget that will launch a function from another script file.<br>
- * The buttons created this way automatically load the icon named after the script if it finds one named like the function in a script-icons folder next to the script file.<br>
+ * The buttons created this way automatically load the icon named after the script if it finds one named like the funtion in a script-icons folder next to the script file.<br>
  * It will also automatically set the callback to lanch the function from the script.<br>
  * This class is a subclass of QPushButton and all the methods from that class are available to modify this button.
  * @param {string}   scriptFile               The path to the script file that will be launched
@@ -1451,7 +1560,13 @@ $.oScriptButton = function(scriptFile, scriptFunction, parent) {
   // find an icon for the function in the script-icons folder
   var scriptFile = new this.$.oFile(scriptFile)
   var scriptIconsFolder = new this.$.oFolder(scriptFile.folder.path+"/script-icons");
-  var iconFiles = scriptIconsFolder.getFiles(scriptFunction+".*");
+  try{
+    var iconFiles = scriptIconsFolder.getFiles(scriptFunction+".*");
+  } catch(e){
+    $.log("error was caught " + e);
+    var iconFiles = [];
+  }
+
   if (iconFiles.length > 0){
     var iconFile = iconFiles[0].path;
   }else{

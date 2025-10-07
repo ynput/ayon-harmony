@@ -4,7 +4,7 @@
 //                            openHarmony Library
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney
+//         Developped by Mathieu Chaptel, Chris Fourney
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -16,7 +16,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -213,7 +213,7 @@ Object.defineProperty($.oColumn.prototype, 'subColumns', {
 
 /**
  * The type of easing used by the column
- * @name $.oColumn#subColumns
+ * @name $.oColumn#easeType
  * @readonly
  * @type {object}
  */
@@ -222,6 +222,7 @@ Object.defineProperty($.oColumn.prototype, 'easeType', {
         switch(this.type){
             case "BEZIER":
                 return "BEZIER";
+            case "QUATERNION_PATH":
             case "3DPATH":
                 return column.velocityType( this.uniqueName );
             default:
@@ -283,7 +284,6 @@ $.oColumn.prototype.extendExposures = function( exposures, amount, replace){
     for (var i in exposures) {
         if (!exposures[i].isBlank) exposures[i].extend(amount, replace);
     }
-
 }
 
 
@@ -349,6 +349,7 @@ $.oColumn.prototype.duplicate = function(newAttribute) {
   for (var i in _keyframes){
     var _duplicateFrame = _duplicatedFrames[_keyframes[i].frameNumber];
     _duplicateFrame.value = _keyframes[i].value;
+    _duplicateFrame.isKeyframe = true;
   }
 
   for (var i in _keyframes){
@@ -383,7 +384,8 @@ $.oColumn.prototype.getKeyframes = function(){
 
     for (var i = 0; i<_points; i++) {
       var _frameNumber = func.pointX( _columnName, i )
-      _keyFrames.push( _frames[_frameNumber] );
+      if (_frameNumber<this.$.scene.length)
+        _keyFrames.push( _frames[_frameNumber] ); // don't add keyframes outside scene length range because values can't be read
     }
 
     return _keyFrames;
@@ -472,9 +474,61 @@ $.oColumn.prototype.getTimelineLayer = function(timeline){
 
 
 /**
+ * Create/Set a key at the given percentage between the surrounding keys. Requires the column to contain at least 2 keys.
+ * @param {int} percentage   a value between 0 and 100 representing the position between first and second key
+ * @param {int} frameNumber  the frame number to place the new value.
+ * @example
+ * // grab the current node and create a key at the current frame halfway between existing keys on all linked columns for this node.
+ * var selectedNode = $.scn.selectedNodes[0];
+ * var columns = _node.linkedColumns;
+ * var percentage = 50;
+ * var frameNumber = $.scn.currentFrame();
+ *
+ * for (var i in columns){
+ *   try{
+ *	   columns[i].interpolateValueAtFrame(percentage, frameNumber); // ommitting the arguments will create a key at 50% on current frame by default.
+ *   }catch(e){
+ *     // will output errors for columns with less than 2 keys or which type don't support interpolation (for ex, DRAWING)
+ *     $.log(e);
+ *   }
+ * }
+ */
+$.oColumn.prototype.interpolateValueAtFrame = function(percentage, frameNumber){
+  if (this.keyframes.length < 2) throw new Error("Can't interpolate, column "+this.name+" has less than two keys.");
+  if (typeof frameNumber === 'undefined') var frameNumber = this.$.scn.currentFrame;
+  if (typeof percentage === 'undefined') var percentage = 50;
+
+  var _frame = this.frames[frameNumber];
+  var _leftKey = _frame.keyframeLeft;
+  var _rightKey = _frame.keyframeRight;
+
+  switch (this.type){
+    case "BEZIER":
+      var a = _leftKey.value;
+      var b = _rightKey.value;
+      _frame.value = this.$.lerp(a, b, percentage/100);
+      break;
+
+    case "3DPATH":
+      var a = _leftKey.value.position;
+      var b = _rightKey.value.position;
+      _frame.value = a.lerp(b, percentage/100);
+
+    case "QUATERNIONPATH":
+      var a = _leftKey.value;
+      var b = _rightKey.value;
+      _frame.value = a.lerp(b, percentage/100);
+      break;
+
+    default:
+      throw new Error("Interpolation not supported for column type "+this.type+".");
+  }
+}
+
+/**
  * @private
  */
-$.oColumn.prototype.toString = function(){
+ $.oColumn.prototype.toString = function(){
   return "[object $.oColumn '"+this.name+"']"
 }
 
@@ -522,7 +576,12 @@ $.oDrawingColumn.prototype.constructor = $.oColumn;
  */
 Object.defineProperty($.oDrawingColumn.prototype, 'element', {
     get : function(){
-        return new this.$.oElement(column.getElementIdOfDrawing( this.uniqueName), this);
+      // get info about synched layer if the column is fetched from the attribute (which is the case most of the time)
+      var _synchedLayer = null;
+      if (this.attributeObject){
+        _synchedLayer = this.attributeObject.layer.getValue();
+      }
+      return new this.$.oElement(column.getElementIdOfDrawing( this.uniqueName), _synchedLayer, this);
     },
 
     set : function(oElementObject){
@@ -540,9 +599,15 @@ Object.defineProperty($.oDrawingColumn.prototype, 'element', {
  */
 $.oDrawingColumn.prototype.extendExposures = function( exposures, amount, replace){
     // if amount is undefined, extend function below will automatically fill empty frames
-    if (typeof exposures === 'undefined') var exposures = this.getKeyframes();
 
-    this.$.debug("extendingExposures "+exposures.map(function(x){return x.frameNumber})+" by "+amount, this.$.DEBUG_LEVEL.DEBUG)
+    if (typeof exposures === 'undefined' && typeof amount === 'undefined') {
+      column.fillEmptyCels (this.name, 1, this.$.scene.length);
+      return; // in case of simple call of this function, we fallback on the fastest way to call the vanilla instruction
+    }
+
+    if (typeof exposures === 'undefined') var exposures = this.keyframes;
+
+    //this.$.debug("extendingExposures "+exposures.map(function(x){return x.frameNumber})+" by "+amount, this.$.DEBUG_LEVEL.DEBUG)
 
     // can't extend blank exposures, so we remove them from the list to extend
     exposures = exposures.filter(function(x){return !x.isBlank})

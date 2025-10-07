@@ -4,7 +4,7 @@
 //                            openHarmony Library
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney
+//         Developped by Mathieu Chaptel, Chris Fourney
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -16,7 +16,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -139,14 +139,14 @@ $.oNode.prototype.attributesBuildCache = function (){
  * Private function to create attributes setters and getters as properties of the node
  * @private
  */
-$.oNode.prototype.setAttrGetterSetter = function (attr, context){
+$.oNode.prototype.setAttrGetterSetter = function (attr, context, oNodeObject){
     if (typeof context === 'undefined') context = this;
     // this.$.debug("Setting getter setters for attribute: "+attr.keyword+" of node: "+this.name, this.$.DEBUG_LEVEL.DEBUG)
 
     var _keyword = attr.shortKeyword;
 
     Object.defineProperty( context, _keyword, {
-        enumerable : true,
+        enumerable : false,
         configurable : true,
         get : function(){
             // MessageLog.trace("getting attribute "+attr.keyword+". animated: "+(attr.column != null))
@@ -161,9 +161,10 @@ $.oNode.prototype.setAttrGetterSetter = function (attr, context){
                 // this means every result of attr.getValue must be an object.
                 // For attributes that have a string return value, attr.getValue() actually returns a fake string object
                 // which is an object with a value property and a toString() method returning the value.
-                var _value = (attr.column != null)?new this.$.oList(attr.frames, 1):attr.getValue();
+                var _value = (attr.column != null)?new oNodeObject.$.oList(attr.frames, 1):attr.getValue();
+                //var _value = (attr.column != null)? attr.frames:attr.getValue();
                 for (var i in _subAttrs){
-                    this.setAttrGetterSetter( _subAttrs[i], _value );
+                  oNodeObject.setAttrGetterSetter( _subAttrs[i], _value, oNodeObject);
                 }
             }
             return _value;
@@ -322,13 +323,7 @@ Object.defineProperty($.oNode.prototype, 'exists', {
  */
 Object.defineProperty($.oNode.prototype, 'selected', {
     get : function(){
-      for( var n=0;n<selection.numberOfNodesSelected;n++ ){
-          if( selection.selectedNode(n) == this.path ){
-            return true;
-          }
-      }
-
-      return false;
+      return selection.selectedNodes().indexOf(this.path) != -1;
     },
 
     //Add it to the selection.
@@ -368,6 +363,21 @@ Object.defineProperty($.oNode.prototype, 'name', {
   }
 });
 
+/**
+ * The color of the node
+ * @name $.oNode#nodeColor
+ * @type {$.oColorValue}
+ */
+Object.defineProperty($.oNode.prototype, 'nodeColor', {
+  get : function(){
+    var _color = node.getColor(this.path);
+    return new $.oColorValue({r:_color.r, g:_color.g, b:_color.b, a:_color.a});
+  },
+  set : function(color){
+    var _rgbacolor = new ColorRGBA(color.r, color.g, color.b, color.a);
+    node.setColor(this.path, _rgbacolor);
+  }
+});
 
 /**
  * The group containing the node.
@@ -562,7 +572,7 @@ Object.defineProperty($.oNode.prototype, 'height', {
 
 
 /**
- * The list of oNodeLinks objects describing the connections to the inport of this node, in order of inport.
+ * The list of oNodeLinks objects descibing the connections to the inport of this node, in order of inport.
  * @name $.oNode#inLinks
  * @readonly
  * @deprecated returns $.oNodeLink instances but $.oLink is preferred. Use oNode.getInLinks() instead.
@@ -658,7 +668,7 @@ Object.defineProperty($.oNode.prototype, 'outPorts', {
 
 
 /**
- * The list of oNodeLinks objects describing the connections to the outports of this node, in order of outport.
+ * The list of oNodeLinks objects descibing the connections to the outports of this node, in order of outport.
  * @name $.oNode#outLinks
  * @readonly
  * @type {$.oNodeLink[]}
@@ -1046,7 +1056,7 @@ $.oNode.prototype.getOutLinks = function(){
 
 /**
  * Returns a free unconnected out-port
- * @param  {bool}  [createNew=true]  Whether to allow creation of new ports
+ * @param  {bool}  [createNew=false]  Whether to allow creation of new ports
  * @return {int} the port number that isn't connected
  */
 $.oNode.prototype.getFreeOutPort = function(createNew){
@@ -1064,6 +1074,97 @@ $.oNode.prototype.getFreeOutPort = function(createNew){
   return _outPorts-1; // if no empty outPort can be found, return the last one
 }
 
+/**
+ * Traverses the node hierarchy up until if finds a node matching the condition.
+ * @param {function} condition a function returning true or false which can be used to find the node
+ * @param {bool} lookInsideGroups wether to consider the nodes inside connected groups
+ * @returns {$.oNode} the found node
+ */
+ $.oNode.prototype.findFirstInNodeMatching = function(condition, lookInsideGroups){
+  if (typeof lookInsideGroups === 'undefined') var lookInsideGroups = false;
+
+  var _linkedNodes = this.linkedInNodes;
+  if (!_linkedNodes.length) return null;
+
+  for (var i in _linkedNodes){
+    if (condition(_linkedNodes[i])) return _linkedNodes[i];
+  }
+  for (var i in _linkedNodes){
+    var _node = _linkedNodes[i].findFirstInNodeMatching(condition, lookInsideGroups);
+    if (_node) return _node;
+  }
+  return null;
+}
+
+
+/**
+ * Traverses the node hierarchy down until if finds a node matching the condition.
+ * @param {function} condition a function returning true or false which can be used to find the node
+ * @param {bool} lookInsideGroups wether to consider the nodes inside connected groups
+ * @returns {$.oNode} the found node
+ */
+ $.oNode.prototype.findFirstOutNodeMatching = function(condition, lookInsideGroups){
+  if (typeof lookInsideGroups === 'undefined') var lookInsideGroups = false;
+
+  var _linkedNodes = this.linkedOutNodes;
+  if (!_linkedNodes.length) return null;
+
+  for (var i in _linkedNodes){
+    if (condition(_linkedNodes[i])) return _linkedNodes[i];
+  }
+  for (var i in _linkedNodes){
+    var _node = _linkedNodes[i].findFirstOutNodeMatching(condition, lookInsideGroups);
+    if (_node) return _node;
+  }
+  return null;
+}
+
+
+/**
+ * Traverses the node hierarchy up until if finds a node of the given type.
+ * @param {string} type the type of node we are looking for
+ * @param {bool} lookInsideGroups wether to consider the nodes inside connected groups
+ * @returns {$.oNode} the found node
+ */
+$.oNode.prototype.findFirstInNodeOfType = function(type, lookInsideGroups){
+  return this.findFirstInNodeMatching(function(x){return x.type == type});
+}
+
+/**
+ * Traverses the node hierarchy down until if finds a node of the given type.
+ * @param {string} type the type of node we are looking for
+ * @param {bool} lookInsideGroups wether to consider the nodes inside connected groups
+ * @returns {$.oNode} the found node
+ */
+$.oNode.prototype.findFirstOutNodeOfType = function(type, lookInsideGroups){
+  return this.findFirstOutNodeMatching(function(x){return x.type == type});
+}
+
+
+/**
+ * Traverses the node hierarchy up until if finds a node of the given type.
+ * @param {string} type the type of node we are looking for
+ * @param {bool} lookInsideGroups wether to consider the nodes inside connected groups
+ * @returns {$.oNode} the found node
+ */
+$.oNode.prototype.findFirstInLinkOfType = function(type){
+  var _inNode = this.findFirstInNodeMatching(function(x){return x.type == type})
+  if (_inNode) return new $.oLinkPath(_inNode, this);
+  return null;
+}
+
+
+/**
+ * Traverses the node hierarchy up until if finds a node of the given type.
+ * @param {string} type the type of node we are looking for
+ * @param {bool} lookInsideGroups wether to consider the nodes inside connected groups
+ * @returns {$.oNode} the found node
+ */
+$.oNode.prototype.findFirstOutLinkOfType = function(type){
+  var _outNode = this.findFirstOutNodeMatching(function(x){return x.type == type})
+  if (_outNode) return new $.oLinkPath(this, _outNode);
+  return null;
+}
 
 /**
  * Links this node's out-port to the given module, at the inport and outport indices.
@@ -1359,6 +1460,143 @@ $.oNode.prototype.placeAtCenter = function( oNodeArray, xOffset, yOffset ){
 }
 
 
+/**
+ * Sorts the nodes above this node in a grid like manner, based on their links.
+ * @param   {int}     [verticalSpacing=120]   optional: The spacing between two rows of nodes.
+ * @param   {int}     [horizontalSpacing=40]   optional: The spacing between two nodes horizontally.
+ */
+$.oNode.prototype.orderAboveNodes = function(verticalSpacing, horizontalSpacing){
+  if (typeof verticalSpacing === 'undefined') var verticalSpacing = 120;
+  if (typeof horizontalSpacing === 'undefined') var horizontalSpacing = 40;
+
+  $.beginUndo()
+
+  var startNode = this;
+  var nodeHeights = {}
+
+  nodeHeights[startNode.path] = 0
+  var levels = [[startNode]];
+  var widestLevel = 0
+  var biggestWidth = 0
+
+  function getNodesWidth(nodes){
+    var width = 0;
+    for (var i in nodes){
+      var spacing = horizontalSpacing;
+      width += nodes[i].width + spacing;
+    }
+    return width;
+  }
+
+  // getting node heights in the hierarchy by counting the links from the base node
+  function getHeights(startNode, nodeHeights){
+    var nodeHeight = nodeHeights[startNode.path];
+    var newHeight = nodeHeight + 1;
+    if (!levels[newHeight]) levels[newHeight] = [];
+    var level = levels[newHeight];
+
+    for (var i in startNode.linkedInNodes){
+      var linkedNode = startNode.linkedInNodes[i];
+      if (!nodeHeights[linkedNode.path]) nodeHeights[linkedNode.path] = 0;
+      if (nodeHeights[linkedNode.path] < newHeight) nodeHeights[linkedNode.path] = newHeight;
+
+      var paths = level.map(function(x){return x.path}); // avoid duplicates
+      if (paths.indexOf(linkedNode.path) == -1) level.push(linkedNode);
+
+      getHeights(linkedNode, nodeHeights);
+    }
+  }
+
+  getHeights(startNode, nodeHeights);
+
+  // remove duplicate nodes present on the wrong levels
+  for (var i in levels){
+    var row = levels[i];
+    for (var j = row.length-1; j>=0; j--){
+      var levelNode = row[j];
+      var nodeHeight = nodeHeights[levelNode.path];
+      if (i != nodeHeight) row.splice(j, 1);
+    }
+  }
+
+  // getting widest row index and geometry
+  for (var i=1; i<levels.length; i++){
+    var row = levels[i];
+    row.reverse();
+
+    var totalWidth = getNodesWidth(row);
+
+    if (totalWidth > biggestWidth){
+      widestLevel = i;
+      biggestWidth = totalWidth;
+    }
+  }
+
+  // sort out widest level first
+  var row = levels[widestLevel];
+
+  var totalWidth = getNodesWidth(row);
+  var middle = startNode.bounds.center.x
+
+  var left = middle - totalWidth/2;
+  var top = startNode.bounds.top + widestLevel * (- verticalSpacing - startNode.height);
+
+  for (var j in row){
+    var aNode = row[j];
+    var xOffset = 0;
+    var nodes = row.slice(0, j);
+    xOffset = getNodesWidth(nodes);
+
+    aNode.x = left + xOffset;
+    aNode.y = top;
+  }
+
+  // keeping track of the nodes that can't be sorted
+  var failedUpSort = [];
+  var failedDownSort = [];
+
+  // sort up from widest level
+  for (var i = widestLevel+1; i<levels.length; i++){
+    var row = levels[i];
+    for (var j in row){
+      var belowNodes = row[j].linkedOutNodes.filter(function(x){return nodeHeights[x.path] >= widestLevel});
+      if (!belowNodes.length){
+        failedUpSort.push(row[j]);
+      }else{
+        row[j].centerAbove(belowNodes, 0, -verticalSpacing);
+      }
+    }
+  }
+
+  // sort below widest level
+  for (var i = widestLevel-1; i>0; i--){
+    var row = levels[i];
+    for (var j in row){
+      var aboveNodes = row[j].linkedInNodes.filter(function(x){return nodeHeights[x.path] <= widestLevel});
+      if (!aboveNodes.length){
+        failedDownSort.push(row[j]);
+      }else{
+        row[j].centerBelow(aboveNodes, 0, verticalSpacing);
+      }
+    }
+  }
+
+  // sort orphaned nodes by placing them on an inbetween level
+  for (var i in failedUpSort){
+    var sortNode = failedUpSort[i];s
+    sortNode.centerBelow(sortNode.linkedInNodes, 0, verticalSpacing/2);
+  }
+
+  // sort orphaned nodes
+  for (var i in failedDownSort){
+    var sortNode = failedDownSort[i];
+    sortNode.centerAbove(sortNode.linkedOutNodes, 0, -verticalSpacing/2);
+  }
+
+
+  $.endUndo()
+}
+
  /**
  * Create a clone of the node.
  * @param   {string}    newName              The new name for the cloned module.
@@ -1643,7 +1881,7 @@ $.oNode.prototype.refreshAttributes = function( ){
     var _attributes = this.attributes
     for (var i in _attributes){
       var _attr = _attributes[i];
-      this.setAttrGetterSetter(_attr);
+      this.setAttrGetterSetter(_attr, this, this);
     }
 }
 
@@ -1666,7 +1904,7 @@ $.oNode.prototype.refreshAttributes = function( ){
  * It represents peg nodes in the scene.
  * @constructor
  * @augments   $.oNode
- * @classdesc  Peg Module Class
+ * @classdesc  Peg Moudle Class
  * @param   {string}         path                          Path to the node in the network.
  * @param   {oScene}         oSceneObject                  Access to the oScene object of the DOM.
  */
@@ -1740,8 +1978,7 @@ $.oDrawingNode.prototype.constructor = $.oDrawingNode;
  */
 Object.defineProperty($.oDrawingNode.prototype, "element", {
   get : function(){
-    var _column = this.attributes.drawing.element.column;
-    return ( new this.$.oElement( node.getElementId(this.path), _column ) );
+    return this.timingColumn.element;
   },
 
   set : function( oElementObject ){
@@ -1758,8 +1995,7 @@ Object.defineProperty($.oDrawingNode.prototype, "element", {
  */
 Object.defineProperty($.oDrawingNode.prototype, "timingColumn", {
   get : function(){
-    var _column = this.attributes.drawing.element.column;
-    return _column;
+    return this.attributes.drawing.element.column;
   },
 
   set : function (oColumnObject){
@@ -1886,7 +2122,7 @@ $.oDrawingNode.prototype.getDrawingAtFrame = function(frameNumber){
 
 
  /**
- * Gets the list of palettes containing colors used by a drawing node. This only gets palettes with the first occurrence of the colors.
+ * Gets the list of palettes containing colors used by a drawing node. This only gets palettes with the first occurence of the colors.
  * @return  {$.oPalette[]}   The palettes that contain the color IDs used by the drawings of the node.
  */
 $.oDrawingNode.prototype.getUsedPalettes = function(){
@@ -1922,9 +2158,23 @@ $.oDrawingNode.prototype.exposeAllDrawings = function(framesPerDrawing){
     frameNumber+=framesPerDrawing;
   }
 
-  var _column = this.attributes.drawing.element.column;
+  var _column = this.timingColumn;
   var _exposures = _column.getKeyframes();
   _column.extendExposures(_exposures, framesPerDrawing-1);
+}
+
+
+/**
+ * Adds a new empty drawing to the drawingNode at the given frame. Can specify a file for the drawing (to import it)
+ * @see $#oElement.addDrawing
+ * @param {int} [atFrame=1] The frame at which to add the drawing on the $.oDrawingColumn. Values < 1 create no exposure
+ * @param {string} [name] The name of the drawing to add.
+ * @param {string} [filename] Optionally, a path for a drawing file to use for this drawing. Can pass an oFile object as well.
+ * @param {bool} [convertToTvg=false] If the filename isn't a tvg file, specify if you want it converted (this doesn't vectorize the drawing).
+ * @return {$.oDrawing} the created drawing
+ */
+$.oDrawingNode.prototype.addDrawing = function(atFrame, name, filename, convertToTvg){
+  return this.element.addDrawing(atFrame, name, filename, convertToTvg);
 }
 
 
@@ -1934,7 +2184,7 @@ $.oDrawingNode.prototype.exposeAllDrawings = function(framesPerDrawing){
  * @param {int} frameNum
  */
 $.oDrawingNode.prototype.showDrawingAtFrame = function(drawing, frameNum){
-  var _column = this.attributes.drawing.element.column;
+  var _column = this.timingColumn;
   _column.setValue(drawing.name, frameNum);
 }
 
@@ -1968,7 +2218,7 @@ $.oDrawingNode.prototype.unlinkPalette = function(oPaletteObject){
  * Duplicates a node by creating an independent copy.
  * @param   {string}    [newName]              The new name for the duplicated node.
  * @param   {oPoint}    [newPosition]          The new position for the duplicated node.
- * @param   {bool}      [duplicateElement]     Whether to also duplicate the element.
+ * @param   {bool}      [duplicateElement]     Wether to also duplicate the element.
  */
 $.oDrawingNode.prototype.duplicate = function(newName, newPosition, duplicateElement){
   if (typeof newPosition === 'undefined') var newPosition = this.nodePosition;
@@ -2429,6 +2679,19 @@ Object.defineProperty($.oGroupNode.prototype, "nodes", {
 });
 
 
+ /**
+ * All the nodes contained within the group, excluding multiports.
+ * @name $.oGroupNode#nodesNoMultiport
+ * @readonly
+ * @type {$.oNode[]}
+ */
+Object.defineProperty($.oGroupNode.prototype, "nodesNoMultiport", {
+  get : function() {
+    return this.nodes.filter(function(x){return x.type != "MULTIPORT_IN" && x.type != "MULTIPORT_OUT"})
+  }
+});
+
+
 
  /**
  * All the backdrops contained within the group.
@@ -2464,7 +2727,7 @@ $.oGroupNode.prototype.getNodeByName = function(name){
  * Returns all the nodes of a certain type in the group.
  * Pass a value to recurse to look into the groups as well.
  * @param   {string}        typeName      The type of the nodes.
- * @param   {bool}          recurse       Whether to look inside the groups.
+ * @param   {bool}          recurse       Wether to look inside the groups.
  *
  * @return  {$.oNode[]}     The nodes found.
  */
@@ -2626,7 +2889,7 @@ $.oGroupNode.prototype.orderNodeView = function(recurse){
  *
  * peg.linkOutNode(drawingNode);
  *
- * //through all this we didn't specify nodePosition parameters so we'll sort everything at once
+ * //through all this we didn't specify nodePosition parameters so we'll sort evertything at once
  *
  * sceneRoot.orderNodeView();
  *
@@ -2642,6 +2905,17 @@ $.oGroupNode.prototype.addNode = function( type, name, nodePosition ){
   if (typeof name !== 'string') name = name+"";
 
   var _group = this.path;
+
+  // get unique name if type is DISPLAY as all other types increment on their own
+  if (type == "DISPLAY"){
+    var num = 1;
+    var displayName = name;
+    while (this.$node(displayName)){
+      displayName = name + "_" + num;
+      num++;
+    }
+    name = displayName;
+  }
 
   // create node and return result (this sanitizes/increments the name, so we only create the oNode with the returned value)
   var _path = node.add(_group, name, type, nodePosition.x, nodePosition.y, nodePosition.z);
@@ -2685,6 +2959,11 @@ $.oGroupNode.prototype.addDrawingNode = function( name, nodePosition, oElementOb
   // setup the node
   // setup animate mode/separate based on preferences?
   _node.attributes.drawing.element.column = drawingColumn;
+  var _prefs = this.$.app.preferences
+  _node.can_animate = _prefs.ELEMENT_CAN_BE_ANIMATED_DEFAULT_VALUE;
+  _node.offset.separate = _prefs.READ_DEFAULT_SEPARATE_POSITION;
+  _node.scale.separate = _prefs.READ_DEFAULT_SEPARATE_SCALE;
+  _node.use_drawing_pivot = _prefs.READ_USE_DRAWING_PIVOT?"Apply Embedded Pivot on Drawing Layer":"Don't Use Embedded Pivot";
 
   this.$.endUndo();
 
@@ -2829,12 +3108,13 @@ $.oGroupNode.prototype.importTemplate = function( tplPath, destinationNodes, ext
     }
 
     // move backdrops present in the template
-    var backdrops = this.backdrops.slice(oldBackdrops.length);
-    for (var i in backdrops){
-      backdrops[i].x += nodePosition.x;
-      backdrops[i].y += nodePosition.y;
+    var allBackdrops = this.backdrops;
+    var newBackdrops = allBackdrops.slice(0,allBackdrops.length - oldBackdrops.length);
+    for (var i in newBackdrops){
+      newBackdrops[i].x += nodePosition.x;
+      newBackdrops[i].y += nodePosition.y;
     }
-    
+
     // move waypoints in the top level of the template
     for (var i in _nodes) {
       var nodePorts = _nodes[i].outPorts;
@@ -2851,7 +3131,7 @@ $.oGroupNode.prototype.importTemplate = function( tplPath, destinationNodes, ext
         }
       }
     }
-    
+
   }
 
   this.$.endUndo();
@@ -3274,12 +3554,17 @@ $.oGroupNode.prototype.updatePSD = function( path, separateLayers ){
  * @param {string} path The image file to import.
  * @param {string} [alignment="ASIS"] Alignment type.
  * @param {$.oPoint} [nodePosition={0,0,0}] The position for the node to be placed in the node view.
+ * @param {bool} [convertToTvg=false] Convert image to TVG format.
+ * @param {string} [resized_axis="Y"] Resize image to fit with scene resolution in given axis.
  *
  * @return  {$.oNode}    The node for the imported image
  */
-$.oGroupNode.prototype.importImage = function( path, alignment, nodePosition, convertToTvg){
+$.oGroupNode.prototype.importImage = function( path, alignment, nodePosition, convertToTvg, resized_axis){
+
   if (typeof alignment === 'undefined') var alignment = "ASIS"; // create an enum for alignments?
   if (typeof nodePosition === 'undefined') var nodePosition = new this.$.oPoint(0,0,0);
+  if (typeof convertToTvg === 'undefined') var convertToTvg = false;
+  if (typeof resized_axis === 'undefined') var resized_axis = "Y";
 
   var _imageFile = (path instanceof this.$.oFile)?path:new this.$.oFile( path );
   var _elementName = _imageFile.name;
@@ -3297,13 +3582,19 @@ $.oGroupNode.prototype.importImage = function( path, alignment, nodePosition, co
 
   var _imageNode = this.addDrawingNode(_elementName, nodePosition, _element);
 
-  _imageNode.can_animate = false; // use general pref?
   _imageNode.apply_matte_to_color = "Straight";
   _imageNode.alignment_rule = alignment;
 
-  var _scale = CELIO.getInformation(_imageFile.path).height/this.scene.defaultResolutionY;
-  _imageNode.scale.x = _scale;
-  _imageNode.scale.y = _scale;
+  if (convertToTvg) {
+    var _scale = 1
+    if (resized_axis == "Y") {
+      _scale = this.scene.defaultResolutionY/CELIO.getInformation(_imageFile.path).height;
+    } else if (resized_axis == "X") {
+      _scale = this.scene.defaultResolutionX/CELIO.getInformation(_imageFile.path).width;
+    }
+    _imageNode.scale.x = _scale;
+    _imageNode.scale.y = _scale;
+  }
 
   _imageNode.attributes.drawing.element.setValue(_drawing.name, 1);
   _imageNode.attributes.drawing.element.column.extendExposures();
@@ -3322,7 +3613,7 @@ $.oGroupNode.prototype.importImage = function( path, alignment, nodePosition, co
 $.oGroupNode.prototype.importImageAsTVG = function(path, alignment, nodePosition){
   if (!(path instanceof this.$.oFile)) path = new this.$.oFile(path);
 
-  var _imageNode = this.importImage(_convertedFilePath, alignment, nodePosition, true);
+  var _imageNode = this.importImage(path, alignment, nodePosition, true);
   _imageNode.name = path.name;
 
   return _imageNode;
@@ -3333,20 +3624,20 @@ $.oGroupNode.prototype.importImageAsTVG = function(path, alignment, nodePosition
  * imports an image sequence as a node into the current group.
  * @param {$.oFile[]} imagePaths           a list of paths to the images to import (can pass a list of strings or $.oFile)
  * @param {number}    [exposureLength=1]   the number of frames each drawing should be exposed at. If set to 0/false, each drawing will use the numbering suffix of the file to set its frame.
- * @param {boolean}   [convertToTvg=false] whether to convert the files to tvg during import
+ * @param {boolean}   [convertToTvg=false] wether to convert the files to tvg during import
  * @param {string}    [alignment="ASIS"]   the alignment to apply to the node
  * @param {$.oPoint}  [nodePosition]       the position of the node in the nodeview
+ * @param {string} [resized_axis="Y"] Resize image to fit with scene resolution in given axis.
  *
  * @returns {$.oDrawingNode} the created node
  */
-$.oGroupNode.prototype.importImageSequence = function(imagePaths, exposureLength, convertToTvg, alignment, nodePosition, extendScene) {
+$.oGroupNode.prototype.importImageSequence = function(imagePaths, exposureLength, convertToTvg, alignment, nodePosition, extendScene, resized_axis) {
   if (typeof exposureLength === 'undefined') var exposureLength = 1;
   if (typeof alignment === 'undefined') var alignment = "ASIS"; // create an enum for alignments?
   if (typeof nodePosition === 'undefined') var nodePosition = new this.$.oPoint(0,0,0);
-
   if (typeof extendScene === 'undefined') var extendScene = false;
-
-  // match anything but capture trailing numbers and separates punctuation preceding it
+  if (typeof resized_axis === 'undefined') var resized_axis = "Y";
+  // match anything but capture trailing numbers and separates punctuation preceeding it
   var numberingRe = /(.*?)([\W_]+)?(\d*)$/i;
 
   // sanitize imagePaths
@@ -3394,7 +3685,7 @@ $.oGroupNode.prototype.importImageSequence = function(imagePaths, exposureLength
   // create a node to hold the image sequence
   var firstImage = imagePaths[0];
   var name = firstImage.name.match(numberingRe)[1]; // match anything before trailing digits
-  var drawingNode = this.importImage(firstImage, alignment, nodePosition, convertToTvg);
+  var drawingNode = this.importImage(firstImage, alignment, nodePosition, convertToTvg, resized_axis);
   drawingNode.name = name;
 
   for (var i in images){
@@ -3414,14 +3705,16 @@ $.oGroupNode.prototype.importImageSequence = function(imagePaths, exposureLength
  * @param   {bool}           [extendScene=true]            Whether to extend the scene to the duration of the QT.
  * @param   {string}         [alignment="ASIS"]            Alignment type.
  * @param   {$.oPoint}       [nodePosition]                The position for the node to be placed in the network.
+ * @param {bool}             [convertToTvg=false]          Convert movie frames to TVG format.
  *
  * @return {$.oNode}        The imported Quicktime Node.
  */
-$.oGroupNode.prototype.importQT = function( path, importSound, extendScene, alignment, nodePosition){
+$.oGroupNode.prototype.importQT = function( path, importSound, extendScene, alignment, nodePosition, convertToTvg){
   if (typeof alignment === 'undefined') var alignment = "ASIS";
   if (typeof extendScene === 'undefined') var extendScene = true;
   if (typeof importSound === 'undefined') var importSound = true;
   if (typeof nodePosition === 'undefined') var nodePosition = new this.$.oPoint(0,0,0);
+  if (typeof convertToTvg === 'undefined') var convertToTvg = false;
 
   var _QTFile = (path instanceof this.$.oFile)?path:new this.$.oFile(path);
   if (!_QTFile.exists){
@@ -3431,7 +3724,11 @@ $.oGroupNode.prototype.importQT = function( path, importSound, extendScene, alig
   var _movieName = _QTFile.name;
   this.$.beginUndo("oH_importQT_"+_movieName);
 
-  var _element = this.scene.addElement(_movieName, "PNG");
+  var imageFormat = "PNG"
+  if (convertToTvg) {
+    imageFormat = "TVG"
+  }
+  var _element = this.scene.addElement(_movieName, imageFormat);
   var _elementName = _element.name;
 
   var _movieNode = this.addDrawingNode(_movieName, nodePosition, _element);
@@ -3457,7 +3754,7 @@ $.oGroupNode.prototype.importQT = function( path, importSound, extendScene, alig
   MovieImport.setImageFolder(_tempFolder);
   MovieImport.setImagePrefix(_movieName);
   if (importSound) MovieImport.setAudioFile(_audioPath);
-  this.$.log("converting movie file to pngs...");
+  this.$.log("converting movie file to images...");
   MovieImport.doImport();
   this.$.log("conversion finished");
 
@@ -3471,7 +3768,7 @@ $.oGroupNode.prototype.importQT = function( path, importSound, extendScene, alig
   // create a drawing for each frame
   for (var i=1; i<=_movielength; i++) {
     _drawingPath = _tempFolder + "/" + _movieName + "-" + i + ".png";
-    _element.addDrawing(i, i, _drawingPath);
+    _element.addDrawing(i, i, _drawingPath, convertToTvg);
   }
 
   progressDialog.value = 95;

@@ -4,7 +4,7 @@
 //                            openHarmony Library
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney
+//         Developped by Mathieu Chaptel, Chris Fourney
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -16,7 +16,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -208,94 +208,112 @@ Object.defineProperty($.oFolder.prototype, 'content', {
 
 
 /**
- * Lists the file names contained inside the folder.
- * @param   {string}   [filter]               Filter wildcards for the content of the folder.
+ * Enum for the type of content to retrieve from the oFolder.
+ * @enum {QFlag}
+ */
+$.oFolder.prototype.ContentType = {
+  FOLDER: QDir.Filters(QDir.Dirs | QDir.NoDotAndDotDot),
+  FILE: QDir.Files
+}
+
+
+/**
+ * Lists the contents of the folder, filtered by the contentType and name filter(s).
+ * Primarily a helper function for listFile/listFolder, but can be called directly to provide custom filtering
+ * by providing QDir::Filters to the contentType parameter.
+ * @param   {$.oFolder.ContentType} [contentType]      Type of content to retrieve.
+ * @param   {string|string[]}       [filter="*"]       Single filter, or array of filters for the contents of the folder.
+ * @example
+ * // List files with a case-sensitive filter. Will match l* and not L*
+ * var dir = new $.oFolder("/tmp/example");
+ * dir.listEntries(QDir.Filters(QDir.Files | QDir.CaseSensitive), "l*")
+ * @example
+ * // List files including hidden files.
+ * var dir = new $.oFolder("/tmp/example");
+ * dir.listEntries(QDir.Filters(QDir.Files | QDir.Hidden))
  *
- * @returns {string[]}   The names of the files contained in the folder that match the filter.
+ * @returns {string[]}   Names of the folder contents that match the filter and type provided.
+ */
+$.oFolder.prototype.listEntries = function(contentType, filter) {
+  // Undefined filters become a wildcard
+  // A single string filter becomes a single-item array
+  // Array of filters are unchanged.
+  var _filter;
+  if (typeof filter === "undefined") {
+    _filter = ["*"];
+  }
+  else if (typeof filter === "string") {
+    _filter = [filter];
+  }
+  else {
+    _filter = filter;
+  }
+
+  var _dir = new QDir(this.path);
+  if (!_dir.exists()){
+    this.$.debug("can't get files from folder "+this.path+" because it doesn't exist", this.$.DEBUG_LEVEL.ERROR);
+    return [];
+  }
+
+  _dir.setNameFilters(_filter);
+  _dir.setFilter(contentType);
+
+  return _dir.entryList()
+}
+
+
+/**
+ * lists the file names contained inside the folder.
+ * @param   {string|string[]} [filter="*"] Wildcard (globbing) filter that understands * and ? wildcards. Used to filter the contents of the folder.
+ *
+ * @returns {string[]}  Names of the files contained in the folder that match the namefilter(s).
  */
 $.oFolder.prototype.listFiles = function(filter){
-    if (typeof filter === 'undefined') var filter = "*";
-
-    var _dir = new QDir;
-    _dir.setPath(this.path);
-    if (!_dir.exists) throw new Error("can't get files from folder "+this.path+" because it doesn't exist");
-    _dir.setNameFilters([filter]);
-    _dir.setFilter( QDir.Files);
-    var _files = _dir.entryList();
-
-    return _files;
+  return this.listEntries(this.ContentType.FILE, filter);
 }
 
 
 /**
  * get the files from the folder
- * @param   {string}   [filter]     Filter wildcards for the content of the folder.
+ * @param   {string|string[]} [filter="*"] Wildcard (globbing) filter that understands * and ? wildcards. Used to filter the contents of the folder.
  *
- * @returns {$.oFile[]}   A list of files contained in the folder as oFile objects.
+ * @returns {$.oFile[]}  A list of files contained in the folder that match the namefilter(s), as oFile objects.
  */
-$.oFolder.prototype.getFiles = function( filter ){
-    if (typeof filter === 'undefined') var filter = "*";
-    // returns the list of $.oFile in a directory that match a filter
+$.oFolder.prototype.getFiles = function(filter){
+  var _fileList = this.listFiles(filter);
+  var _files = _fileList.map(function(filePath) {
+    return new this.$.oFile(this.path + "/" + filePath);
+  }, this);
 
-    var _path = this.path;
-
-    var _files = [];
-    var _file_list = this.listFiles(filter);
-    for( var i in _file_list){
-      _files.push( new this.$.oFile( _path+'/'+_file_list[i] ) );
-    }
-
-    return _files;
+  return _files;
 }
 
 
 /**
  * lists the folder names contained inside the folder.
- * @param   {string}   [filter="*.*"]    Filter wildcards for the content of the folder.
+ * @param   {string|string[]} [filter="*"] Wildcard (globbing) filter that understands * and ? wildcards. Used to filter the contents of the folder.
  *
- * @returns {string[]}  The names of the files contained in the folder that match the filter.
+ * @returns {string[]}  Names of the files contained in the folder that match the namefilter(s).
  */
 $.oFolder.prototype.listFolders = function(filter){
-
-    if (typeof filter === 'undefined') var filter = "*";
-
-    var _dir = new QDir;
-    _dir.setPath(this.path);
-
-    if (!_dir.exists){
-      this.$.debug("can't get files from folder "+this.path+" because it doesn't exist", this.$.DEBUG_LEVEL.ERROR);
-      return [];
-    }
-
-    _dir.setNameFilters([filter]);
-    _dir.setFilter(QDir.Dirs); //QDir.NoDotAndDotDot not supported?
-    var _folders = _dir.entryList();
-
-    _folders = _folders.filter(function(x){return x!= "." && x!= ".."})
-
-    return _folders;
+  return this.listEntries(this.ContentType.FOLDER, filter);
 }
 
 
 /**
  * gets the folders inside the oFolder
- * @param   {string}   [filter]              Filter wildcards for the content of the folder.
+ * @param   {string|string[]} [filter="*"] Wildcard (globbing) filter that understands * and ? wildcards. Used to filter the contents of the folder.
  *
- * @returns {$.oFolder[]}      A list of folders contained in the folder, as oFolder objects.
+ * @returns {$.oFolder[]}  A list of folders contained in the folder that match the namefilter(s), as oFolder objects.
  */
-$.oFolder.prototype.getFolders = function( filter ){
-    if (typeof filter === 'undefined') var filter = "*";
-    // returns the list of $.oFile in a directory that match a filter
+$.oFolder.prototype.getFolders = function(filter){
 
-    var _path = this.path;
+  var _folderList = this.listFolders(filter);
+  var _folders = _folderList.map(function(folderPath) {
+    return new this.$.oFolder(this.path + "/" + folderPath);
+  }, this);
 
-    var _folders = [];
-    var _folders_list = this.listFolders(filter);
-    for( var i in _folders_list){
-      _folders.push( new this.$.oFolder(_path+'/'+_folders_list[i]));
-    }
-
-    return _folders;
+  return _folders;
 }
 
 
@@ -376,7 +394,7 @@ $.oFolder.prototype.move = function( destFolderPath, overwrite ){
         throw new Error("destination file "+dir.path+" exists and will not be overwritten. Can't move folder.");
 
     var path = fileMapper.toNativePath(this.path);
-    var destPath = fileMapper.toNativePath(dir.path+"/");
+    var destPath = fileMapper.toNativePath(dir.path);
 
     var destDir = new Dir;
     try {
@@ -509,7 +527,7 @@ Object.defineProperty($.oFile.prototype, 'fullName', {
 
 
 /**
- * The name of the file without extension.
+ * The name of the file without extenstion.
  * @name $.oFile#name
  * @type {string}
  */
@@ -625,7 +643,7 @@ $.oFile.prototype.read = function() {
       return string;
     }
   } catch (err) {
-    this.$.debug(err, this.DEBUG_LEVEL.ERROR)
+    this.$.debug(err, this.$.DEBUG_LEVEL.ERROR)
     return null
   }
 }
@@ -744,7 +762,7 @@ $.oFile.prototype.copy = function( destfolder, copyName, overwrite){
     var _dest = new PermanentFile(destfolder+"/"+_fileName);
 
     if (_dest.exists() && !overwrite){
-        throw new Error("Destination file "+destfolder+"/"+_fileName+" exists and will not be overwritten. Can't copy file.", this.DEBUG_LEVEL.ERROR);
+        throw new Error("Destination file "+destfolder+"/"+_fileName+" exists and will not be overwritten. Can't copy file.", this.$.DEBUG_LEVEL.ERROR);
     }
 
     this.$.debug("copying "+_file.path()+" to "+_dest.path(), this.$.DEBUG_LEVEL.LOG)

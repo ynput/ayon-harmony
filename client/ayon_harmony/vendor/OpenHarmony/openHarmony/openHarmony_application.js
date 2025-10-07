@@ -4,7 +4,7 @@
 //                            openHarmony Library
 //
 //
-//         Developed by Mathieu Chaptel, Chris Fourney
+//         Developped by Mathieu Chaptel, Chris Fourney
 //
 //
 //   This library is an open source implementation of a Document Object Model
@@ -16,7 +16,7 @@
 //   and by hiding the heavy lifting required by the official API.
 //
 //   This library is provided as is and is a work in progress. As such, not every
-//   function has been implemented or is guaranteed to work. Feel free to contribute
+//   function has been implemented or is garanteed to work. Feel free to contribute
 //   improvements to its official github. If you do make sure you follow the provided
 //   template and naming conventions and document your new methods properly.
 //
@@ -60,6 +60,19 @@ $.oApp = function(){
 
 
 /**
+ * The Harmony full version, including patch
+ * @name $.oApp#versionString
+ * @type {string}
+ * @readonly
+ */
+ Object.defineProperty($.oApp.prototype, 'versionString', {
+  get : function(){
+    return about.getVersionInfoStr().split("version").pop().split("build")[0].replace(/\s/g, "");
+  }
+});
+
+
+/**
  * The Harmony version number
  * @name $.oApp#version
  * @type {int}
@@ -67,9 +80,35 @@ $.oApp = function(){
  */
 Object.defineProperty($.oApp.prototype, 'version', {
   get : function(){
-    return parseInt(about.getVersionInfoStr().split("version").pop().split(".")[0], 10);
+    return parseInt(this.versionString.split(".")[0], 10);
   }
 });
+
+
+/**
+ * The Harmony minor Version (ex: 21.1.0 > 1 is the minor version)
+ * @name $.oApp#minorVersion
+ * @type {int}
+ * @readonly
+ */
+Object.defineProperty($.oApp.prototype, 'minorVersion', {
+  get : function(){
+    return parseInt(this.versionString.split(".")[1], 10);
+  }
+});
+
+/**
+ * The Harmony patch number (ex: 21.1.0 > 0 is the patch number)
+ * @name $.oApp#patch
+ * @type {int}
+ * @readonly
+ */
+ Object.defineProperty($.oApp.prototype, 'patch', {
+  get : function(){
+    return parseInt(this.versionString.split(".")[2], 10);
+  }
+});
+
 
 
 /**
@@ -409,7 +448,7 @@ $.oApp.prototype.getToolByName = function(toolName){
 
 
 /**
- * returns the list of stencils usable by the specified tool
+ * returns the list of stencils useable by the specified tool
  * @param {$.oTool}     tool      the tool object we want valid stencils for
  * @return {$.oStencil[]}    the list of stencils compatible with the specified tool
  */
@@ -418,6 +457,35 @@ $.oApp.prototype.getValidStencils = function (tool){
   return tool.stencils;
 }
 
+
+/**
+ * Calls a function from one of the menus of Harmony. Doesn't support submenus at the moment. Doesn't work in batch mode.
+ * @param {string} menuName         The name of the menu containing the action (must be a top level menu such as File, Edit etc)
+ * @param {string} menuString       The menu entry to trigger.
+ */
+$.oApp.prototype.runMenuCommand = function(menuName, menuString){
+  var menubar = this.mainWindow.menuBar();
+  var menus = menubar.children();
+
+  for (var i in menus) {
+    //Go through each menu option.
+    var menu = menus[i];
+
+    if (menu instanceof QMenu && menu.title == menuName) {
+      //We found the windows menu!
+      var menu_items = menu.children();
+
+      for (var j in menu_items) {
+        var action = menu_items[j];
+        if (action instanceof QAction && action.text.toLowerCase() == menuString.toLowerCase()) {//We found the drawing action in the Windos menu
+          action.trigger();  //Trigger the menu
+          System.processOneEvent();  //Allow Harmony to process one event (the above action) while stuck in JS
+          return;
+        }
+      }
+    }
+  }
+}
 
 //////////////////////////////////////
 //////////////////////////////////////

@@ -1,10 +1,7 @@
 import os
 import json
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
 from ayon_core.pipeline.context_tools import is_representation_from_latest
 import ayon_harmony.api as harmony
 
@@ -282,7 +279,7 @@ class BackgroundLoader(load.LoaderPlugin):
 
     def update(self, container, context):
         repre_entity = context["representation"]
-        path = get_representation_path(repre_entity)
+        path = self.filepath_from_context(context)
         with open(path) as json_file:
             data = json.load(json_file)
 
