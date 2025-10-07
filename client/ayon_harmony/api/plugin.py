@@ -144,7 +144,7 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
     def get_active_state(self, instance: CreatedInstance):
         """Get active state of the instance.
-        
+
         Args:
             instance (CreatedInstance): Instance.
 
