@@ -137,7 +137,7 @@ def setup_startup_scripts():
         and filecmp.cmp(ayon_harmony_startup, env_harmony_startup)
     ):
         return
- 
+
     try:
         shutil.copy(ayon_harmony_startup, env_harmony_startup)
     except Exception:
