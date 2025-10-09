@@ -46,7 +46,7 @@ def save_file(filepath):
 
         ProcessContext.server.send(
             {"function": "scene.saveAs", "args": [temp_path]}
-        )["result"]
+        )
 
         zip_and_move(temp_path, filepath)
 
@@ -59,6 +59,8 @@ def save_file(filepath):
             {"function": "AyonHarmonyAPI.addPathToWatcher", "args": scene_path}
         )
     else:
+        zip_and_move(get_local_harmony_path("temp"), filepath)
+
         os.environ["HARMONY_NEW_WORKFILE_PATH"] = filepath.replace("\\", "/")
 
     save_disabled = False
