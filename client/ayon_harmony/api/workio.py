@@ -1,5 +1,6 @@
 """Host API required Work Files tool"""
 import os
+from pathlib import Path
 import shutil
 
 from .lib import (
@@ -35,31 +36,41 @@ def save_file(filepath):
             })["result"]
 
     save_disabled = True
-    temp_path = get_local_harmony_path(filepath)
+    cache_path = get_local_harmony_path(filepath)
 
     if ProcessContext.server:
-        if os.path.exists(temp_path):
+        if os.path.exists(cache_path):
             try:
-                shutil.rmtree(temp_path)
+                shutil.rmtree(cache_path)
             except Exception as e:
-                raise Exception(f"cannot delete {temp_path}") from e
+                raise Exception(f"cannot delete {cache_path}") from e
 
         ProcessContext.server.send(
-            {"function": "scene.saveAs", "args": [temp_path]}
+            {"function": "scene.saveAs", "args": [cache_path]}
         )
 
-        zip_and_move(temp_path, filepath)
+        zip_and_move(cache_path, filepath)
 
         ProcessContext.workfile_path = filepath
 
         scene_path = os.path.join(
-            temp_path, os.path.basename(temp_path) + ".xstage"
+            cache_path, os.path.basename(cache_path) + ".xstage"
         )
         ProcessContext.server.send(
             {"function": "AyonHarmonyAPI.addPathToWatcher", "args": scene_path}
         )
     else:
-        zip_and_move(get_local_harmony_path("temp"), filepath)
+        temp_path = Path(get_local_harmony_path("temp"))
+        temp_scene_file = temp_path.joinpath("temp.xstage")
+        
+        # Rename temp scene file to the new file name
+        temp_scene_file = temp_scene_file.rename(temp_scene_file.with_name(Path(filepath).stem + ".xstage"))
+        
+        # Zip to work folder
+        zip_and_move(temp_path, filepath)
+        
+        # Rename temp scene file back to temp.xstage
+        temp_scene_file.rename(temp_path.joinpath("temp.xstage"))
 
         os.environ["HARMONY_NEW_WORKFILE_PATH"] = filepath.replace("\\", "/")
 
