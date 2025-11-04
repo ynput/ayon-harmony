@@ -12,7 +12,7 @@ import ayon_harmony.api as harmony
 class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
     """Collect render instances from Harmony.
 
-    Create regular render instances based on the ones created within the publisher.
+    Create regular render instances based on ones created in the publisher.
     """
 
     label = "Collect Render Instances"
