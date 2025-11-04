@@ -116,7 +116,6 @@ class ExtractRender(pyblish.api.InstancePlugin):
         else:
             # If there is only one collection, use it
             collection = collections[0]
-            
         if collection is None:
             raise KnownPublishError(
                 "Failed to find a collection with multiple files."
