@@ -121,7 +121,10 @@ class ExtractRender(pyblish.api.InstancePlugin):
                 "Failed to find a collection with multiple files."
             )
 
-        self.log.debug(f"Selected collection: {collection} with {len(collection.indexes)} files")
+        self.log.debug(
+            f"Selected collection: {collection} "
+            f"with {len(collection.indexes)} files"
+        )
 
         # Generate representations
         extension = collection.tail[1:]

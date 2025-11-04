@@ -25,7 +25,16 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
         "tvg": ["TVG"],
         "tga": ["TGA", "TGA4", "TGA3", "TGA1"],
         "sgi": ["SGI", "SGI4", "SGA3", "SGA1", "SGIDP", "SGIDP4", "SGIDP3"],
-        "psd": ["PSD", "PSD1", "PSD3", "PSD4", "PSDDP", "PSDDP1", "PSDDP3", "PSDDP4"],
+        "psd": [
+            "PSD",
+            "PSD1",
+            "PSD3",
+            "PSD4",
+            "PSDDP",
+            "PSDDP1",
+            "PSDDP3",
+            "PSDDP4",
+        ],
         "yuv": ["YUV"],
         "pal": ["PAL"],
         "scan": ["SCAN"],
@@ -68,15 +77,17 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
             creator_attributes = instance.data.get("creator_attributes", {})
             render_target = creator_attributes.get("render_target", "default")
 
+            product_name = instance.data["productName"]
+            product_type = "render"
             render_instance = publish.RenderInstance(
                 version=version,
                 time=get_formatted_current_time(),
                 source=context.data["currentFile"],
                 name=product_name,
                 label="{} - {}".format(product_name, product_type),
-                productName=instance.data["productName"],
-                productType="render",
-                family="render",
+                productName=product_name,
+                productType=product_type,
+                family=product_type,
                 families=["render", f"render.{render_target}", "review"],
                 folderPath=folder_path,
                 task=instance.data.get("task"),
@@ -96,7 +107,9 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
                 frameStart=instance.data.get(
                     "frameStart", context.data.get("frameStart")
                 ),
-                frameEnd=instance.data.get("frameEnd", context.data.get("frameEnd")),
+                frameEnd=instance.data.get(
+                    "frameEnd", context.data.get("frameEnd")
+                ),
                 handleStart=instance.data.get(
                     "handleStart", context.data.get("handleStart")
                 ),
@@ -152,7 +165,9 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
                 ext = k
 
         if not ext:
-            raise AssertionError(f"Cannot determine file extension for {info[1]}")
+            raise AssertionError(
+                f"Cannot determine file extension for {info[1]}"
+            )
 
         path = Path(render_instance.source).parent
         expected_files = []
