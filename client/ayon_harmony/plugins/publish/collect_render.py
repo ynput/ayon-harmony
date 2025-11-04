@@ -68,30 +68,44 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
             creator_attributes = instance.data.get("creator_attributes", {})
             render_target = creator_attributes.get("render_target", "default")
 
-            # Create families list
-            families = ["render", f"render.{render_target}", "review"]
-
-            # Create render instance
-            render_instance = self.create_render_instance(
-                context=context,
-                source_instance=instance,
-                node=instance.data["setMembers"][0],
+            render_instance = publish.RenderInstance(
                 version=version,
-                folder_path=folder_path,
-                frame_start=instance.data.get(
+                time=get_formatted_current_time(),
+                source=context.data["currentFile"],
+                name=product_name,
+                label="{} - {}".format(product_name, product_type),
+                productName=instance.data["productName"],
+                productType="render",
+                family="render",
+                families=["render", f"render.{render_target}", "review"],
+                folderPath=folder_path,
+                task=instance.data.get("task"),
+                attachTo=False,
+                setMembers=[instance.data["setMembers"][0]],
+                publish=True,
+                renderer=None,
+                priority=50,
+                resolutionWidth=context.data["resolutionWidth"],
+                resolutionHeight=context.data["resolutionHeight"],
+                pixelAspect=1.0,
+                multipartExr=False,
+                tileRendering=False,
+                tilesX=0,
+                tilesY=0,
+                convertToScanline=False,
+                frameStart=instance.data.get(
                     "frameStart", context.data.get("frameStart")
                 ),
-                frame_end=instance.data.get("frameEnd", context.data.get("frameEnd")),
-                handle_start=instance.data.get(
+                frameEnd=instance.data.get("frameEnd", context.data.get("frameEnd")),
+                handleStart=instance.data.get(
                     "handleStart", context.data.get("handleStart")
                 ),
-                handle_end=instance.data.get(
+                handleEnd=instance.data.get(
                     "handleEnd", context.data.get("handleEnd")
                 ),
-                product_name=instance.data["productName"],
-                product_type="render",
-                task=instance.data.get("task"),
-                families=families,
+                frameStep=1,
+                review=True,
+                source_instance=instance,
             )
 
             if render_instance:
@@ -116,81 +130,6 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
         ):
             return False
         return True
-
-    def create_render_instance(
-        self,
-        context,
-        node,
-        version,
-        folder_path,
-        frame_start,
-        frame_end,
-        handle_start,
-        handle_end,
-        product_name,
-        product_type,
-        task,
-        enable=True,
-        families=None,
-        skip_review=False,
-        source_instance=None,
-    ) -> publish.RenderInstance:
-        """Create a render instance with common Harmony settings.
-
-        Args:
-            context (pyblish.api.Context): Current context
-            node (str): Node name
-            version (int): Version number
-            folder_path (str): Folder path of the rendered asset
-            frame_start (int): Start frame
-            frame_end (int): End frame
-            handle_start (int): Start handle
-            handle_end (int): End handle
-            product_name (str): Name of the product
-            product_type (str): Type of the product
-            task (str, optional): Task name
-            enable (bool): Whether the node is set to publish
-            families (list, optional): List of families. Defaults to None
-            skip_review (bool): Explicitly skip review
-            source_instance (pyblish.api.Instance, optional): Source instance.
-                Defaults to None
-
-        Returns:
-            RenderInstance: Created render instance
-        """
-        return publish.RenderInstance(
-            version=version,
-            time=get_formatted_current_time(),
-            source=context.data["currentFile"],
-            name=product_name,
-            label="{} - {}".format(product_name, product_type),
-            productName=product_name,
-            productType=product_type,
-            family=product_type,
-            families=families or [],
-            folderPath=folder_path,
-            task=task,
-            attachTo=False,
-            setMembers=[node],
-            publish=enable,
-            renderer=None,
-            priority=50,
-            resolutionWidth=context.data["resolutionWidth"],
-            resolutionHeight=context.data["resolutionHeight"],
-            pixelAspect=1.0,
-            multipartExr=False,
-            tileRendering=False,
-            tilesX=0,
-            tilesY=0,
-            convertToScanline=False,
-            frameStart=frame_start,
-            frameEnd=frame_end,
-            handleStart=handle_start,
-            handleEnd=handle_end,
-            frameStep=1,
-            review=not skip_review,
-            source_instance=source_instance,
-        )
 
     def get_expected_files(self, render_instance):
         """Get list of expected files to be rendered from Harmony.
