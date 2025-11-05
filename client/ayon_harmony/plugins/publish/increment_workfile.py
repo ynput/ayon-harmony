@@ -9,7 +9,11 @@ import ayon_harmony.api as harmony
 class IncrementWorkfile(pyblish.api.InstancePlugin):
     """Increment the current workfile.
 
-    Saves the current scene with an increased version number.
+    Saves the current scene with an increased version number in both
+    local unzipped folder and creates zipped file in `work` area.
+
+    Marks current unzipped folder with lower version to be deleted afterwards.
+    It should be obsolete as it is fully copied to incremented folder.
     """
 
     label = "Increment Workfile"
@@ -25,13 +29,17 @@ class IncrementWorkfile(pyblish.api.InstancePlugin):
                 "Skipping incrementing current file because publishing failed."
             )
 
-        scene_dir = version_up(
-            os.path.dirname(instance.context.data["currentFile"])
+        current_local_dir = os.path.dirname(
+            instance.context.data["currentFile"]
         )
+        scene_dir = version_up(current_local_dir)
+
         scene_path = os.path.join(
             scene_dir, os.path.basename(scene_dir) + ".xstage"
         )
 
         harmony.save_scene_as(scene_path)
+
+        instance.context.data["cleanupFullPaths"].append(current_local_dir)
 
         self.log.info("Incremented workfile to: {}".format(scene_path))
