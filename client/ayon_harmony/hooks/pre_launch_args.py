@@ -69,13 +69,17 @@ class HarmonyPrelaunchHook(PreLaunchHook):
             "run", script_path, executable_path
         )
         # Add workfile path if exists
-        workfile_path = self.data["last_workfile_path"]
-        if (
-            self.data.get("start_last_workfile")
-            and workfile_path
-            and os.path.exists(workfile_path)
-        ):
+        workfile_path = self.data.get("workfile_path")
+        last_workfile_path = self.data["last_workfile_path"]
+        if workfile_path:
             new_launch_args.append(workfile_path)
+
+        elif (
+            self.data.get("start_last_workfile")
+            and last_workfile_path
+            and os.path.exists(last_workfile_path)
+        ):
+            new_launch_args.append(last_workfile_path)
 
         workfile_startup = self.data.get("workfile_startup", True)
 
