@@ -40,6 +40,7 @@ class IncrementWorkfile(pyblish.api.InstancePlugin):
 
         harmony.save_scene_as(scene_path)
 
+        # Mark unzipped temp workfile to be deleted
         instance.context.data["cleanupFullPaths"].append(current_local_dir)
 
         self.log.info("Incremented workfile to: {}".format(scene_path))
