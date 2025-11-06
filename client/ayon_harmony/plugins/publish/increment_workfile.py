@@ -12,7 +12,11 @@ from ayon_core.host.interfaces import SaveWorkfileOptionalData
 class IncrementWorkfile(pyblish.api.InstancePlugin):
     """Increment the current workfile.
 
-    Saves the current scene with an increased version number.
+    Saves the current scene with an increased version number in both
+    local unzipped folder and creates zipped file in `work` area.
+
+    Marks current unzipped folder with lower version to be deleted afterwards.
+    It should be obsolete as it is fully copied to incremented folder.
     """
 
     label = "Increment Workfile"
@@ -34,6 +38,7 @@ class IncrementWorkfile(pyblish.api.InstancePlugin):
         current_filepath: str = context.data["currentFile"]
 
         current_filename = os.path.basename(current_filepath)
+        current_local_dir = os.path.dirname(current_filepath)
         save_next_version(
             description=(
                 f"Incremented by publishing from {current_filename}"
@@ -46,5 +51,8 @@ class IncrementWorkfile(pyblish.api.InstancePlugin):
             )
         )
         new_scene_path = host.get_current_workfile()
+
+        # Mark unzipped temp workfile to be deleted
+        instance.context.data["cleanupFullPaths"].append(current_local_dir)
 
         self.log.info("Incremented workfile to: {}".format(new_scene_path))
