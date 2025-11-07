@@ -6,9 +6,14 @@ import ayon_harmony.api as harmony
 
 
 class ValidateTopDisplay(pyblish.api.InstancePlugin):
-    """Ensures that there is an display node with `Top/Display`.
+    """Ensures that there is a display node with `Top/Display`.
 
-    Will be used for automatic review creation
+    This validator is used for simplified review creation workflow.
+
+    It requires `ayon+settings://harmony/create/CreateReview` to be enabled.
+    This creator produces instance of `review` product type, artist does not
+    need create any instance manually if they have a `Top/Display` node
+    in the scene.
     """
 
     order = pyblish.api.ValidatorOrder
