@@ -153,7 +153,7 @@ class ValidateSceneSettings(
             )
             and invalid_settings
         ):
-            self.log.error(
+            self.log.info(
                 "Handles included in calculation. Remove handles in DB"
                 " or extend frame range in timeline.\n"
             )
