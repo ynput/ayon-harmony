@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+<error id="main">
+<title>Missing display node</title>
+<description>
+## Top/Display node expected
+
+Export of `review` product type expects Display node with `Top/Display` identifier.
+
+### How to repair?
+
+Create `Display` node connected to main `Composite` node.
+
+</description>
+</error>
+</root>
