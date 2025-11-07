@@ -1,8 +1,8 @@
 import pyblish.api
 
-import ayon_harmony.api as harmony
-
 from ayon_core.pipeline import PublishXmlValidationError
+
+import ayon_harmony.api as harmony
 
 
 class ValidateTopDisplay(pyblish.api.InstancePlugin):
