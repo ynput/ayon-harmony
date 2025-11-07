@@ -70,7 +70,7 @@ class ValidateSceneSettings(
         #   as an argument which is available on 'context.data["folderEntity"]'
         #   - the same approach can be used in 'ValidateSceneSettingsRepair'
         expected_settings = harmony.get_current_context_settings()
-        self.log.info(f"scene settings from DB:{expected_settings}")
+        self.log.debug(f"Scene settings from DB:{expected_settings}")
 
         _update_frames(expected_settings)
         expected_settings["frameEndHandle"] = (
@@ -153,11 +153,10 @@ class ValidateSceneSettings(
             )
             and invalid_settings
         ):
-            msg = (
+            self.log.info(
                 "Handles included in calculation. Remove handles in DB"
-                " or extend frame range in timeline."
+                " or extend frame range in timeline.\n"
             )
-            invalid_settings[-1]["reason"] = msg
 
         msg = "Found invalid settings:\n{}".format(
             json.dumps(invalid_settings, sort_keys=True, indent=4)
