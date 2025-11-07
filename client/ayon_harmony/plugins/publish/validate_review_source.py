@@ -18,6 +18,10 @@ class ValidateTopDisplay(pyblish.api.InstancePlugin):
     settings_category = "harmony"
 
     def process(self, instance):
+        if instance.data["productType"] != "review":
+            self.log.debug("Not primary `review` product type, skipping.")
+            return
+
         display_node_name = harmony.send(
             {"function": "node.getName", "args": "Top/Display"}
         )["result"]
