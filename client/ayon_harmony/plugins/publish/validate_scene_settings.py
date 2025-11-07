@@ -139,7 +139,6 @@ class ValidateSceneSettings(
 
         invalid_settings = []
         invalid_keys = set()
-        msg = ""
         for key, value in expected_settings.items():
             if value != current_settings[key]:
                 invalid_settings.append(
@@ -154,12 +153,12 @@ class ValidateSceneSettings(
             )
             and invalid_settings
         ):
-            msg = (
+            self.log.error(
                 "Handles included in calculation. Remove handles in DB"
                 " or extend frame range in timeline.\n"
             )
 
-        msg += "Found invalid settings:\n{}".format(
+        msg = "Found invalid settings:\n{}".format(
             json.dumps(invalid_settings, sort_keys=True, indent=4)
         )
 
