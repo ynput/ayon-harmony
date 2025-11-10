@@ -9,7 +9,6 @@ class CreateRender(plugin.HarmonyRenderCreator):
 
     identifier = "io.ayon.creators.harmony.render"
     label = "Render"
-    product_type = "render"
     icon = "eye"
 
     node_type = "WRITE"
