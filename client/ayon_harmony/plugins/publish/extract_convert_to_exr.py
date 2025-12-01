@@ -124,6 +124,9 @@ class CollectExrUserOptions(
             .get(cls.__name__, {})
             .get("convert_to_exr")
         )
+        if current_value is None:
+            current_value = default
+
         if (
             current_value == "multichannel_exr"
             and "keep_passes" in cls.user_overrides
