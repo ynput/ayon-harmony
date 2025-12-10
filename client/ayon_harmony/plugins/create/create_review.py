@@ -14,6 +14,7 @@ class CreateReview(HarmonyAutoCreator):
     identifier = "io.ayon.creators.harmony.review"
     label = "Review"
     product_type = "review"
+    product_base_type = "review"
     icon = "ei.video"
 
     default_variants = ["Main"]
