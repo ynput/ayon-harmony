@@ -25,7 +25,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
         "reference",
         "review",
     }
-    representations = {"*"}
+    representations = {"jpg_jpg", "png_png", "jpeg_jpeg"}
     extensions = {"jpeg", "png", "jpg"}
     settings_category = "harmony"
 
