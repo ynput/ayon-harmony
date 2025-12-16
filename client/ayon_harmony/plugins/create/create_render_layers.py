@@ -49,7 +49,6 @@ from ayon_core.lib import (
 from ayon_core.pipeline.create import (
     CreatedInstance,
     CreatorError,
-    get_product_name
 )
 
 from ayon_harmony.api.plugin import HarmonyCreator, HarmonyRenderCreator
