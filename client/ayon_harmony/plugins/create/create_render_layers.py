@@ -49,7 +49,6 @@ from ayon_core.lib import (
 from ayon_core.pipeline.create import (
     CreatedInstance,
     CreatorError,
-    get_product_name
 )
 
 from ayon_harmony.api.plugin import HarmonyCreator, HarmonyRenderCreator
@@ -116,6 +115,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     label = "Render Layer"
     product_type = "render"
+    product_base_type = "render"
     product_template_product_type = "renderLayer"
     identifier = "render.layer"
     icon = "fa5.images"
@@ -229,46 +229,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
             ),
         ]
 
-    def get_product_name(
-        self,
-        project_name,
-        folder_entity,
-        task_entity,
-        variant,
-        host_name=None,
-        instance=None,
-        project_entity=None,
-    ):
-        if host_name is None:
-            host_name = self.create_context.host_name
-        if project_entity is None:
-            project_entity = self.create_context.get_current_project_entity()
-        dynamic_data = self.get_dynamic_data(
-            project_name,
-            folder_entity,
-            task_entity,
-            variant,
-            host_name,
-            instance
-        )
-        task_name = task_type = None
-        if task_entity:
-            task_name = task_entity["name"]
-            task_type = task_entity["taskType"]
-
-        return get_product_name(
-            project_name=project_name,
-            task_name=task_name,
-            task_type=task_type,
-            host_name=host_name,
-            product_type=self.product_type,
-            variant=variant,
-            dynamic_data=dynamic_data,
-            project_settings=self.project_settings,
-            product_type_filter=self.product_template_product_type,
-            project_entity=project_entity,
-        )
-
     def _create_nodes_for_group(self, group_id, product_name):
         layers_data = get_layers_info()
         layers_full_names = [
@@ -321,6 +281,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
 class CreateRenderPass(HarmonyRenderCreator):
     product_type = "render"
+    product_base_type = "render"
     product_template_product_type = "renderPass"
     identifier = "render.pass"
     label = "Render Pass"
@@ -538,46 +499,6 @@ class CreateRenderPass(HarmonyRenderCreator):
             )
         ]
 
-    def get_product_name(
-        self,
-        project_name,
-        folder_entity,
-        task_entity,
-        variant,
-        host_name=None,
-        instance=None,
-        project_entity=None,
-    ):
-        if host_name is None:
-            host_name = self.create_context.host_name
-        if project_entity is None:
-            project_entity = self.create_context.get_current_project_entity()
-        dynamic_data = self.get_dynamic_data(
-            project_name,
-            folder_entity,
-            task_entity,
-            variant,
-            host_name,
-            instance
-        )
-        task_name = task_type = None
-        if task_entity:
-            task_name = task_entity["name"]
-            task_type = task_entity["taskType"]
-
-        return get_product_name(
-            project_name=project_name,
-            task_name=task_name,
-            task_type=task_type,
-            host_name=host_name,
-            product_type=self.product_type,
-            variant=variant,
-            dynamic_data=dynamic_data,
-            project_settings=self.project_settings,
-            product_type_filter=self.product_template_product_type,
-            project_entity=project_entity,
-        )
-
     def _get_render_layers_items(self):
         current_instances = self.create_context.instances
         render_layers = [
@@ -617,6 +538,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
     """
 
     product_type = "render"
+    product_base_type = "render"
     label = "Render Layer/Passes"
     identifier = "render.auto.detect.creator"
     # order = CreateRenderPass.order + 10
