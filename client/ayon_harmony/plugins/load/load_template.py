@@ -15,6 +15,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
     representations = {"tpl"}
     label = "Load Template"
     icon = "gift"
+    override_name = ""
 
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.
@@ -30,6 +31,11 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
         zip_file = self.filepath_from_context(context)
+        
+        # Override container name
+        override_name = ""
+        if self.override_name:
+            override_name = self.override_name.format(**context)
 
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(temp_dir)
@@ -39,7 +45,10 @@ class TemplateLoader(harmony.BackdropBaseLoader):
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
                 # Published tpl name is not consistent, use first found,
                 #   must be only one
-                "args": next(Path(temp_dir).glob("*.tpl")).as_posix(),
+                "args": [
+                    next(Path(temp_dir).glob("*.tpl")).as_posix(),
+                    override_name
+                ],
             }
         )["result"]
 
@@ -48,7 +57,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
 
         # We must validate the group_node
         return harmony.containerise(
-            name,
+            backdrop_name,
             namespace,
             backdrop_name,
             context,
