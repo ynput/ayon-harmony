@@ -23,12 +23,22 @@ var TemplateLoader = function() {};
 /**
  * Load template as container.
  * @function
- * @param {string} templatePath Path to tpl file.
+ * @param {array} args Array of arguments.
  * @return {string} Name of backdrop container.
+ * @example
+ * // arguments are in this order:
+ * var args = [
+ *     templatePath, // Path to tpl file
+ *     overrideName // Override name of backdrop container
+ * ];
  */
-TemplateLoader.prototype.loadContainer = function(templatePath) {
+TemplateLoader.prototype.loadContainer = function(args) {
+    var templatePath = args[0];
+    var overrideName = args[1] || "";
+
     // Copy from template file
     MessageLog.trace("loadContainer:: ");
+    var hasOverrideName = overrideName !== undefined && overrideName !== null && overrideName !== "";
 
     function splitByLastDelimiter(str, delimiter) {
         var lastIndex = str.lastIndexOf(delimiter);
@@ -81,11 +91,17 @@ TemplateLoader.prototype.loadContainer = function(templatePath) {
     }
 	count = backdropCounts[backdropName] !== undefined ? backdropCounts[backdropName] : 1;
 
-    if (count > 1){
+    if (!hasOverrideName && count > 1){
         // count -1 to match imported nodes which start from _1
         mainBackdropName = mainBackdropName + "_" + (count - 1);
 
         // new backdrop always at 0
+        allBackdrops[0].title.text = mainBackdropName;
+        Backdrop.setBackdrops("Top", allBackdrops);
+    }
+
+    if (hasOverrideName) {
+        mainBackdropName = overrideName;
         allBackdrops[0].title.text = mainBackdropName;
         Backdrop.setBackdrops("Top", allBackdrops);
     }
