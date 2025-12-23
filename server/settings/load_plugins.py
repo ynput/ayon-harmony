@@ -8,8 +8,8 @@ class TemplateLoaderPluginModel(BaseSettingsModel):
         title="Override container name",
         description=(
             "Optional container name to override the default name.\n"
-            "Keys are available in the context of the loader plugin.",
-            "Example keys: project[name], folder[name], product[name], version[name]..."
+            "Keys are available in the context of the loader plugin.\n"
+            "Example keys: project[name], folder[name], product[name]..."
         ),
         placeholder="{folder[name]}_{product[name]}",
     )

@@ -31,7 +31,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
         zip_file = self.filepath_from_context(context)
-        
+
         # Override container name
         override_name = ""
         if self.override_name:
