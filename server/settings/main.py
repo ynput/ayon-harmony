@@ -2,6 +2,7 @@ from ayon_server.settings import BaseSettingsModel, SettingsField
 
 from .imageio import HarmonyImageIOModel
 from .creator_plugins import HarmonyCreatePlugins
+from .load_plugins import HarmonyLoadPlugins
 from .publish_plugins import HarmonyPublishPlugins
 
 
@@ -15,6 +16,10 @@ class HarmonySettings(BaseSettingsModel):
     create: HarmonyCreatePlugins = SettingsField(
         default_factory=HarmonyCreatePlugins,
         title="Creator plugins"
+    )
+    load: HarmonyLoadPlugins = SettingsField(
+        default_factory=HarmonyLoadPlugins,
+        title="Loader plugins",
     )
     publish: HarmonyPublishPlugins = SettingsField(
         default_factory=HarmonyPublishPlugins,
@@ -82,6 +87,12 @@ DEFAULT_HARMONY_SETTING = {
                 "enabled": False,
                 "template": "G{group_index}_L{layer_index}_{variant}"
             }
+        }
+    },
+    "load": {
+        "TemplateLoader": {
+            "enabled": True,
+            "override_name": ""
         }
     },
     "publish": {
