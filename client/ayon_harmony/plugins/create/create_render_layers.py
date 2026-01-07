@@ -116,7 +116,8 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     label = "Render Layer"
     product_type = "render"
-    product_template_product_type = "renderLayer"
+    product_base_type = "render"
+    product_base_type_filter = "renderLayer"
     identifier = "render.layer"
     icon = "fa5.images"
 
@@ -256,17 +257,30 @@ class CreateRenderLayer(HarmonyRenderCreator):
             task_name = task_entity["name"]
             task_type = task_entity["taskType"]
 
+        get_product_name_kwargs = {}
+        if getattr(get_product_name, "use_entities", False):
+            get_product_name_kwargs.update({
+                "folder_entity": folder_entity,
+                "task_entity": task_entity,
+                "product_base_type": self.product_base_type,
+                "product_base_type_filter": self.product_base_type_filter,
+            })
+        else:
+            get_product_name_kwargs.update({
+                "task_name": task_name,
+                "task_type": task_type,
+                "product_type_filter": self.product_base_type_filter,
+            })
+
         return get_product_name(
             project_name=project_name,
-            task_name=task_name,
-            task_type=task_type,
             host_name=host_name,
             product_type=self.product_type,
             variant=variant,
             dynamic_data=dynamic_data,
             project_settings=self.project_settings,
-            product_type_filter=self.product_template_product_type,
             project_entity=project_entity,
+            **get_product_name_kwargs
         )
 
     def _create_nodes_for_group(self, group_id, product_name):
@@ -321,7 +335,8 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
 class CreateRenderPass(HarmonyRenderCreator):
     product_type = "render"
-    product_template_product_type = "renderPass"
+    product_base_type = "render"
+    product_base_type_filter = "renderPass"
     identifier = "render.pass"
     label = "Render Pass"
     icon = "fa5.image"
@@ -565,17 +580,30 @@ class CreateRenderPass(HarmonyRenderCreator):
             task_name = task_entity["name"]
             task_type = task_entity["taskType"]
 
+        get_product_name_kwargs = {}
+        if getattr(get_product_name, "use_entities", False):
+            get_product_name_kwargs.update({
+                "folder_entity": folder_entity,
+                "task_entity": task_entity,
+                "product_base_type": self.product_base_type,
+                "product_base_type_filter": self.product_base_type_filter,
+            })
+        else:
+            get_product_name_kwargs.update({
+                "task_name": task_name,
+                "task_type": task_type,
+                "product_type_filter": self.product_base_type_filter,
+            })
+
         return get_product_name(
             project_name=project_name,
-            task_name=task_name,
-            task_type=task_type,
             host_name=host_name,
             product_type=self.product_type,
             variant=variant,
             dynamic_data=dynamic_data,
             project_settings=self.project_settings,
-            product_type_filter=self.product_template_product_type,
             project_entity=project_entity,
+            **get_product_name_kwargs
         )
 
     def _get_render_layers_items(self):
@@ -617,6 +645,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
     """
 
     product_type = "render"
+    product_base_type = "render"
     label = "Render Layer/Passes"
     identifier = "render.auto.detect.creator"
     # order = CreateRenderPass.order + 10

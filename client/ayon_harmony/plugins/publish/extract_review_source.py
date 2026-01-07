@@ -13,8 +13,10 @@ import ayon_harmony.api as harmony
 class ExtractSourceForReview(publish.Extractor):
     """Use exporter to save .mov from Display node.
 
-    Review should be created automatically, `Display`
-    node is expected.
+    `review` product should be created automatically by `CreateReview` if
+    enabled.
+
+    This currently triggers only locally, not on farm.
     """
 
     label = "Extract sources for Review"
