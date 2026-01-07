@@ -27,8 +27,9 @@ class ExtractRender(pyblish.api.InstancePlugin):
         application_path = instance.context.data.get("applicationPath")
         scene_path = instance.context.data.get("scenePath")
         frame_rate = instance.context.data.get("frameRate")
-        frame_start = instance.data.get("frameStart")
-        frame_end = instance.data.get("frameEnd")
+        # real value from timeline
+        frame_start = instance.context.data.get("frameStartHandle")
+        frame_end = instance.context.data.get("frameEndHandle")
         audio_path = instance.context.data.get("audioPath")
 
         if audio_path and os.path.exists(audio_path):
