@@ -118,6 +118,8 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
                 ),
                 frameStep=1,
                 review=True,
+                farm=(render_target == "farm"),
+                ignoreFrameHandleCheck=True,
                 source_instance=instance,
             )
 
