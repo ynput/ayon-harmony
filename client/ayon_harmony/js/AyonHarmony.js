@@ -506,7 +506,12 @@ AyonHarmony.getLayerInfos = function() {
         
         // Get node properties using native API
         var nodeColor = node.getColor(nodePath);
-        var colorStr = 'rgba(' + nodeColor.r + ',' + nodeColor.g + ',' + nodeColor.b + ',' + nodeColor.a + ')';
+        // Convert to hex format #RRGGBBAA to match OpenHarmony's oColorValue.toString() format
+        var r = ("00" + nodeColor.r.toString(16)).slice(-2);
+        var g = ("00" + nodeColor.g.toString(16)).slice(-2);
+        var b = ("00" + nodeColor.b.toString(16)).slice(-2);
+        var a = ("00" + nodeColor.a.toString(16)).slice(-2);
+        var colorStr = '#' + r + g + b + a;
         
         result.push({
             "name": node.getName(nodePath),
