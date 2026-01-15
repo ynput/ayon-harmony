@@ -13,7 +13,7 @@ class LinkPaletteLoader(load.LoaderPlugin):
     """
 
     label = "Link Palette"
-    product_types = {"palette", "harmony.palette"}
+    product_types = {"palette", "harmony_palette"}
     representations = {"plt"}
     icon = "link"
 

@@ -12,7 +12,7 @@ class ExtractTemplate(publish.Extractor):
 
     label = "Extract Template"
     hosts = ["harmony"]
-    families = ["harmony.template"]
+    families = ["harmony_template"]
 
     def process(self, instance):
         """Plugin entry point."""
