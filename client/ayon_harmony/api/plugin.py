@@ -96,10 +96,10 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
         node = self.product_impl(product_name, instance_data, pre_create_data)
 
         instance = CreatedInstance(
-            product_type=self.product_type,
-            product_name=product_name,
-            data=instance_data,
-            creator=self,
+            self.product_base_type,
+            product_name,
+            instance_data,
+            self,
         )
         instance.transient_data["node"] = node
         harmony.imprint(node, instance.data_to_store())
@@ -358,12 +358,14 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
             )
             if not self.active_on_create:
                 data["active"] = False
-            self.log.info(f"Auto-creating {self.product_type} instance...")
+            self.log.info(
+                f"Auto-creating {self.product_base_type} instance..."
+            )
             current_instance = CreatedInstance(
-                product_type=self.product_type,
-                product_name=product_name,
-                data=data,
-                creator=self,
+                self.product_base_type,
+                product_name,
+                data,
+                self,
             )
             self._add_instance_to_context(current_instance)
         elif (
