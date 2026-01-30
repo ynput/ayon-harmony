@@ -141,8 +141,10 @@ class CreateRenderLayer(HarmonyRenderCreator):
         folder_entity,
         task_entity,
         variant,
-        host_name,
-        instance
+        host_name=None,
+        instance=None,
+        project_entity=None,
+        product_type=None,
     ):
         return {
             "renderpass": self.default_pass_name,
@@ -239,6 +241,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
         host_name=None,
         instance=None,
         project_entity=None,
+        product_type=None,
     ):
         if host_name is None:
             host_name = self.create_context.host_name
@@ -250,7 +253,9 @@ class CreateRenderLayer(HarmonyRenderCreator):
             task_entity,
             variant,
             host_name,
-            instance
+            instance,
+            project_entity,
+            product_type,
         )
         task_name = task_type = None
         if task_entity:
@@ -259,7 +264,10 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
         get_product_name_kwargs = {}
         if getattr(get_product_name, "use_entities", False):
+            if not product_type:
+                product_type = self.product_base_type
             get_product_name_kwargs.update({
+                "product_type": product_type,
                 "folder_entity": folder_entity,
                 "task_entity": task_entity,
                 "product_base_type": self.product_base_type,
@@ -267,6 +275,7 @@ class CreateRenderLayer(HarmonyRenderCreator):
             })
         else:
             get_product_name_kwargs.update({
+                "product_type": self.product_base_type,
                 "task_name": task_name,
                 "task_type": task_type,
                 "product_type_filter": self.product_base_type_filter,
@@ -275,7 +284,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
         return get_product_name(
             project_name=project_name,
             host_name=host_name,
-            product_type=self.product_type,
             variant=variant,
             dynamic_data=dynamic_data,
             project_settings=self.project_settings,
@@ -495,8 +503,10 @@ class CreateRenderPass(HarmonyRenderCreator):
         folder_entity,
         task_entity,
         variant,
-        host_name,
-        instance
+        host_name=None,
+        instance=None,
+        project_entity=None,
+        product_type=None,
     ):
         render_pass = None
         render_layer = None
@@ -562,6 +572,7 @@ class CreateRenderPass(HarmonyRenderCreator):
         host_name=None,
         instance=None,
         project_entity=None,
+        product_type=None,
     ):
         if host_name is None:
             host_name = self.create_context.host_name
@@ -573,7 +584,9 @@ class CreateRenderPass(HarmonyRenderCreator):
             task_entity,
             variant,
             host_name,
-            instance
+            instance,
+            project_entity,
+            product_type,
         )
         task_name = task_type = None
         if task_entity:
@@ -582,7 +595,10 @@ class CreateRenderPass(HarmonyRenderCreator):
 
         get_product_name_kwargs = {}
         if getattr(get_product_name, "use_entities", False):
+            if not product_type:
+                product_type = self.product_base_type
             get_product_name_kwargs.update({
+                "product_type": product_type,
                 "folder_entity": folder_entity,
                 "task_entity": task_entity,
                 "product_base_type": self.product_base_type,
@@ -593,12 +609,12 @@ class CreateRenderPass(HarmonyRenderCreator):
                 "task_name": task_name,
                 "task_type": task_type,
                 "product_type_filter": self.product_base_type_filter,
+                "product_type": self.product_base_type,
             })
 
         return get_product_name(
             project_name=project_name,
             host_name=host_name,
-            product_type=self.product_type,
             variant=variant,
             dynamic_data=dynamic_data,
             project_settings=self.project_settings,
