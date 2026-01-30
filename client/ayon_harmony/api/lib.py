@@ -26,6 +26,14 @@ from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
 
+# Function 'save_next_version' was introduced in ayon-core 1.5.0
+try:
+    from ayon_core.pipeline.workfile import save_next_version  # noqa: F401
+except ImportError:
+    from ayon_core.pipeline.context_tools import (
+        version_up_current_workfile as save_next_version  # noqa: F401
+    )
+
 from ayon_harmony import HARMONY_ADDON_ROOT
 
 from .server import Server

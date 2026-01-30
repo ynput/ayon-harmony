@@ -382,6 +382,36 @@ function start() {
     }
 
     /**
+     * Show Version Up
+     */
+    menu.addSeparator();
+    self.onVersionUp = function() {
+        app.ayonClient.send({
+            'module': 'ayon_harmony.api.lib',
+            'method': 'save_next_version',
+            'args': []
+        }, false);
+    }
+    var action = menu.addAction('Version Up');
+    action.triggered.connect(self.onVersionUp);
+
+    /**
+     * Show Workfiles
+     */
+    self.onWorkfiles = function() {
+        app.ayonClient.send({
+            'module': 'ayon_harmony.api.lib',
+            'method': 'show',
+            'args': ['workfiles']
+        }, false);
+    };
+    if (app.ayonMenu == null) {
+        action = menu.addAction('Workfiles...');
+        action.triggered.connect(self.onWorkfiles);
+        menu.addSeparator();
+    }
+
+    /**
      * Show creator
      */
     self.onCreator = function() {
@@ -441,22 +471,6 @@ function start() {
     if (app.ayonMenu == null) {
         action = menu.addAction('Manage...');
         action.triggered.connect(self.onManage);
-    }
-
-    /**
-     * Show Workfiles
-     */
-    self.onWorkfiles = function() {
-        app.ayonClient.send({
-            'module': 'ayon_harmony.api.lib',
-            'method': 'show',
-            'args': ['workfiles']
-        }, false);
-    };
-    if (app.ayonMenu == null) {
-        menu.addSeparator();
-        action = menu.addAction('Workfiles...');
-        action.triggered.connect(self.onWorkfiles);
     }
 
      /**
