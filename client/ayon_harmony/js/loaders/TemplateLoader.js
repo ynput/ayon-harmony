@@ -182,26 +182,14 @@ TemplateLoader.prototype.loadContainer = function(args) {
             allBackdrops[idx].position.x += offsetX;
             allBackdrops[idx].position.y += offsetY;
         });
-        Backdrop.setBackdrops("Top", allBackdrops);
     }
 
-     // Find main backdrop name
-    // The main backdrop is the one with the smallest x + y value (top left corner)
-    var selectedBackdrops = selection.selectedBackdrops();
-    var mainBackdropName = selectedBackdrops[0].title.text;
-    var mainAnchorValue = selectedBackdrops[0].position.x + selectedBackdrops[0].position.y;
-    selectedBackdrops.slice(1).forEach(function(backdrop) {
-        var anchor = backdrop.position.x + backdrop.position.y;
-        if (mainAnchorValue > anchor) {
-            mainBackdropName = backdrop.title.text;
-            mainAnchorValue = anchor;
-        }
-    });
+    // Override name if provided
+    if (overrideName) {
+        allBackdrops[0].title.text = overrideName;
+    }
 
-    // If overrideName is provided, use it instead of the main backdrop name
-    if (overrideName) { mainBackdropName = overrideName; }
-
-    var allBackdrops = Backdrop.backdrops("Top");
+    // Count existing backdrops by base name
     var backdropCounts = {};
     for (var i = 0; i < allBackdrops.length; i++) {
         var parsed = parseBackdropName(allBackdrops[i].title.text);
@@ -215,17 +203,20 @@ TemplateLoader.prototype.loadContainer = function(args) {
         }
     }
 
+    // Increment count of backdrop with the same base name
+    var mainBackdropName = allBackdrops[0].title.text;
     var mainBackdropParsed = parseBackdropName(mainBackdropName);
     var count = backdropCounts[mainBackdropParsed.baseName] !== undefined ? backdropCounts[mainBackdropParsed.baseName] : 1;
-
     if (count > 1){
         // count -1 to match imported nodes which start from _1
         mainBackdropName = mainBackdropName + "_" + (count - 1);
-
-        // new backdrop always at 0
-        allBackdrops[0].title.text = mainBackdropName;
-        Backdrop.setBackdrops("Top", allBackdrops);
     }
+
+    // Set name of main backdrop (always at index 0)
+    allBackdrops[0].title.text = mainBackdropName;
+
+    // Update backdrops in scene
+    Backdrop.setBackdrops("Top", allBackdrops);
 
     return mainBackdropName;
 };
