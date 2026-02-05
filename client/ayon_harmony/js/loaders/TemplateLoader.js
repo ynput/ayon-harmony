@@ -203,8 +203,8 @@ TemplateLoader.prototype.loadContainer = function(templatePath) {
         }
     }
 
-    var mainParsed = parseBackdropName(mainBackdropName);
-    var count = backdropCounts[mainParsed.baseName] !== undefined ? backdropCounts[mainParsed.baseName] : 1;
+    var mainBackdropParsed = parseBackdropName(mainBackdropName);
+    var count = backdropCounts[mainBackdropParsed.baseName] !== undefined ? backdropCounts[mainBackdropParsed.baseName] : 1;
 
     if (count > 1){
         // count -1 to match imported nodes which start from _1
