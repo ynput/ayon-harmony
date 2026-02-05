@@ -30,14 +30,26 @@ TemplateLoader.prototype.loadContainer = function(templatePath) {
     // Copy from template file
     MessageLog.trace("loadContainer:: ");
 
-    function splitByLastDelimiter(str, delimiter) {
-        var lastIndex = str.lastIndexOf(delimiter);
-
+    /**
+     * Parse a backdrop name into its base name and numeric suffix count.
+     * If the name ends with _N (N = positive integer), returns the base and N.
+     * Otherwise returns the full name as base with count 1.
+     * @param {string} name - The backdrop name to parse.
+     * @return {{baseName: string, count: number}}
+     */
+    function parseBackdropName(name) {
+        var lastIndex = name.lastIndexOf('_');
         if (lastIndex === -1) {
-            return [str]; // Return the original string if delimiter is not found
+            return { baseName: name, count: 1 };
         }
-
-        return [str.substring(0, lastIndex), str.substring(lastIndex + 1)];
+        var base = name.substring(0, lastIndex);
+        var suffix = name.substring(lastIndex + 1);
+        var increment = parseInt(suffix, 10);
+        var isNumericSuffix = !isNaN(increment) && String(increment) === suffix.trim() && increment >= 1;
+        if (isNumericSuffix) {
+            return { baseName: base, count: increment };
+        }
+        return { baseName: name, count: 1 };
     }
 
     // Get existing content bounds
@@ -180,21 +192,19 @@ TemplateLoader.prototype.loadContainer = function(templatePath) {
     var allBackdrops = Backdrop.backdrops("Top");
     var backdropCounts = {};
     for (var i = 0; i < allBackdrops.length; i++) {
-        var backdropName = allBackdrops[i].title.text;
-        var splitted = splitByLastDelimiter(backdropName, '_');
-        var count = splitted[1] !== undefined ? splitted[1] : 1;
-        backdropName = splitted[0];
+        var parsed = parseBackdropName(allBackdrops[i].title.text);
+        var baseName = parsed.baseName;
+        var count = parsed.count;
 
-        // If the backdrop name is already in the object, increment its count
-        if (backdropCounts[backdropName]) {
-            backdropCounts[backdropName]++;
-        }
-        // Otherwise, add it to the object with a count of 1
-        else {
-            backdropCounts[backdropName] = count;
+        if (backdropCounts[baseName]) {
+            backdropCounts[baseName]++;
+        } else {
+            backdropCounts[baseName] = count;
         }
     }
-	count = backdropCounts[backdropName] !== undefined ? backdropCounts[backdropName] : 1;
+
+    var mainParsed = parseBackdropName(mainBackdropName);
+    var count = backdropCounts[mainParsed.baseName] !== undefined ? backdropCounts[mainParsed.baseName] : 1;
 
     if (count > 1){
         // count -1 to match imported nodes which start from _1
