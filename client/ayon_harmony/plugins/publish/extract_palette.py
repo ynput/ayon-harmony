@@ -14,7 +14,7 @@ class ExtractPalette(publish.Extractor):
 
     label = "Extract Palette"
     hosts = ["harmony"]
-    families = ["harmony_palette"]
+    families = ["harmonyPalette"]
 
     def process(self, instance):
         """Plugin entry point."""

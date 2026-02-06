@@ -11,8 +11,8 @@ class CreateTemplate(plugin.HarmonyCreator):
 
     identifier = "io.ayon.creators.harmony.template"
     label = "Template"
-    product_type = "harmony_template"
-    product_base_type = "harmony_template"
+    product_type = "harmonyTemplate"
+    product_base_type = "harmonyTemplate"
     icon = "cubes"
 
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):

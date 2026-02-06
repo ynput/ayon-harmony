@@ -11,7 +11,7 @@ import ayon_harmony.api as harmony
 class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
 
-    product_types = {"harmony_template"}
+    product_types = {"harmonyTemplate"}
     representations = {"tpl"}
     label = "Load Template"
     icon = "gift"
