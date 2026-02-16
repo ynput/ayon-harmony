@@ -3,7 +3,6 @@ from ayon_server.settings import BaseSettingsModel, SettingsField
 from .imageio import HarmonyImageIOModel
 from .load_plugins import HarmonyLoadPlugins
 from .creator_plugins import HarmonyCreatePlugins
-from .load_plugins import HarmonyLoadPlugins
 from .publish_plugins import HarmonyPublishPlugins
 
 
@@ -33,12 +32,6 @@ class HarmonySettings(BaseSettingsModel):
 
 
 DEFAULT_HARMONY_SETTING = {
-    "load": {
-        "ImageLoader": {
-            "enabled": True,
-            "expose_only_current_frame": False
-        }
-    },
     "create": {
         "CreateWorkfile": {
             "enabled": True,
@@ -101,6 +94,10 @@ DEFAULT_HARMONY_SETTING = {
         }
     },
     "load": {
+        "ImageLoader": {
+            "enabled": True,
+            "expose_only_current_frame": False
+        },
         "TemplateLoader": {
             "enabled": True,
             "override_name": ""

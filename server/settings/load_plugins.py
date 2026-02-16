@@ -12,6 +12,7 @@ class ImageLoaderPluginModel(BaseSettingsModel):
         ),
     )
 
+
 class TemplateLoaderPluginModel(BaseSettingsModel):
     enabled: bool = SettingsField(True, title="Enabled")
     override_name: str = SettingsField(

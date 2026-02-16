@@ -78,7 +78,7 @@ class ImageLoader(load.LoaderPlugin):
 
         harmony.imprint(
             node, {"representation": repre_entity["id"]}
-        ) 
+        )
 
     def update(self, container, context):
         """Update loaded containers.
