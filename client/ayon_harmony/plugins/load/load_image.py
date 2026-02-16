@@ -16,7 +16,6 @@ class ImageLoader(load.LoaderPlugin):
     """
 
     product_types = {
-        "shot",
         "render",
         "image",
         "plate",

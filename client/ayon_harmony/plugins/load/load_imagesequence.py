@@ -20,12 +20,11 @@ class ImageSequenceLoader(load.LoaderPlugin):
     product_types = {
         "shot",
         "render",
-        "image",
         "plate",
         "reference",
         "review",
     }
-    representations = {"jpg_jpg", "png_png", "jpeg_jpeg"}
+    representations = {"*"}
     extensions = {"jpeg", "png", "jpg"}
     settings_category = "harmony"
 
