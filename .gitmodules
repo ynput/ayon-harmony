@@ -1,0 +1,3 @@
+[submodule "client/ayon_harmony/vendor/OpenHarmony"]
+	path = client/ayon_harmony/vendor/OpenHarmony
+	url = https://github.com/cfourney/OpenHarmony.git

@@ -213,7 +213,7 @@ def launch(application_path, *args):
         ProcessContext.workfile_tool = host_tools.get_tool_by_name(
             "workfiles"
         )
-        host_tools.show_workfiles(save=False)
+        host_tools.show_workfiles(save=True)
         ProcessContext.execute_in_main_thread(check_workfiles_tool)
 
 
@@ -320,6 +320,15 @@ def unzip_scene_file(filepath: str) -> str:
         )
         if zip_based_name in relative_path_xstage:
             break
+
+    # Rename .xstage file if it doesn't match the expected name
+    expected_xstage_path = os.path.join(
+        local_scene_dir_path, zip_based_name
+    )
+    if scene_path != expected_xstage_path:
+        log.info(f"Renaming {scene_path} to {expected_xstage_path}")
+        shutil.move(scene_path, expected_xstage_path)
+        scene_path = expected_xstage_path
 
     if not os.path.exists(scene_path):
         raise Exception(

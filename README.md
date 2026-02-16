@@ -207,6 +207,22 @@ harmony.save_scene()
   archive.
 </details>
 
+## Contributing
+This repo references [OpenHarmony](https://github.com/cfourney/OpenHarmony) as a git submodule.
+```sh
+git clone --recursive https://github.com/ynput/ayon-harmony.git
+# OR if already cloned:
+git submodule update --init --recursive
+```
+
+### Upgrading OpenHarmony
+```sh
+cd ayon-harmony/client/ayon_harmony/vendor/OpenHarmony
+git checkout <tag-or-commit>
+cd ../../../../..
+git add ayon-harmony/client/ayon_harmony/vendor/OpenHarmony
+git commit -m "Pin OpenHarmony to specific version"
+```
 
 ## Resources
 - https://github.com/diegogarciahuerta/tk-harmony
