@@ -38,7 +38,7 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     }
 
     var scn = $.scn;
-    var compositeName = productName + "_comp";
+var compositeName = productName + "_comp";
     var groupCompositeNode = scn.getNodeByPath("Top/" + compositeName);
     var groupWriteNode = scn.getNodeByPath("Top/" + productName);
 
@@ -51,6 +51,8 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
         var groupNode = scn.getNodeByPath(groupNodes[i]);
         var isGroup = groupNode.type === "GROUP";
 
+        MessageLog.trace("groupNode.type"  + groupNode.type);
+        MessageLog.trace("groupNode.name" + groupNode.name);
 	    if (isGroup){
 	       groupCompositeNode = groupNode;
            compositeName = groupNode.name;
@@ -58,9 +60,7 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
 
         // create composition and
         if (!groupCompositeNode){
-            groupCompositeNode = scnRoot.addNode(
-                "COMPOSITE", compositeName
-            );
+            groupCompositeNode = scnRoot.addNode("COMPOSITE", compositeName);
 	        created = true;
         }
         if (!groupWriteNode){
@@ -111,12 +111,13 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
 };
 
 /**
+
  * Tries to format nodes of a layer group and wrap them in Backdrop
- * 
+ *
  * Traverses up from layer group write node
- * 
+ *
  * TODO refactor
- * 
+ *
  * @function
  * @param {array} args Arguments for instance.
  */
@@ -128,7 +129,7 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
     var groupColor = args[2];
 
     var scn = $.scn;
-    
+
     var groupNodes = [];
     var groupWriteNode = scn.getNodeByPath(layerGroupName);
     if (!groupWriteNode){
@@ -136,24 +137,26 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
         return
     }
     groupNodes.push(groupWriteNode);
+
     var groupCompositeNode = groupWriteNode.getLinkedInNode(0);
     groupNodes.push(groupCompositeNode);
 
-    var inNodes = groupCompositeNode.linkedInNodes;
+    if (groupCompositeNodep.type != "GROUP"){
+        var inNodes = groupCompositeNode.linkedInNodes;
 
-    for (var i = 0; i< inNodes.length; i++) {
-        var inNode = inNodes[i];
-        groupNodes.push(inNode);
-        for (var j=0; j<inNode.linkedOutNodes.length; j++ ){
-            var connectedOutNode = inNode.linkedOutNodes[j];
-            if (connectedOutNode.type == "WRITE"){
-                groupNodes.push(connectedOutNode);
+        for (var i = 0; i< inNodes.length; i++) {
+            var inNode = inNodes[i];
+            groupNodes.push(inNode);
+            for (var j=0; j<inNode.linkedOutNodes.length; j++ ){
+                var connectedOutNode = inNode.linkedOutNodes[j];
+                if (connectedOutNode.type == "WRITE"){
+                    groupNodes.push(connectedOutNode);
+                }
             }
+            groupCompositeNode.placeAtCenter(inNodes ,0, 150);
+            groupCompositeNode.orderAboveNodes();
         }
     }
-
-    groupCompositeNode.placeAtCenter(inNodes ,0, 150);
-    groupCompositeNode.orderAboveNodes();
 
     groupWriteNode.centerBelow(groupCompositeNode);
     groupWriteNode.x -= 250;
