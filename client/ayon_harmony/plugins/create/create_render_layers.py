@@ -293,7 +293,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     def _create_nodes_for_group(self, group_id, product_name):
         layers_data = get_layers_info()
-        # TODO handle groups and regular separate read nodes
         layers_full_names = []
         for layer in layers_data:
             if layer["color"] == group_id:
@@ -936,6 +935,9 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         layer_positions_in_groups = get_layer_positions_in_groups(layers)
 
         for layer in layers:
+            if layer.get("isGrouped"):
+                continue
+
             layer_name = layer["name"]
             variant = None
             render_pass = render_pass_by_layer_name.get(layer_name)
