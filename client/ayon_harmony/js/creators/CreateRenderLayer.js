@@ -128,7 +128,7 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
     var groupLabel = args[1];
     var groupColor = args[2];
 
-    var scn = $.scn;
+      var scn = $.scn;
 
     var groupNodes = [];
     var groupWriteNode = scn.getNodeByPath(layerGroupName);
@@ -141,9 +141,8 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
     var groupCompositeNode = groupWriteNode.getLinkedInNode(0);
     groupNodes.push(groupCompositeNode);
 
-    if (groupCompositeNodep.type != "GROUP"){
-        var inNodes = groupCompositeNode.linkedInNodes;
-
+    var inNodes = groupCompositeNode.linkedInNodes;
+    if (groupCompositeNode.type != "GROUP"){
         for (var i = 0; i< inNodes.length; i++) {
             var inNode = inNodes[i];
             groupNodes.push(inNode);
@@ -153,9 +152,9 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
                     groupNodes.push(connectedOutNode);
                 }
             }
-            groupCompositeNode.placeAtCenter(inNodes ,0, 150);
-            groupCompositeNode.orderAboveNodes();
         }
+    	groupCompositeNode.placeAtCenter(inNodes , 0, 150);
+    	groupCompositeNode.orderAboveNodes();
     }
 
     groupWriteNode.centerBelow(groupCompositeNode);
@@ -172,6 +171,42 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
     }
 
     var backdrop = group.addBackdropToNodes(groupNodes, groupLabel, "", color);
+
+    // Handle overlapping backdrops
+    var all_backdrops = Backdrop.backdrops("Top");
+
+    var created_name = backdrop.backdropObject.title.text;
+    for (var b = 0; b < all_backdrops.length; b++) {
+        var otherBackdrop = all_backdrops[b];
+        // Skip the backdrop we just created
+        if (otherBackdrop.title.text === created_name) {
+	    backdrop = all_backdrops[b];
+            continue;
+        }
+
+        var otherPos = otherBackdrop.position;
+        var newPos = backdrop.position;
+
+        // Check if backdrops overlap (manual intersection check)
+        // position has x, y, width, height properties
+        var overlaps = !(
+            newPos.x >= otherPos.x + otherPos.w ||
+            newPos.x + newPos.w <= otherPos.x ||
+            newPos.y >= otherPos.y + otherPos.h ||
+            newPos.y + newPos.h <= otherPos.y
+        );
+
+        if (overlaps) {
+            // Push the other backdrop to the left
+            backdrop.position.x -= newPos.w;
+
+            for (var c=0; c < groupNodes.length; c++){
+                var node = groupNodes[c];
+                node.x -= newPos.w;
+            }
+        }
+    }
+    Backdrop.setBackdrops("Top", all_backdrops);
 
     $.endUndo();
 
