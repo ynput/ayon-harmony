@@ -38,7 +38,6 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     }
 
     var scn = $.scn;
-
     var compositeName = productName + "_comp";
     var groupCompositeNode = scn.getNodeByPath("Top/" + compositeName);
     var groupWriteNode = scn.getNodeByPath("Top/" + productName);
@@ -47,13 +46,22 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     var lastInPortNum = -1;
     var oNodes = [];
     var created = false;
+    var linkedOutNode = null;
     for (var i = 0; i< groupNodes.length; i++) {
         var groupNode = scn.getNodeByPath(groupNodes[i]);
-	
+        var isGroup = groupNode.type === "GROUP";
+
+	    if (isGroup){
+	       groupCompositeNode = groupNode;
+           compositeName = groupNode.name;
+	    }
+
         // create composition and
         if (!groupCompositeNode){
-            groupCompositeNode = scnRoot.addNode("COMPOSITE", compositeName);
-	     created = true;
+            groupCompositeNode = scnRoot.addNode(
+                "COMPOSITE", compositeName
+            );
+	        created = true;
         }
         if (!groupWriteNode){
             groupWriteNode = scnRoot.addNode("WRITE", productName);
@@ -64,30 +72,33 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
         var connections = groupNode.linkedOutNodes || [];
         var compositePath = "Top/" + compositeName;
         var isConnectedToGroupCompositeAlready = false;
-        for (var ci = 0; ci < connections.length; ci++) {
-            var connPath = connections[ci].fullPath;
-            if (connPath=== compositePath) {
+        if (!isGroup){
+            for (var ci = 0; ci < connections.length; ci++) {
+                var connPath = connections[ci].fullPath;
+                if (connPath=== compositePath) {
                     isConnectedToGroupCompositeAlready = true;
                     break;
+                }
             }
-        }
-        if (isConnectedToGroupCompositeAlready){
-            continue;
-        }
+            if (isConnectedToGroupCompositeAlready){
+                continue;
+            }
 
-        // connect to group composition
-	    var outConnections = groupNode.getOutLinks();
-        for (var j = 0; j< outConnections.length; j++) {
-            var outConn = outConnections[j];
-	        var linkedOutNode = outConn.inNode;
-	        lastInPortNum = outConn.inPort;
+            var outConnections = groupNode.getOutLinks();
+            for (var j = 0; j< outConnections.length; j++) {
+                var outConn = outConnections[j];
+                var linkedOutNode = outConn.inNode;
+                lastInPortNum = outConn.inPort;
 
-            groupNode.unlinkOutNode(linkedOutNode);
+                groupNode.unlinkOutNode(linkedOutNode);
+            }
+            groupNode.linkOutNode(groupCompositeNode);
         }
-        groupNode.linkOutNode(groupCompositeNode);
 
     }
-    groupCompositeNode.linkOutNode(linkedOutNode, undefined, lastInPortNum);
+    if (linkedOutNode) {
+        groupCompositeNode.linkOutNode(linkedOutNode, undefined, lastInPortNum);
+    }
 
     // var allGroupNodes = [groupCompositeNode, groupNodes];  // TODO use when Open Harmony fixes box issue
 

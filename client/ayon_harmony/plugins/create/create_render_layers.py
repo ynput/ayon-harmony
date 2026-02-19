@@ -293,11 +293,14 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     def _create_nodes_for_group(self, group_id, product_name):
         layers_data = get_layers_info()
-        layers_full_names = [
-            layer["fullName"]
-            for layer in layers_data
-            if layer["color"] == group_id
-        ]
+        # TODO handle groups and regular separate read nodes
+        layers_full_names = []
+        for layer in layers_data:
+            if layer["color"] == group_id:
+                if layer["isGrouped"]:
+                    layers_full_names = [layer["parentPath"]]
+                    break
+                layers_full_names.append(layer["fullName"])
 
         self_name = self.__class__.__name__
         created_node = harmony.send(
@@ -388,6 +391,10 @@ class CreateRenderPass(HarmonyRenderCreator):
         marked_layer_name = pre_create_data.get("layer_name")
         layer = self._get_used_layer(marked_layer_name, layers_data)
 
+        if layer["isGrouped"]:
+            self.log.debug(f"Layer {layer['name']} is in a group, skipping")
+            return
+
         for instance in self.create_context.instances:
             if instance.creator_identifier != self.identifier:
                 continue
@@ -421,7 +428,7 @@ class CreateRenderPass(HarmonyRenderCreator):
             filtered_layers = [
                 layer
                 for layer in scene_layers
-                if layer["color"] == group_id
+                if layer["color"] == group_id and not layer["isGrouped"]
             ]
             layer_positions_in_groups = get_layer_positions_in_groups(
                 filtered_layers
