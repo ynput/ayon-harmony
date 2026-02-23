@@ -38,7 +38,7 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     }
 
     var scn = $.scn;
-var compositeName = productName + "_comp";
+   var compositeName = productName + "_comp";
     var groupCompositeNode = scn.getNodeByPath("Top/" + compositeName);
     var groupWriteNode = scn.getNodeByPath("Top/" + productName);
 
@@ -49,14 +49,6 @@ var compositeName = productName + "_comp";
     var linkedOutNode = null;
     for (var i = 0; i< groupNodes.length; i++) {
         var groupNode = scn.getNodeByPath(groupNodes[i]);
-        var isGroup = groupNode.type === "GROUP";
-
-        MessageLog.trace("groupNode.type"  + groupNode.type);
-        MessageLog.trace("groupNode.name" + groupNode.name);
-	    if (isGroup){
-	       groupCompositeNode = groupNode;
-           compositeName = groupNode.name;
-	    }
 
         // create composition and
         if (!groupCompositeNode){
@@ -72,28 +64,26 @@ var compositeName = productName + "_comp";
         var connections = groupNode.linkedOutNodes || [];
         var compositePath = "Top/" + compositeName;
         var isConnectedToGroupCompositeAlready = false;
-        if (!isGroup){
-            for (var ci = 0; ci < connections.length; ci++) {
-                var connPath = connections[ci].fullPath;
-                if (connPath=== compositePath) {
-                    isConnectedToGroupCompositeAlready = true;
-                    break;
-                }
+        for (var ci = 0; ci < connections.length; ci++) {
+            var connPath = connections[ci].fullPath;
+            if (connPath=== compositePath) {
+                isConnectedToGroupCompositeAlready = true;
+                break;
             }
-            if (isConnectedToGroupCompositeAlready){
-                continue;
-            }
-
-            var outConnections = groupNode.getOutLinks();
-            for (var j = 0; j< outConnections.length; j++) {
-                var outConn = outConnections[j];
-                var linkedOutNode = outConn.inNode;
-                lastInPortNum = outConn.inPort;
-
-                groupNode.unlinkOutNode(linkedOutNode);
-            }
-            groupNode.linkOutNode(groupCompositeNode);
         }
+        if (isConnectedToGroupCompositeAlready){
+            continue;
+        }
+
+        var outConnections = groupNode.getOutLinks();
+        for (var j = 0; j< outConnections.length; j++) {
+            var outConn = outConnections[j];
+            var linkedOutNode = outConn.inNode;
+            lastInPortNum = outConn.inPort;
+
+            groupNode.unlinkOutNode(linkedOutNode);
+        }
+        groupNode.linkOutNode(groupCompositeNode);
 
     }
     if (linkedOutNode) {

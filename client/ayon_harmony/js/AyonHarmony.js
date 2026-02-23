@@ -478,12 +478,14 @@ AyonHarmony.movePaletteToIndex = function(args) {
 /**
  * Get layers info
  * Use native Harmony API to avoid OpenHarmony wrapper overhead for better performance.
- * 
+ *
  * Return information about name, fullName, selection etc.
  * @function
+ * @param {boolean} [topOnly=false] If true, only return layers at the top level (not inside groups).
  * @return {object[]} Array of objects with info about node/layer.
  */
-AyonHarmony.getLayerInfos = function() {
+AyonHarmony.getLayerInfos = function(topOnly) {
+    topOnly = topOnly || true;
     var result = [];
     var numLayers = Timeline.numLayers;
 
@@ -501,15 +503,16 @@ AyonHarmony.getLayerInfos = function() {
 
         var nodePath = Timeline.layerToNode(i);
 
-        // Filter to READ nodes only
-        if (node.type(nodePath) !== 'READ') continue;
-
         // Determine Group Status
         // node.parentNode(nodePath) returns the path of the parent (e.g., "Top/MyGroup")
         var parentPath = node.parentNode(nodePath);
 
         // In Harmony, "Top" is the root level. Anything else means it's in a group.
         var isInsideGroup = (parentPath !== "Top" && parentPath !== "");
+
+        // Filter to top-level only if requested
+        if (topOnly && isInsideGroup) continue;
+
         var groupName = isInsideGroup ? node.getName(parentPath) : null;
 
         // Get node properties using native API
