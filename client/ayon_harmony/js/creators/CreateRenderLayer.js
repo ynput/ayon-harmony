@@ -118,7 +118,7 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
     var groupLabel = args[1];
     var groupColor = args[2];
 
-      var scn = $.scn;
+    var scn = $.scn;
 
     var groupNodes = [];
     var groupWriteNode = scn.getNodeByPath(layerGroupName);
