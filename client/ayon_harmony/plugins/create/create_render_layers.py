@@ -192,8 +192,8 @@ class CreateRenderLayer(HarmonyRenderCreator):
         return node
 
     def get_pre_create_attr_defs(self):
-        get_layers_info().cache_clear()
-        get_group_infos().cache_clear()
+        get_layers_info.cache_clear()
+        get_group_infos.cache_clear()
 
         enum_defs = super().get_pre_create_attr_defs()
         group_infos = get_group_infos()
