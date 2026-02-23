@@ -37,6 +37,7 @@ Todos:
 import re
 import logging
 import collections
+from functools import lru_cache
 from typing import Any, Optional, Union
 from dataclasses import dataclass
 
@@ -191,6 +192,9 @@ class CreateRenderLayer(HarmonyRenderCreator):
         return node
 
     def get_pre_create_attr_defs(self):
+        get_layers_info().cache_clear()
+        get_group_infos().cache_clear()
+
         enum_defs = super().get_pre_create_attr_defs()
         group_infos = get_group_infos()
         group_enum_values = [
@@ -1054,9 +1058,9 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
 
 # TODO refactor
+@lru_cache(maxsize=1)
 def get_group_infos() -> list[GroupInfo]:
     """Lists all used layer colors to choose from"""
-    # TODO cache this
     layers_data = get_layers_info()
     # to keep order
     ordered_colors = []
