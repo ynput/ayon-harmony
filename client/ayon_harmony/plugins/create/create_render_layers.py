@@ -192,9 +192,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
         return node
 
     def get_pre_create_attr_defs(self):
-        get_layers_info.cache_clear()
-        get_group_infos.cache_clear()
-
         enum_defs = super().get_pre_create_attr_defs()
         group_infos = get_group_infos()
         group_enum_values = [
@@ -998,6 +995,9 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             creator.create(product_name, instance_data, pre_create_data)
 
     def get_pre_create_attr_defs(self) -> list[AbstractAttrDef]:
+        get_layers_info.cache_clear()
+        get_group_infos.cache_clear()
+
         render_layer_creator: CreateRenderLayer = self.create_context.creators[
             CreateRenderLayer.identifier
         ]
