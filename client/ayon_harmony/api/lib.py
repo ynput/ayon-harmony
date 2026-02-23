@@ -719,7 +719,7 @@ def find_backdrop_by_name(name: str) -> Optional[dict]:
 
 
 @lru_cache(maxsize=1)
-def get_layers_info(top_only:bool = True) -> list[dict[str, str]]:
+def get_layers_info(top_only: bool = True) -> list[dict[str, str]]:
     """Returns list of dicts with info about timeline layers
 
     'position' goes from 0 at the top and increases to bottom on timeline
