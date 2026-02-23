@@ -485,7 +485,9 @@ AyonHarmony.movePaletteToIndex = function(args) {
  * @return {object[]} Array of objects with info about node/layer.
  */
 AyonHarmony.getLayerInfos = function(topOnly) {
-    topOnly = topOnly || true;
+    if (topOnly === undefined) {
+        topOnly = false;
+    }
     var result = [];
     var numLayers = Timeline.numLayers;
 
