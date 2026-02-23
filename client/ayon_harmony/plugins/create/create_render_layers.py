@@ -299,11 +299,12 @@ class CreateRenderLayer(HarmonyRenderCreator):
         layers_data = get_layers_info()
         layers_full_names = []
         for layer in layers_data:
-            if layer["color"] == group_id:
-                if layer["isGrouped"]:
-                    layers_full_names = [layer["parentPath"]]
-                    break
-                layers_full_names.append(layer["fullName"])
+            if layer["color"] != group_id:
+                continue
+            if layer["isGrouped"]:
+                layers_full_names = [layer["parentPath"]]
+                break
+            layers_full_names.append(layer["fullName"])
 
         self_name = self.__class__.__name__
         created_node = harmony.send(
