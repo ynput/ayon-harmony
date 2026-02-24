@@ -1042,7 +1042,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         """Tries to wrap all nodes of a layer group into Backdrop"""
         scene_containers = harmony.get_scene_data()
         for node_name, container in scene_containers.items():
-            identifier = container["creator_identifier"]
+            identifier = container.get("creator_identifier")
             if identifier != CreateRenderLayer.identifier:
                 continue
             group_label = container["variant"]
