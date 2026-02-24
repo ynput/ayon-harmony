@@ -50,6 +50,11 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     for (var i = 0; i< groupNodes.length; i++) {
         var groupNode = scn.getNodeByPath(groupNodes[i]);
 
+        if (!groupNode) {
+            MessageLog.trace("Node not found: " + groupNodes[i]);
+            continue;
+        }
+
         // create composition and
         if (!groupCompositeNode){
             groupCompositeNode = scnRoot.addNode("COMPOSITE", compositeName);
