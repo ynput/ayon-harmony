@@ -478,51 +478,68 @@ AyonHarmony.movePaletteToIndex = function(args) {
 /**
  * Get layers info
  * Use native Harmony API to avoid OpenHarmony wrapper overhead for better performance.
- * 
+ *
  * Return information about name, fullName, selection etc.
  * @function
+ * @param {boolean} [topOnly=false] If true, only return layers at the top level (not inside groups).
  * @return {object[]} Array of objects with info about node/layer.
  */
-AyonHarmony.getLayerInfos = function() {
+AyonHarmony.getLayerInfos = function(topOnly) {
+    if (topOnly === undefined) {
+        topOnly = false;
+    }
     var result = [];
     var numLayers = Timeline.numLayers;
-    
+
     // Build selected layers lookup
     var selectedLayers = {};
     var numSelected = Timeline.numLayerSel;
     for (var s = 0; s < numSelected; s++) {
         selectedLayers[Timeline.selToLayer(s)] = true;
     }
-    
+
     // Iterate timeline layers using native API
     for (var i = 0; i < numLayers; i++) {
         // Skip non-node layers (columns, etc.)
         if (!Timeline.layerIsNode(i)) continue;
-        
+
         var nodePath = Timeline.layerToNode(i);
-        
-        // Filter to READ nodes only
-        if (node.type(nodePath) !== 'READ') continue;
-        
+
+        // Determine Group Status
+        // node.parentNode(nodePath) returns the path of the parent (e.g., "Top/MyGroup")
+        var parentPath = node.parentNode(nodePath);
+
+        // In Harmony, "Top" is the root level. Anything else means it's in a group.
+        var isInsideGroup = (parentPath !== "Top" && parentPath !== "");
+
+        // Filter to top-level only if requested
+        if (topOnly && isInsideGroup) continue;
+
+        var groupName = isInsideGroup ? node.getName(parentPath) : null;
+
         // Get node properties using native API
         var nodeColor = node.getColor(nodePath);
-        // Convert to hex format #RRGGBBAA to match OpenHarmony's oColorValue.toString() format
+
+        // Convert to hex format #RRGGBBAA
         var r = ("00" + nodeColor.r.toString(16)).slice(-2);
         var g = ("00" + nodeColor.g.toString(16)).slice(-2);
         var b = ("00" + nodeColor.b.toString(16)).slice(-2);
         var a = ("00" + nodeColor.a.toString(16)).slice(-2);
         var colorStr = '#' + r + g + b + a;
-        
+
         result.push({
             "name": node.getName(nodePath),
             "color": colorStr,
             "fullName": nodePath,
             "selected": selectedLayers[i] === true,
             "position": i,
-            "enabled": node.getEnable(nodePath)
+            "enabled": node.getEnable(nodePath),
+            "isGrouped": isInsideGroup,
+            "parentGroup": groupName,
+            "parentPath": parentPath
         });
     }
-    
+
     return result;
 };
 
