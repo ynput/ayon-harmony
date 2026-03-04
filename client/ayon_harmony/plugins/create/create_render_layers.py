@@ -115,8 +115,8 @@ class CreateRenderLayer(HarmonyRenderCreator):
     """
 
     label = "Render Layer"
-    product_type = "render"
     product_base_type = "render"
+    product_type = product_base_type
     product_base_type_filter = "renderLayer"
     identifier = "render.layer"
     icon = "fa5.images"
@@ -322,8 +322,8 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
 
 class CreateRenderPass(HarmonyRenderCreator):
-    product_type = "render"
     product_base_type = "render"
+    product_type = product_base_type
     product_base_type_filter = "renderPass"
     identifier = "render.pass"
     label = "Render Pass"
@@ -621,8 +621,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
     Never will have any instances, all instances belong to different creators.
     """
 
-    product_type = "render"
     product_base_type = "render"
+    product_type = product_base_type
     label = "Render Layer/Passes"
     identifier = "render.auto.detect.creator"
     # order = CreateRenderPass.order + 10
