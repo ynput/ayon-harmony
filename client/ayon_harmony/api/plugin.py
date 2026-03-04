@@ -44,15 +44,15 @@ class HarmonyCreatorBase:
         for entity_name, entity_data in reversed(
             scene_data.copy().items()
         ):
+            # Filter orphaned instances
+            if entity_name not in all_top_names:
+                del node_data_by_name[entity_name]
+                node_data_changed = True
+                continue
+
             if entity_data.get("id") not in {
                 AYON_INSTANCE_ID, AVALON_INSTANCE_ID
             }:
-                continue
-
-            # Filter orphaned instances
-            if entity_name not in all_top_names:
-                del scene_data[entity_name]
-                cleaned_scene_data = True
                 continue
 
             creator_id = entity_data.get("creator_identifier")
