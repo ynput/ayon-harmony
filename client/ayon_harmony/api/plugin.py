@@ -1,3 +1,4 @@
+import collections
 import re
 
 from ayon_core.lib import BoolDef, EnumDef
@@ -30,52 +31,54 @@ class HarmonyCreatorBase:
             Dict[str, Any]: Shared data.
 
         """
-        if shared_data.get("harmony_cached_instance_data") is None:
-            cache = dict()
-            cache_legacy = dict()
+        if shared_data.get("harmony_cached_instance_data") is not None:
+            return shared_data
 
-            # Collect scene data once instead of calling `read()` per node
-            scene_data = harmony.get_scene_data()
-            all_top_names = harmony.get_all_top_names()
-            cleaned_scene_data = False
-            for entity_name, entity_data in reversed(
-                scene_data.copy().items()
-            ):
-                # Filter orphaned instances
-                if entity_name not in all_top_names:
-                    del scene_data[entity_name]
-                    cleaned_scene_data = True
+        cache = dict()
+        cache_legacy = dict()
+
+        # Collect scene data once instead of calling `read()` per node
+        scene_data = harmony.get_scene_data()
+        all_top_names = harmony.get_all_top_names()
+        cleaned_scene_data = False
+        for entity_name, entity_data in reversed(
+            scene_data.copy().items()
+        ):
+            # Filter orphaned instances
+            if entity_name not in all_top_names:
+                del scene_data[entity_name]
+                cleaned_scene_data = True
+                continue
+
+            if entity_data.get("id") not in {
+                AYON_INSTANCE_ID, AVALON_INSTANCE_ID
+            }:
+                continue
+
+            creator_id = entity_data.get("creator_identifier")
+            if creator_id is not None:
+                # creator instance
+                cache.setdefault(creator_id, []).append(entity_name)
+            else:
+                # legacy instance
+                product_type = entity_data.get(
+                    "productType") or entity_data.get("family")
+
+                if product_type is None:
+                    # must be a broken instance
                     continue
 
-                if entity_data.get("id") not in {
-                    AYON_INSTANCE_ID, AVALON_INSTANCE_ID
-                }:
-                    continue
+                cache_legacy.setdefault(product_type, []).append(
+                    entity_name
+                )
 
-                creator_id = entity_data.get("creator_identifier")
-                if creator_id is not None:
-                    # creator instance
-                    cache.setdefault(creator_id, []).append(entity_name)
-                else:
-                    # legacy instance
-                    product_type = entity_data.get(
-                        "productType") or entity_data.get("family")
+        shared_data["harmony_cached_scene_data"] = scene_data
+        shared_data["harmony_cached_instance_data"] = cache
+        shared_data["harmony_cached_legacy_instances_names"] = cache_legacy
 
-                    if product_type is None:
-                        # must be a broken instance
-                        continue
-
-                    cache_legacy.setdefault(product_type, []).append(
-                        entity_name
-                    )
-
-            shared_data["harmony_cached_scene_data"] = scene_data
-            shared_data["harmony_cached_instance_data"] = cache
-            shared_data["harmony_cached_legacy_instances_names"] = cache_legacy
-
-            # Update scene data if cleaned
-            if cleaned_scene_data:
-                harmony.set_scene_data(scene_data)
+        # Update scene data if cleaned
+        if cleaned_scene_data:
+            harmony.set_scene_data(scene_data)
 
         return shared_data
 
