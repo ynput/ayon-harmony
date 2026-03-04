@@ -828,7 +828,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         instance_data: dict[str, str] = {
             "folderPath": folder_entity["path"],
             "task": task_name,
-            "productType": creator.product_type,
+            "productType": creator.product_base_type,
+            "productBaseType": creator.product_base_type,
             "variant": variant,
             "group_label": variant
         }
@@ -932,7 +933,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             instance_data: dict[str, str] = {
                 "folderPath": folder_entity["path"],
                 "task": task_name,
-                "productType": creator.product_type,
+                "productType": creator.product_base_type,
+                "productBaseType": creator.product_base_type,
                 "variant": variant,
             }
 
