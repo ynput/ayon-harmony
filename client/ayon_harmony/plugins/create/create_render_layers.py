@@ -257,30 +257,6 @@ class CreateRenderLayer(HarmonyRenderCreator):
             project_entity,
             product_type,
         )
-        task_name = task_type = None
-        if task_entity:
-            task_name = task_entity["name"]
-            task_type = task_entity["taskType"]
-
-        get_product_name_kwargs = {}
-        if getattr(get_product_name, "use_entities", False):
-            if not product_type:
-                product_type = self.product_base_type
-            get_product_name_kwargs.update({
-                "product_type": product_type,
-                "folder_entity": folder_entity,
-                "task_entity": task_entity,
-                "product_base_type": self.product_base_type,
-                "product_base_type_filter": self.product_base_type_filter,
-            })
-        else:
-            get_product_name_kwargs.update({
-                "product_type": self.product_base_type,
-                "task_name": task_name,
-                "task_type": task_type,
-                "product_type_filter": self.product_base_type_filter,
-            })
-
         return get_product_name(
             project_name=project_name,
             host_name=host_name,
@@ -288,7 +264,11 @@ class CreateRenderLayer(HarmonyRenderCreator):
             dynamic_data=dynamic_data,
             project_settings=self.project_settings,
             project_entity=project_entity,
-            **get_product_name_kwargs
+            product_type=product_type,
+            folder_entity=folder_entity,
+            task_entity=task_entity,
+            product_base_type=self.product_base_type,
+            product_base_type_filter=self.product_base_type_filter,
         )
 
     def _create_nodes_for_group(self, group_id, product_name):
@@ -588,38 +568,19 @@ class CreateRenderPass(HarmonyRenderCreator):
             project_entity,
             product_type,
         )
-        task_name = task_type = None
-        if task_entity:
-            task_name = task_entity["name"]
-            task_type = task_entity["taskType"]
-
-        get_product_name_kwargs = {}
-        if getattr(get_product_name, "use_entities", False):
-            if not product_type:
-                product_type = self.product_base_type
-            get_product_name_kwargs.update({
-                "product_type": product_type,
-                "folder_entity": folder_entity,
-                "task_entity": task_entity,
-                "product_base_type": self.product_base_type,
-                "product_base_type_filter": self.product_base_type_filter,
-            })
-        else:
-            get_product_name_kwargs.update({
-                "task_name": task_name,
-                "task_type": task_type,
-                "product_type_filter": self.product_base_type_filter,
-                "product_type": self.product_base_type,
-            })
 
         return get_product_name(
             project_name=project_name,
+            product_base_type=self.product_base_type,
+            product_type=product_type,
+            folder_entity=folder_entity,
+            task_entity=task_entity,
             host_name=host_name,
             variant=variant,
             dynamic_data=dynamic_data,
             project_settings=self.project_settings,
             project_entity=project_entity,
-            **get_product_name_kwargs
+            product_base_type_filter=self.product_base_type_filter,
         )
 
     def _get_render_layers_items(self):
