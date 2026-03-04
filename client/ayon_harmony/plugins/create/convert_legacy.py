@@ -19,7 +19,7 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
 
     """
     identifier = "io.ayon.creators.harmony.legacy"
-    product_type_to_id = {
+    product_base_type_to_id = {
         "render": "io.ayon.creators.harmony.render",
         "renderFarm": "io.ayon.creators.harmony.render",
         "template": "io.ayon.creators.harmony.template",
@@ -64,12 +64,14 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
         if not self.legacy_instances:
             return
 
-        for product_type, node_names in self.legacy_instances.items():
-            if product_type not in self.product_type_to_id:
+        for product_base_type, node_names in self.legacy_instances.items():
+            creator_identifier = self.product_base_type_to_id.get(
+                product_base_type
+            )
+            if not creator_identifier:
                 continue
 
             for node_name in node_names:
-                creator_identifier = self.product_type_to_id[product_type]
                 self.log.info(
                     f"Converting {node_name} to {creator_identifier}"
                 )
