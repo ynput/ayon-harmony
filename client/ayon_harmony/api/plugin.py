@@ -132,14 +132,19 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
         ):
             data = scene_data[node_name]
 
-            product_type = data.get("productType")
-            if product_type is None:
-                product_type = data["family"]
-                data["productType"] = product_type
-            data["family"] = product_type
+            product_base_type = data.get("productBaseType")
+            if not product_base_type:
+                product_base_type = data.get("productType")
+                data["productBaseType"] = product_base_type
 
-            instance = CreatedInstance.from_existing(instance_data=data,
-                                                     creator=self)
+            if product_base_type is None:
+                product_base_type = data["family"]
+                data["productType"] = product_base_type
+                data["productBaseType"] = product_base_type
+
+            instance = CreatedInstance.from_existing(
+                instance_data=data, creator=self
+            )
             instance.transient_data["node"] = node_name
 
             # Active state is based of the node's active state
