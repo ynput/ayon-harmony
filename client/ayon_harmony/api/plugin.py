@@ -25,7 +25,7 @@ class HarmonyCreatorBase:
 
         If legacy instances are detected in the scene, create
         `maya_cached_legacy_instances` there and fill it with
-        all legacy products under product type as a key.
+        all legacy products under product base type as a key.
 
         Args:
             Dict[str, Any]: Shared data.
@@ -136,9 +136,10 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
             product_base_type = data.get("productBaseType")
             if not product_base_type:
                 product_base_type = data.get("productType")
-                data["productBaseType"] = product_base_type
+                if product_base_type:
+                    data["productBaseType"] = product_base_type
 
-            if product_base_type is None:
+            if not product_base_type:
                 product_base_type = data["family"]
                 data["productType"] = product_base_type
                 data["productBaseType"] = product_base_type
