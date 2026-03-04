@@ -17,7 +17,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
     Stores the imported product in a container named after the product.
     """
 
-    product_types = {
+    product_base_types = {
         "shot",
         "render",
         "image",
@@ -25,6 +25,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
         "reference",
         "review",
     }
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"jpeg", "png", "jpg"}
     settings_category = "harmony"

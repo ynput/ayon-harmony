@@ -230,7 +230,8 @@ class BackgroundLoader(load.LoaderPlugin):
     """Load images
     Stores the imported product in a container named after the product.
     """
-    product_types = {"background"}
+    product_base_types = {"background"}
+    product_types = product_base_types
     representations = {"json"}
 
     def load(self, context, name=None, namespace=None, data=None):
