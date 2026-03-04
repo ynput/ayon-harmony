@@ -80,9 +80,10 @@ class HarmonyLegacyConvertor(ProductConvertorPlugin):
                     "id": AYON_INSTANCE_ID,
                     "creator_attributes": {"render_target": "local"}
                 }
-                if product_type == "renderFarm":
+                if product_base_type == "renderFarm":
                     node_meta = self.scene_metadata[node_name]
                     changed_data["productType"] = "render"
+                    changed_data["productBaseType"] = "render"
                     changed_data["productName"] = (
                         node_meta["productName"].replace("Farm", ""))
                     changed_data["creator_attributes"]["render_target"] = \
