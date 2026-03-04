@@ -62,11 +62,12 @@ class HarmonyCreatorBase:
                 continue
 
             # legacy instance
-            product_type = (
+            product_base_type = (
                 entity_data.get("productType")
                 or entity_data.get("family")
             )
-            if product_type is None:
+
+            if product_base_type is None:
                 # must be a broken instance
                 continue
 
