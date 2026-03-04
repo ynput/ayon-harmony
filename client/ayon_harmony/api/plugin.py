@@ -99,11 +99,15 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
         # Create the node
         node = self.product_impl(product_name, instance_data, pre_create_data)
 
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
         instance = CreatedInstance(
-            self.product_base_type,
-            product_name,
-            instance_data,
-            self,
+            product_base_type=self.product_base_type,
+            product_type=product_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
         )
         instance.transient_data["node"] = node
         harmony.imprint(node, instance.data_to_store())
@@ -144,9 +148,7 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
                 data["productType"] = product_base_type
                 data["productBaseType"] = product_base_type
 
-            instance = CreatedInstance.from_existing(
-                instance_data=data, creator=self
-            )
+            instance = CreatedInstance.from_existing(data, self)
             instance.transient_data["node"] = node_name
 
             # Active state is based of the node's active state
@@ -374,10 +376,11 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
                 f"Auto-creating {self.product_base_type} instance..."
             )
             current_instance = CreatedInstance(
-                self.product_base_type,
-                product_name,
-                data,
-                self,
+                product_base_type=self.product_base_type,
+                product_type=self.product_type,
+                product_name=product_name,
+                data=data,
+                creator=self,
             )
             self._add_instance_to_context(current_instance)
         elif (
@@ -392,6 +395,7 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
                 task_entity=task_entity,
                 variant=variant,
                 host_name=host_name,
+                product_type=self.product_type,
             )
 
             current_instance["folderPath"] = folder_entity["path"]
