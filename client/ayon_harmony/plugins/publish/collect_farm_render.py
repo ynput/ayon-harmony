@@ -120,24 +120,14 @@ class CollectFarmRender(publish.AbstractCollectRender):
             product_name = inst.data["productName"]
             task_name = inst.data.get("task")
 
-            product_type = inst.data("productType")
-            product_base_type = inst.data("productBaseType")
-            if not product_base_type:
-                product_base_type = product_type
+            product_base_type = inst.data["productBaseType"]
+            product_type = inst.data["productType"]
 
             instance_families = inst.data.get("families", [])
 
-            kwargs = dict(
-                productType=product_type,
-                productBaseType=product_base_type,
-            )
-            if "productBaseType" not in attr.fields_dict(
-                HarmonyRenderInstance
-            ):
-                kwargs["productType"] = kwargs.pop("productBaseType")
-
             render_instance = HarmonyRenderInstance(
-                **kwargs,
+                productBaseType=product_base_type,
+                productType=product_type,
                 version=version,
                 time=get_formatted_current_time(),
                 source=context.data["currentFile"],
