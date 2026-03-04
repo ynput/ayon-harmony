@@ -34,8 +34,8 @@ class HarmonyCreatorBase:
         if shared_data.get("harmony_cached_instance_data") is not None:
             return shared_data
 
-        cache = dict()
-        cache_legacy = dict()
+        cache = collections.defaultdict(list)
+        cache_legacy = collections.defaultdict(list)
 
         # Collect scene data once instead of calling `read()` per node
         scene_data = harmony.get_scene_data()
@@ -58,19 +58,19 @@ class HarmonyCreatorBase:
             creator_id = entity_data.get("creator_identifier")
             if creator_id is not None:
                 # creator instance
-                cache.setdefault(creator_id, []).append(entity_name)
-            else:
-                # legacy instance
-                product_type = entity_data.get(
-                    "productType") or entity_data.get("family")
+                cache[creator_id].append(entity_name)
+                continue
 
-                if product_type is None:
-                    # must be a broken instance
-                    continue
+            # legacy instance
+            product_type = (
+                entity_data.get("productType")
+                or entity_data.get("family")
+            )
+            if product_type is None:
+                # must be a broken instance
+                continue
 
-                cache_legacy.setdefault(product_type, []).append(
-                    entity_name
-                )
+            cache_legacy[product_type].append(entity_name)
 
         shared_data["harmony_cached_scene_data"] = scene_data
         shared_data["harmony_cached_instance_data"] = cache
@@ -126,9 +126,11 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
     def collect_instances(self):
         cache = self.cache_instance_data(self.collection_shared_data)
-        for node_name in cache.get("harmony_cached_instance_data").get(
-                self.identifier, []):
-            data = cache.get("harmony_cached_scene_data")[node_name]
+        scene_data = cache["harmony_cached_scene_data"]
+        for node_name in (
+            cache["harmony_cached_instance_data"][self.identifier]
+        ):
+            data = scene_data[node_name]
 
             product_type = data.get("productType")
             if product_type is None:
@@ -393,9 +395,9 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
 
     def collect_instances(self):
         cache = self.cache_instance_data(self.collection_shared_data)
-        for node in cache.get("harmony_cached_instance_data").get(
-                self.identifier, []):
-            data = cache.get("harmony_cached_scene_data")[node]
+        scene_data = cache["harmony_cached_scene_data"]
+        for node in cache["harmony_cached_instance_data"][self.identifier]:
+            data = scene_data[node]
             created_instance = CreatedInstance.from_existing(data, self)
             created_instance.transient_data["node"] = self._node_name
             self._add_instance_to_context(created_instance)
