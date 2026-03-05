@@ -695,8 +695,11 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         only_visible_groups = pre_create_data.get(
             "only_visible_groups", False
         )
-        layer_product_type = pre_create_data.get("layer_product_type")
-        pass_product_type = pre_create_data.get("pass_product_type")
+        (
+            layer_product_type,
+            pass_product_type
+        ) = self._get_product_types(pre_create_data)
+
         filtered_groups = self._filter_groups(
             layers_by_group_id,
             scene_groups,
@@ -713,8 +716,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                     filtered_groups,
                     mark_layers_for_review,
                     render_target,
-                    render_layers_by_group_id.get(group.color),
                     layer_product_type,
+                    render_layers_by_group_id.get(group.color),
                 )
             )
             if instance is not None:
@@ -736,11 +739,37 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 layers,
                 mark_passes_for_review,
                 render_target,
-                render_passes_by_render_layer_id[render_layer_instance.id],
                 pass_product_type,
+                render_passes_by_render_layer_id[render_layer_instance.id],
             )
 
         self._wrap_nodes_in_backdrop()
+
+    def _get_render_layer_create_plugin(self) -> CreateRenderLayer:
+        return self.create_context.creators[CreateRenderLayer.identifier]
+
+    def _get_render_pass_create_plugin(self) -> CreateRenderPass:
+        return self.create_context.creators[CreateRenderPass.identifier]
+
+    def _get_product_types(self, pre_create_data: dict) -> tuple[str, str]:
+        layer_product_type = pre_create_data.get("layer_product_type")
+        if not layer_product_type:
+            creator = self._get_render_layer_create_plugin()
+            pt_items = creator.get_product_type_items()
+            if pt_items:
+                layer_product_type = pt_items[0].product_type
+            else:
+                layer_product_type = creator.product_base_type
+
+        pass_product_type = pre_create_data.get("pass_product_type")
+        if not pass_product_type:
+            creator = self._get_render_pass_create_plugin()
+            pt_items = creator.get_product_type_items()
+            if pt_items:
+                pass_product_type = pt_items[0].product_type
+            else:
+                pass_product_type = creator.product_base_type
+        return layer_product_type, pass_product_type
 
     def _filter_groups(
         self,
@@ -795,8 +824,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         groups: list[GroupInfo],
         mark_for_review: bool,
         render_target: str,
+        product_type: str,
         existing_instance: Optional[CreatedInstance],
-        layer_product_type: Optional[str],
     ) -> Union[CreatedInstance, None]:
         match_group: Optional[dict[str, Any]] = next(
             (group for group in groups if group.color == group_id), None
@@ -813,11 +842,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             self.group_idx_offset,
             self.log,
         )
-        creator: CreateRenderLayer = self.create_context.creators[
-            CreateRenderLayer.identifier
-        ]
-        if not layer_product_type:
-            layer_product_type = creator.product_base_type
+        creator: CreateRenderLayer = self._get_render_layer_create_plugin()
 
         product_name: str = creator.get_product_name(
             project_entity["name"],
@@ -825,7 +850,6 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             task_entity,
             variant,
             host_name=self.create_context.host_name,
-            product_type=layer_product_type,
             project_entity=project_entity,
         )
         if existing_instance is not None:
@@ -837,7 +861,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         instance_data: dict[str, str] = {
             "folderPath": folder_entity["path"],
             "task": task_name,
-            "productType": layer_product_type,
+            "productType": product_type,
             "productBaseType": creator.product_base_type,
             "variant": variant,
             "group_label": variant
@@ -858,19 +882,14 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         layers: list[dict[str, Any]],
         mark_for_review: bool,
         render_target: str,
+        product_type: str,
         existing_render_passes: list[CreatedInstance],
-        product_type: Optional[str],
     ):
         task_name = task_entity["name"]
-        creator: CreateRenderPass = self.create_context.creators[
-            CreateRenderPass.identifier
-        ]
+        creator: CreateRenderPass = self._get_render_pass_create_plugin()
         render_pass_by_layer_name = {}
         for render_pass in existing_render_passes:
             render_pass_by_layer_name[render_pass["layer_name"]] = render_pass
-
-        if not product_type:
-            product_type = creator.product_base_type
 
         # Use renaming template to parse correct variant from existing layer
         #   names.
@@ -960,12 +979,12 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             creator.create(product_name, instance_data, pre_create_data)
 
     def get_pre_create_attr_defs(self) -> list[AbstractAttrDef]:
-        render_layer_creator: CreateRenderLayer = self.create_context.creators[
-            CreateRenderLayer.identifier
-        ]
-        render_pass_creator: CreateRenderPass = self.create_context.creators[
-            CreateRenderPass.identifier
-        ]
+        render_layer_creator: CreateRenderLayer = (
+            self._get_render_layer_create_plugin()
+        )
+        render_pass_creator: CreateRenderPass = (
+            self._get_render_pass_create_plugin()
+        )
         rendering_targets = [
             {"value": "local", "label": "Local machine rendering"},
             {"value": "farm", "label": "Farm rendering"},

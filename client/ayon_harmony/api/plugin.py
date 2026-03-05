@@ -96,12 +96,18 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
     settings_category = "harmony"
 
     def create(self, product_name, instance_data, pre_create_data):
+        product_type = instance_data.get("productType")
+        if not product_type:
+            pt_items = self.get_product_type_items()
+            if pt_items:
+                product_type = pt_items[0].product_type
+            else:
+                product_type = self.product_base_type
+            instance_data["productType"] = product_type
+
         # Create the node
         node = self.product_impl(product_name, instance_data, pre_create_data)
 
-        product_type = instance_data.get("productType")
-        if not product_type:
-            product_type = self.product_base_type
         instance = CreatedInstance(
             product_base_type=self.product_base_type,
             product_type=product_type,
