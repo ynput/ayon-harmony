@@ -695,6 +695,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         only_visible_groups = pre_create_data.get(
             "only_visible_groups", False
         )
+        layer_product_type = pre_create_data.get("layer_product_type")
+        pass_product_type = pre_create_data.get("pass_product_type")
         filtered_groups = self._filter_groups(
             layers_by_group_id,
             scene_groups,
@@ -712,6 +714,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                     mark_layers_for_review,
                     render_target,
                     render_layers_by_group_id.get(group.color),
+                    layer_product_type,
                 )
             )
             if instance is not None:
@@ -733,7 +736,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 layers,
                 mark_passes_for_review,
                 render_target,
-                render_passes_by_render_layer_id[render_layer_instance.id]
+                render_passes_by_render_layer_id[render_layer_instance.id],
+                pass_product_type,
             )
 
         self._wrap_nodes_in_backdrop()
@@ -791,7 +795,8 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         groups: list[GroupInfo],
         mark_for_review: bool,
         render_target: str,
-        existing_instance: Optional[CreatedInstance] = None,
+        existing_instance: Optional[CreatedInstance],
+        layer_product_type: Optional[str],
     ) -> Union[CreatedInstance, None]:
         match_group: Optional[dict[str, Any]] = next(
             (group for group in groups if group.color == group_id), None
@@ -811,12 +816,16 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         creator: CreateRenderLayer = self.create_context.creators[
             CreateRenderLayer.identifier
         ]
+        if not layer_product_type:
+            layer_product_type = creator.product_base_type
+
         product_name: str = creator.get_product_name(
             project_entity["name"],
             folder_entity,
             task_entity,
             variant,
             host_name=self.create_context.host_name,
+            product_type=layer_product_type,
             project_entity=project_entity,
         )
         if existing_instance is not None:
@@ -828,7 +837,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         instance_data: dict[str, str] = {
             "folderPath": folder_entity["path"],
             "task": task_name,
-            "productType": creator.product_base_type,
+            "productType": layer_product_type,
             "productBaseType": creator.product_base_type,
             "variant": variant,
             "group_label": variant
@@ -850,6 +859,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         mark_for_review: bool,
         render_target: str,
         existing_render_passes: list[CreatedInstance],
+        product_type: Optional[str],
     ):
         task_name = task_entity["name"]
         creator: CreateRenderPass = self.create_context.creators[
@@ -858,6 +868,9 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         render_pass_by_layer_name = {}
         for render_pass in existing_render_passes:
             render_pass_by_layer_name[render_pass["layer_name"]] = render_pass
+
+        if not product_type:
+            product_type = creator.product_base_type
 
         # Use renaming template to parse correct variant from existing layer
         #   names.
@@ -927,13 +940,13 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 variant,
                 host_name=self.create_context.host_name,
                 instance=render_pass,
+                product_type=product_type,
                 project_entity=project_entity,
             )
-
             instance_data: dict[str, str] = {
                 "folderPath": folder_entity["path"],
                 "task": task_name,
-                "productType": creator.product_base_type,
+                "productType": product_type,
                 "productBaseType": creator.product_base_type,
                 "variant": variant,
             }
@@ -953,11 +966,12 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         render_pass_creator: CreateRenderPass = self.create_context.creators[
             CreateRenderPass.identifier
         ]
-        rendering_targets = {
-            "local": "Local machine rendering",
-            "farm": "Farm rendering",
-        }
-        return [
+        rendering_targets = [
+            {"value": "local", "label": "Local machine rendering"},
+            {"value": "farm", "label": "Farm rendering"},
+        ]
+
+        output = [
             BoolDef(
                 "only_visible_groups",
                 label="Only visible color groups",
@@ -981,8 +995,33 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
                 "render_target",
                 items=rendering_targets,
                 label="Render target"
-            )
+            ),
         ]
+
+        layer_product_types = [
+            item.product_type
+            for item in render_layer_creator.get_product_type_items()
+        ]
+        if layer_product_types:
+            output.append(EnumDef(
+                "layer_product_type",
+                label="Layer product type",
+                items=layer_product_types,
+                default=layer_product_types[0]
+            ))
+
+        pass_product_types = [
+            item.product_type
+            for item in render_layer_creator.get_product_type_items()
+        ]
+        if pass_product_types:
+            output.append(EnumDef(
+                "pass_product_type",
+                label="Pass product type",
+                items=pass_product_types,
+                default=pass_product_types[0]
+            ))
+        return output
 
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
         pass
