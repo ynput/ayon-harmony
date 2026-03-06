@@ -36,7 +36,7 @@ class BackdropBaseLoader(load.LoaderPlugin):
         self_name = self.__class__.__name__
         filepath = self.filepath_from_context(context)
 
-        # Override container name from shared setting (Template Loader, PSD layers)
+        # Override container name from shared setting
         if self.override_name:
             name = self.override_name.format(**context)
 
