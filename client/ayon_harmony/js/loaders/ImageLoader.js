@@ -30,12 +30,20 @@ var PsdLoader = function() {};
 PsdLoader.prototype.loadContainer = function(args) {
     var psdPath = args[0];
     var name = args[1];
-    psdNodes = PsdLoader.prototype.importPsd(psdPath);
+
+    var existingBounds = AyonHarmony.computeExistingBounds();
+
+    var psdNodes = PsdLoader.prototype.importPsd(psdPath);
     var sceneRoot = $.scn.root;
-    psdNodes = psdNodes.filter(function(node) {
-        return node.group == "Top";
+    psdNodes = psdNodes.filter(function(n) {
+        return n.group == "Top";
     });
     var backdrop = sceneRoot.addBackdropToNodes(psdNodes, name);
+
+    var newBackdrops = [backdrop.backdropObject];
+    var newNodePaths = psdNodes.map(function(n) { return n.path; });
+    AyonHarmony.preventOverlap(existingBounds, newBackdrops, newNodePaths);
+
     return backdrop.title;
 }
 
