@@ -477,39 +477,70 @@ AyonHarmony.movePaletteToIndex = function(args) {
 
 /**
  * Get layers info
- * 
+ * Use native Harmony API to avoid OpenHarmony wrapper overhead for better performance.
+ *
  * Return information about name, fullName, selection etc.
  * @function
-* @return {object} Object with info about node/layer.
+ * @param {boolean} [topOnly=false] If true, only return layers at the top level (not inside groups).
+ * @return {object[]} Array of objects with info about node/layer.
  */
-AyonHarmony.getLayerInfos = function() {
-    var scn = $.scene;
-    var readNodes = scn.getNodesByType("READ");
-    var layerInfos = [];
-    var info = {};
+AyonHarmony.getLayerInfos = function(topOnly) {
+    if (topOnly === undefined) {
+        topOnly = false;
+    }
+    var result = [];
+    var numLayers = Timeline.numLayers;
 
-    for (var i = 0; i < readNodes.length; i++) {
-        var readNode = readNodes[i];
-
-        try {
-    		var timelineIndex = readNode.timelineIndex();
-        } catch (error) {
-            var timelineIndex = 999;
-        }
-
-        info = {
-            "name": readNode.name,
-            "color": readNode.nodeColor.toString(),
-            "fullName": readNode.toString(),
-            "selected": readNode.selected,
-            "position": timelineIndex,
-            "enabled": readNode.enabled
-        };
-
-    layerInfos.push(info);
+    // Build selected layers lookup
+    var selectedLayers = {};
+    var numSelected = Timeline.numLayerSel;
+    for (var s = 0; s < numSelected; s++) {
+        selectedLayers[Timeline.selToLayer(s)] = true;
     }
 
-    return layerInfos;
+    // Iterate timeline layers using native API
+    for (var i = 0; i < numLayers; i++) {
+        // Skip non-node layers (columns, etc.)
+        if (!Timeline.layerIsNode(i)) continue;
+
+        var nodePath = Timeline.layerToNode(i);
+
+        // Determine Group Status
+        // node.parentNode(nodePath) returns the path of the parent (e.g., "Top/MyGroup")
+        var parentPath = node.parentNode(nodePath);
+
+        // In Harmony, "Top" is the root level. Anything else means it's in a group.
+        var isInsideGroup = (parentPath !== "Top" && parentPath !== "");
+
+        // Filter to top-level only if requested
+        if (topOnly && isInsideGroup) continue;
+
+        var groupName = isInsideGroup ? node.getName(parentPath) : null;
+
+        // Get node properties using native API
+        var nodeColor = node.getColor(nodePath);
+
+        // Convert to hex format #RRGGBBAA
+        var r = ("00" + nodeColor.r.toString(16)).slice(-2);
+        var g = ("00" + nodeColor.g.toString(16)).slice(-2);
+        var b = ("00" + nodeColor.b.toString(16)).slice(-2);
+        var a = ("00" + nodeColor.a.toString(16)).slice(-2);
+        var colorStr = '#' + r + g + b + a;
+
+        result.push({
+            "name": node.getName(nodePath),
+            "color": colorStr,
+            "fullName": nodePath,
+            "selected": selectedLayers[i] === true,
+            "position": i,
+            "enabled": node.getEnable(nodePath),
+            "isGrouped": isInsideGroup,
+            "parentGroup": groupName,
+            "parentPath": parentPath
+        });
+    }
+
+    return result;
 };
 
 /**
