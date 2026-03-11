@@ -376,6 +376,7 @@ function start() {
     }
     var menuBar = mainWindow.menuBar();
     var actions = menuBar.actions();
+    var action;
     app.ayonMenu = null;
 
     for (var i = 0 ; i < actions.length; i++) {
@@ -403,10 +404,10 @@ function start() {
             'method': 'save_next_version',
             'args': []
         }, false);
-    }
+    };
     if (app.ayonMenu == null && addVersionUp) {
         menu.addSeparator();
-        var action = menu.addAction('Version Up Workfile');
+        action = menu.addAction('Version Up Workfile');
         action.triggered.connect(self.onVersionUp);
     }
 
@@ -437,7 +438,7 @@ function start() {
         }, false);
     };
 
-    var action = menu.addAction('Create...');
+    action = menu.addAction('Create...');
     action.triggered.connect(self.onCreator);
 
     /**
