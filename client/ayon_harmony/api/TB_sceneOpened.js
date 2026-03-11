@@ -341,6 +341,15 @@ function Client() {
     self.socket.disconnected.connect(self.onDisconnected);
 }
 
+function envToBool(value, defaultValue) {
+    if (typeof value === 'undefined' || value === null || value === '') {
+        return defaultValue;
+    }
+
+    value = value.toString().toLowerCase();
+    return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
+
 /**
  * Entry point, creating AYON Client.
  */
@@ -381,10 +390,13 @@ function start() {
         menu = menuBar.addMenu(System.getenv('AYON_MENU_LABEL'));
     }
 
+    var addVersionUp = envToBool(
+        System.getenv('AYON_HARMONY_VERSION_UP_WORKFILE'),
+        false
+    );
     /**
      * Show Version Up
      */
-    menu.addSeparator();
     self.onVersionUp = function() {
         app.ayonClient.send({
             'module': 'ayon_harmony.api.lib',
@@ -392,8 +404,11 @@ function start() {
             'args': []
         }, false);
     }
-    var action = menu.addAction('Version Up');
-    action.triggered.connect(self.onVersionUp);
+    if (app.ayonMenu == null && addVersionUp) {
+        menu.addSeparator();
+        var action = menu.addAction('Version Up Workfile');
+        action.triggered.connect(self.onVersionUp);
+    }
 
     /**
      * Show Workfiles
