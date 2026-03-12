@@ -38,8 +38,7 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     }
 
     var scn = $.scn;
-
-    var compositeName = productName + "_comp";
+   var compositeName = productName + "_comp";
     var groupCompositeNode = scn.getNodeByPath("Top/" + compositeName);
     var groupWriteNode = scn.getNodeByPath("Top/" + productName);
 
@@ -47,13 +46,19 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
     var lastInPortNum = -1;
     var oNodes = [];
     var created = false;
+    var linkedOutNode = null;
     for (var i = 0; i< groupNodes.length; i++) {
         var groupNode = scn.getNodeByPath(groupNodes[i]);
-	
+
+        if (!groupNode) {
+            MessageLog.trace("Node not found: " + groupNodes[i]);
+            continue;
+        }
+
         // create composition and
         if (!groupCompositeNode){
             groupCompositeNode = scnRoot.addNode("COMPOSITE", compositeName);
-	     created = true;
+	        created = true;
         }
         if (!groupWriteNode){
             groupWriteNode = scnRoot.addNode("WRITE", productName);
@@ -67,27 +72,28 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
         for (var ci = 0; ci < connections.length; ci++) {
             var connPath = connections[ci].fullPath;
             if (connPath=== compositePath) {
-                    isConnectedToGroupCompositeAlready = true;
-                    break;
+                isConnectedToGroupCompositeAlready = true;
+                break;
             }
         }
         if (isConnectedToGroupCompositeAlready){
             continue;
         }
 
-        // connect to group composition
-	    var outConnections = groupNode.getOutLinks();
+        var outConnections = groupNode.getOutLinks();
         for (var j = 0; j< outConnections.length; j++) {
             var outConn = outConnections[j];
-	        var linkedOutNode = outConn.inNode;
-	        lastInPortNum = outConn.inPort;
+            var linkedOutNode = outConn.inNode;
+            lastInPortNum = outConn.inPort;
 
             groupNode.unlinkOutNode(linkedOutNode);
         }
         groupNode.linkOutNode(groupCompositeNode);
 
     }
-    groupCompositeNode.linkOutNode(linkedOutNode, undefined, lastInPortNum);
+    if (linkedOutNode) {
+        groupCompositeNode.linkOutNode(linkedOutNode, undefined, lastInPortNum);
+    }
 
     // var allGroupNodes = [groupCompositeNode, groupNodes];  // TODO use when Open Harmony fixes box issue
 
@@ -100,12 +106,13 @@ CreateRenderLayer.prototype.createLayerNodes = function(args) {
 };
 
 /**
+
  * Tries to format nodes of a layer group and wrap them in Backdrop
- * 
+ *
  * Traverses up from layer group write node
- * 
+ *
  * TODO refactor
- * 
+ *
  * @function
  * @param {array} args Arguments for instance.
  */
@@ -117,7 +124,7 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
     var groupColor = args[2];
 
     var scn = $.scn;
-    
+
     var groupNodes = [];
     var groupWriteNode = scn.getNodeByPath(layerGroupName);
     if (!groupWriteNode){
@@ -125,24 +132,25 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
         return
     }
     groupNodes.push(groupWriteNode);
+
     var groupCompositeNode = groupWriteNode.getLinkedInNode(0);
     groupNodes.push(groupCompositeNode);
 
     var inNodes = groupCompositeNode.linkedInNodes;
-
-    for (var i = 0; i< inNodes.length; i++) {
-        var inNode = inNodes[i];
-        groupNodes.push(inNode);
-        for (var j=0; j<inNode.linkedOutNodes.length; j++ ){
-            var connectedOutNode = inNode.linkedOutNodes[j];
-            if (connectedOutNode.type == "WRITE"){
-                groupNodes.push(connectedOutNode);
+    if (groupCompositeNode.type != "GROUP"){
+        for (var i = 0; i< inNodes.length; i++) {
+            var inNode = inNodes[i];
+            groupNodes.push(inNode);
+            for (var j=0; j<inNode.linkedOutNodes.length; j++ ){
+                var connectedOutNode = inNode.linkedOutNodes[j];
+                if (connectedOutNode.type == "WRITE"){
+                    groupNodes.push(connectedOutNode);
+                }
             }
         }
+    	groupCompositeNode.placeAtCenter(inNodes , 0, 150);
+    	groupCompositeNode.orderAboveNodes();
     }
-
-    groupCompositeNode.placeAtCenter(inNodes ,0, 150);
-    groupCompositeNode.orderAboveNodes();
 
     groupWriteNode.centerBelow(groupCompositeNode);
     groupWriteNode.x -= 250;
@@ -158,6 +166,42 @@ CreateRenderLayer.prototype.formatNodes = function(args) { // TODO refactor
     }
 
     var backdrop = group.addBackdropToNodes(groupNodes, groupLabel, "", color);
+
+    // Handle overlapping backdrops
+    var all_backdrops = Backdrop.backdrops("Top");
+
+    var created_name = backdrop.backdropObject.title.text;
+    for (var b = 0; b < all_backdrops.length; b++) {
+        var otherBackdrop = all_backdrops[b];
+        // Skip the backdrop we just created
+        if (otherBackdrop.title.text === created_name) {
+	    backdrop = all_backdrops[b];
+            continue;
+        }
+
+        var otherPos = otherBackdrop.position;
+        var newPos = backdrop.position;
+
+        // Check if backdrops overlap (manual intersection check)
+        // position has x, y, width, height properties
+        var overlaps = !(
+            newPos.x >= otherPos.x + otherPos.w ||
+            newPos.x + newPos.w <= otherPos.x ||
+            newPos.y >= otherPos.y + otherPos.h ||
+            newPos.y + newPos.h <= otherPos.y
+        );
+
+        if (overlaps) {
+            // Push the other backdrop to the left
+            backdrop.position.x -= newPos.w;
+
+            for (var c=0; c < groupNodes.length; c++){
+                var node = groupNodes[c];
+                node.x -= newPos.w;
+            }
+        }
+    }
+    Backdrop.setBackdrops("Top", all_backdrops);
 
     $.endUndo();
 

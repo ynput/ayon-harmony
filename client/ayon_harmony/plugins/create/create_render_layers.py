@@ -37,6 +37,7 @@ Todos:
 import re
 import logging
 import collections
+from functools import lru_cache
 from typing import Any, Optional, Union
 from dataclasses import dataclass
 
@@ -273,11 +274,14 @@ class CreateRenderLayer(HarmonyRenderCreator):
 
     def _create_nodes_for_group(self, group_id, product_name):
         layers_data = get_layers_info()
-        layers_full_names = [
-            layer["fullName"]
-            for layer in layers_data
-            if layer["color"] == group_id
-        ]
+        layers_full_names = []
+        for layer in layers_data:
+            if layer["color"] != group_id:
+                continue
+            if layer["isGrouped"]:
+                layers_full_names = [layer["parentPath"]]
+                break
+            layers_full_names.append(layer["fullName"])
 
         self_name = self.__class__.__name__
         created_node = harmony.send(
@@ -368,6 +372,10 @@ class CreateRenderPass(HarmonyRenderCreator):
         marked_layer_name = pre_create_data.get("layer_name")
         layer = self._get_used_layer(marked_layer_name, layers_data)
 
+        if layer["isGrouped"]:
+            self.log.debug(f"Layer {layer['name']} is in a group, skipping")
+            return
+
         for instance in self.create_context.instances:
             if instance.creator_identifier != self.identifier:
                 continue
@@ -401,7 +409,7 @@ class CreateRenderPass(HarmonyRenderCreator):
             filtered_layers = [
                 layer
                 for layer in scene_layers
-                if layer["color"] == group_id
+                if layer["color"] == group_id and not layer["isGrouped"]
             ]
             layer_positions_in_groups = get_layer_positions_in_groups(
                 filtered_layers
@@ -923,6 +931,9 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         layer_positions_in_groups = get_layer_positions_in_groups(layers)
 
         for layer in layers:
+            if layer.get("isGrouped"):
+                continue
+
             layer_name = layer["name"]
             variant = None
             render_pass = render_pass_by_layer_name.get(layer_name)
@@ -979,15 +990,19 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
             creator.create(product_name, instance_data, pre_create_data)
 
     def get_pre_create_attr_defs(self) -> list[AbstractAttrDef]:
-        render_layer_creator: CreateRenderLayer = (
-            self._get_render_layer_create_plugin()
-        )
-        render_pass_creator: CreateRenderPass = (
-            self._get_render_pass_create_plugin()
-        )
+        get_layers_info.cache_clear()
+        get_group_infos.cache_clear()
+        
         rendering_targets = [
             {"value": "local", "label": "Local machine rendering"},
             {"value": "farm", "label": "Farm rendering"},
+        ]
+
+        render_layer_creator: CreateRenderLayer = self.create_context.creators[
+            CreateRenderLayer.identifier
+        ]
+        render_pass_creator: CreateRenderPass = self.create_context.creators[
+            CreateRenderPass.identifier
         ]
 
         output = [
@@ -1049,7 +1064,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
         """Tries to wrap all nodes of a layer group into Backdrop"""
         scene_containers = harmony.get_scene_data()
         for node_name, container in scene_containers.items():
-            identifier = container["creator_identifier"]
+            identifier = container.get("creator_identifier")
             if identifier != CreateRenderLayer.identifier:
                 continue
             group_label = container["variant"]
@@ -1066,9 +1081,9 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
 
 
 # TODO refactor
+@lru_cache(maxsize=1)
 def get_group_infos() -> list[GroupInfo]:
     """Lists all used layer colors to choose from"""
-    # TODO cache this
     layers_data = get_layers_info()
     # to keep order
     ordered_colors = []

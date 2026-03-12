@@ -23,21 +23,42 @@ var TemplateLoader = function() {};
 /**
  * Load template as container.
  * @function
- * @param {string} templatePath Path to tpl file.
+ * @param {array} args Array of arguments.
  * @return {string} Name of backdrop container.
+ * @example
+ * // arguments are in this order:
+ * var args = [
+ *     templatePath, // Path to tpl file
+ *     overrideName // Override name of backdrop container
+ * ];
  */
-TemplateLoader.prototype.loadContainer = function(templatePath) {
+TemplateLoader.prototype.loadContainer = function(args) {
+    var templatePath = args[0];
+    var overrideName = args[1] || "";
+
     // Copy from template file
     MessageLog.trace("loadContainer:: ");
 
-    function splitByLastDelimiter(str, delimiter) {
-        var lastIndex = str.lastIndexOf(delimiter);
-
+    /**
+     * Parse a backdrop name into its base name and numeric suffix count.
+     * If the name ends with _N (N = positive integer), returns the base and N.
+     * Otherwise returns the full name as base with count 1.
+     * @param {string} name - The backdrop name to parse.
+     * @return {{baseName: string, count: number}}
+     */
+    function parseBackdropName(name) {
+        var lastIndex = name.lastIndexOf('_');
         if (lastIndex === -1) {
-            return [str]; // Return the original string if delimiter is not found
+            return { baseName: name, count: 1 };
         }
-
-        return [str.substring(0, lastIndex), str.substring(lastIndex + 1)];
+        var base = name.substring(0, lastIndex);
+        var suffix = name.substring(lastIndex + 1);
+        var increment = parseInt(suffix, 10);
+        var isNumericSuffix = !isNaN(increment) && String(increment) === suffix.trim() && increment >= 1;
+        if (isNumericSuffix) {
+            return { baseName: base, count: increment };
+        }
+        return { baseName: name, count: 1 };
     }
 
     // Get existing content bounds
@@ -161,49 +182,41 @@ TemplateLoader.prototype.loadContainer = function(templatePath) {
             allBackdrops[idx].position.x += offsetX;
             allBackdrops[idx].position.y += offsetY;
         });
-        Backdrop.setBackdrops("Top", allBackdrops);
     }
 
-     // Find main backdrop name
-    // The main backdrop is the one with the smallest x + y value (top left corner)
-    var selectedBackdrops = selection.selectedBackdrops();
-    var mainBackdropName = selectedBackdrops[0].title.text;
-    var mainAnchorValue = selectedBackdrops[0].position.x + selectedBackdrops[0].position.y;
-    selectedBackdrops.slice(1).forEach(function(backdrop) {
-        var anchor = backdrop.position.x + backdrop.position.y;
-        if (mainAnchorValue > anchor) {
-            mainBackdropName = backdrop.title.text;
-            mainAnchorValue = anchor;
-        }
-    });
+    // Override name if provided
+    if (overrideName) {
+        allBackdrops[0].title.text = overrideName;
+    }
 
-    var allBackdrops = Backdrop.backdrops("Top");
+    // Count existing backdrops by base name
     var backdropCounts = {};
     for (var i = 0; i < allBackdrops.length; i++) {
-        var backdropName = allBackdrops[i].title.text;
-        var splitted = splitByLastDelimiter(backdropName, '_');
-        var count = splitted[1] !== undefined ? splitted[1] : 1;
-        backdropName = splitted[0];
+        var parsed = parseBackdropName(allBackdrops[i].title.text);
+        var baseName = parsed.baseName;
+        var count = parsed.count;
 
-        // If the backdrop name is already in the object, increment its count
-        if (backdropCounts[backdropName]) {
-            backdropCounts[backdropName]++;
-        }
-        // Otherwise, add it to the object with a count of 1
-        else {
-            backdropCounts[backdropName] = count;
+        if (backdropCounts[baseName]) {
+            backdropCounts[baseName]++;
+        } else {
+            backdropCounts[baseName] = count;
         }
     }
-	count = backdropCounts[backdropName] !== undefined ? backdropCounts[backdropName] : 1;
 
+    // Increment count of backdrop with the same base name
+    var mainBackdropName = allBackdrops[0].title.text;
+    var mainBackdropParsed = parseBackdropName(mainBackdropName);
+    var count = backdropCounts[mainBackdropParsed.baseName] !== undefined ? backdropCounts[mainBackdropParsed.baseName] : 1;
     if (count > 1){
         // count -1 to match imported nodes which start from _1
         mainBackdropName = mainBackdropName + "_" + (count - 1);
-
-        // new backdrop always at 0
-        allBackdrops[0].title.text = mainBackdropName;
-        Backdrop.setBackdrops("Top", allBackdrops);
     }
+
+    // Set name of main backdrop (always at index 0)
+    allBackdrops[0].title.text = mainBackdropName;
+
+    // Update backdrops in scene
+    Backdrop.setBackdrops("Top", allBackdrops);
 
     return mainBackdropName;
 };
