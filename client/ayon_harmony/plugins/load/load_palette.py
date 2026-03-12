@@ -14,7 +14,8 @@ class LinkPaletteLoader(load.LoaderPlugin):
 
     label = "Link Palette"
     product_types = {"palette", "harmony.palette"}
-    representations = {"plt"}
+    representations = {"*"}
+    extensions = {"plt"}
     icon = "link"
 
     def load(self, context, name=None, namespace=None, data=None):
