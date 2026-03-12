@@ -60,5 +60,6 @@ class ImportWorkfileLoader(ImportTemplateLoader):
     """Import workfiles."""
 
     product_types = {"workfile"}
-    representations = {"zip"}
+    representations = {"*"}
+    extensions = {"zip"}
     label = "Import Workfile"

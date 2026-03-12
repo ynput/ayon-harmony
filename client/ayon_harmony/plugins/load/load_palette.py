@@ -101,7 +101,8 @@ class ImportPaletteLoader(LinkPaletteLoader):
     """
 
     label = "Import Palette"
-    representations = {"plt"}
+    representations = {"*"}
+    extensions = {"plt"}
     icon = "gift"
     order = 0.1
 
