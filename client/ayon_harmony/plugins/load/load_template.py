@@ -15,7 +15,6 @@ class TemplateLoader(harmony.BackdropBaseLoader):
     representations = {"tpl"}
     label = "Load Template"
     icon = "gift"
-    override_name = ""
 
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.

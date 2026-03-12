@@ -101,6 +101,133 @@ AyonHarmony.setColor = function(nodes, rgba) {
 
 
 /**
+ * Compute bounding box of all backdrops and nodes in "Top".
+ * @return {{top: number, right: number, bottom: number}|null} Bounds or null if empty.
+ */
+AyonHarmony.computeExistingBounds = function() {
+    var existingBackdrops = Backdrop.backdrops("Top");
+    var existingNodes = node.subNodes("Top");
+    if (existingBackdrops.length === 0 && existingNodes.length === 0) {
+        return null;
+    }
+
+    // Envelope of all backdrops and nodes
+    var bounds = { top: Infinity, right: -Infinity, bottom: -Infinity };
+    existingBackdrops.forEach(function(b) {
+        var right = b.position.x + b.position.w;
+        if (right > bounds.right) bounds.right = right;
+        if (b.position.y < bounds.top) bounds.top = b.position.y;
+        var bottom = b.position.y + b.position.h;
+        if (bottom > bounds.bottom) bounds.bottom = bottom;
+    });
+    existingNodes.forEach(function(nodePath) {
+        var nodeRight = node.coordX(nodePath) + node.width(nodePath);
+        if (nodeRight > bounds.right) bounds.right = nodeRight;
+        var nodeTop = node.coordY(nodePath);
+        if (nodeTop < bounds.top) bounds.top = nodeTop;
+        var nodeBottom = nodeTop + node.height(nodePath);
+        if (nodeBottom > bounds.bottom) bounds.bottom = nodeBottom;
+    });
+    if (bounds.right === -Infinity) return null;
+    return bounds;
+};
+
+
+/**
+ * Prevent new content from overlapping existing content by applying minimal offset.
+ * Horizontal: move right. Vertical: move above.
+ * @param {{top: number, right: number, bottom: number}|null} existingBounds - From computeExistingBounds (before adding new content).
+ * @param {Array} newBackdrops - New backdrop objects with .position, .title.text.
+ * @param {Array<string>} newNodes - Node path strings.
+ * @return {Array|null} allBackdrops array after move, or null if no offset applied.
+ */
+AyonHarmony.preventOverlap = function(existingBounds, newBackdrops, newNodes) {
+    if (!existingBounds || (newBackdrops.length === 0 && newNodes.length === 0)) {
+        return null;
+    }
+
+    // Bounding box of new content
+    var pastedLeft = Infinity;
+    var pastedTop = Infinity;
+    var pastedBottom = -Infinity;
+    newBackdrops.forEach(function(b) {
+        if (b.position.x < pastedLeft) pastedLeft = b.position.x;
+        if (b.position.y < pastedTop) pastedTop = b.position.y;
+        var bBottom = b.position.y + b.position.h;
+        if (bBottom > pastedBottom) pastedBottom = bBottom;
+    });
+    newNodes.forEach(function(nodePath) {
+        var nx = node.coordX(nodePath);
+        if (nx < pastedLeft) pastedLeft = nx;
+        var ny = node.coordY(nodePath);
+        if (ny < pastedTop) pastedTop = ny;
+        var nBottom = ny + node.height(nodePath);
+        if (nBottom > pastedBottom) pastedBottom = nBottom;
+    });
+
+    // Minimal offset to clear overlap: 100px gap
+    var potentialOffsetX = 0;
+    var potentialOffsetY = 0;
+    if (pastedLeft !== Infinity) {
+        potentialOffsetX = Math.max(0, existingBounds.right - pastedLeft + 100);
+    }
+    if (pastedTop !== Infinity && pastedBottom > -Infinity &&
+        pastedTop < existingBounds.bottom && pastedBottom > existingBounds.top) {
+        potentialOffsetY = existingBounds.top - pastedBottom - 100;
+    }
+
+    // Use the smallest offset so content stays as close as possible
+    var offsetX = 0;
+    var offsetY = 0;
+    if (potentialOffsetX > 0 && potentialOffsetY !== 0) {
+        var absY = Math.abs(potentialOffsetY);
+        if (potentialOffsetX <= absY) {
+            offsetX = potentialOffsetX;
+        } else {
+            offsetY = potentialOffsetY;
+        }
+    } else if (potentialOffsetX > 0) {
+        offsetX = potentialOffsetX;
+    } else if (potentialOffsetY !== 0) {
+        offsetY = potentialOffsetY;
+    }
+
+    if (offsetX === 0 && offsetY === 0) {
+        return null;
+    }
+
+    // Resolve new backdrops to indices in full list (match by title + position)
+    var allBackdropsBeforeMove = Backdrop.backdrops("Top");
+    var pastedBackdropIndices = [];
+    newBackdrops.forEach(function(pastedBackdrop) {
+        for (var i = 0; i < allBackdropsBeforeMove.length; i++) {
+            var b = allBackdropsBeforeMove[i];
+            if (b.title.text === pastedBackdrop.title.text &&
+                b.position.x === pastedBackdrop.position.x &&
+                b.position.y === pastedBackdrop.position.y) {
+                pastedBackdropIndices.push(i);
+                break;
+            }
+        }
+    });
+
+    // Apply offset to nodes and backdrops
+    newNodes.forEach(function(nodePath) {
+        var newX = node.coordX(nodePath) + offsetX;
+        var newY = node.coordY(nodePath) + offsetY;
+        node.setCoord(nodePath, newX, newY);
+    });
+    var allBackdrops = Backdrop.backdrops("Top");
+    pastedBackdropIndices.forEach(function(idx) {
+        allBackdrops[idx].position.x += offsetX;
+        allBackdrops[idx].position.y += offsetY;
+    });
+    Backdrop.setBackdrops("Top", allBackdrops);
+    return allBackdrops;
+};
+
+
+/**
  * Extract Backdrop as Template file.
  * @function
  * @param {array} args  Arguments for template extraction.
