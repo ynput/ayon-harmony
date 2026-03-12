@@ -243,7 +243,7 @@ def is_container_data(data: dict) -> bool:
     return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
 
 
-def ls():
+def ls(): 
     """Yields containers from Harmony scene.
 
     Clean up scene data from orphaned containers.
