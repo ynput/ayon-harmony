@@ -18,7 +18,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
 
     product_type_mapping = {
         "render": [],
-        "harmony.template": [],
+        "harmonyTemplate": [],
         "palette": ["palette"]
     }
     pair_media = True
