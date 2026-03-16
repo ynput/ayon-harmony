@@ -71,7 +71,7 @@ class HarmonyCreatorBase:
                 # must be a broken instance
                 continue
 
-            cache_legacy[product_type].append(entity_name)
+            cache_legacy[product_base_type].append(entity_name)
 
         shared_data["harmony_cached_scene_data"] = scene_data
         shared_data["harmony_cached_instance_data"] = cache
