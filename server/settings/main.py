@@ -90,9 +90,12 @@ DEFAULT_HARMONY_SETTING = {
         }
     },
     "load": {
+        "override_name": "",
         "TemplateLoader": {
-            "enabled": True,
-            "override_name": ""
+            "enabled": True
+        },
+        "PsdLoader": {
+            "enabled": True
         }
     },
     "publish": {
