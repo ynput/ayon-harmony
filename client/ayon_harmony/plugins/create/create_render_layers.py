@@ -992,7 +992,7 @@ class AutoDetectRendeLayersPasses(HarmonyCreator):
     def get_pre_create_attr_defs(self) -> list[AbstractAttrDef]:
         get_layers_info.cache_clear()
         get_group_infos.cache_clear()
-        
+
         rendering_targets = [
             {"value": "local", "label": "Local machine rendering"},
             {"value": "farm", "label": "Farm rendering"},
