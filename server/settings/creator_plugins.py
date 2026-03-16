@@ -1,7 +1,6 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
 
-
 class ProductTypeItemModel(BaseSettingsModel):
     _layout = "compact"
     product_type: str = SettingsField(
