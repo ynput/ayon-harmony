@@ -46,7 +46,7 @@ class HarmonyCreatorBase:
         ):
             # Filter orphaned instances
             if entity_name not in all_top_names:
-                del node_data_by_name[entity_name]
+                del scene_data[entity_name]
                 node_data_changed = True
                 continue
 
