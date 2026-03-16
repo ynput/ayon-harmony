@@ -40,14 +40,14 @@ class HarmonyCreatorBase:
         # Collect scene data once instead of calling `read()` per node
         scene_data = harmony.get_scene_data()
         all_top_names = harmony.get_all_top_names()
-        cleaned_scene_data = False
+        scene_data_changed = False
         for entity_name, entity_data in reversed(
             scene_data.copy().items()
         ):
             # Filter orphaned instances
             if entity_name not in all_top_names:
                 del scene_data[entity_name]
-                node_data_changed = True
+                scene_data_changed = True
                 continue
 
             if entity_data.get("id") not in {
@@ -78,7 +78,7 @@ class HarmonyCreatorBase:
         shared_data["harmony_cached_legacy_instances_names"] = cache_legacy
 
         # Update scene data if cleaned
-        if cleaned_scene_data:
+        if scene_data_changed:
             harmony.set_scene_data(scene_data)
 
         return shared_data
