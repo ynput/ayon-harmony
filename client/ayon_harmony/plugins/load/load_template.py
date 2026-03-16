@@ -13,7 +13,8 @@ class TemplateLoader(harmony.BackdropBaseLoader):
 
     product_base_types = {"harmony.template"}
     product_types = product_base_types
-    representations = {"tpl"}
+    representations = {"*"}
+    extensions = {"zip"}
     label = "Load Template"
     icon = "gift"
 

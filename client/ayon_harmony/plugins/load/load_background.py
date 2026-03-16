@@ -232,7 +232,8 @@ class BackgroundLoader(load.LoaderPlugin):
     """
     product_base_types = {"background"}
     product_types = product_base_types
-    representations = {"json"}
+    representations = {"*"}
+    extensions = {"json"}
 
     def load(self, context, name=None, namespace=None, data=None):
 

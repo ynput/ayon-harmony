@@ -13,7 +13,8 @@ class ImportTemplateLoader(load.LoaderPlugin):
 
     product_base_types = {"workfile"}
     product_types = product_base_types
-    representations = {"tpl"}
+    representations = {"*"}
+    extensions = {"tpl"}
     label = "Import Template"
 
     def load(self, context, name=None, namespace=None, data=None):
@@ -61,5 +62,6 @@ class ImportWorkfileLoader(ImportTemplateLoader):
 
     product_base_types = {"workfile"}
     product_types = product_base_types
-    representations = {"zip"}
+    representations = {"*"}
+    extensions = {"zip"}
     label = "Import Workfile"
