@@ -70,7 +70,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
                     "args": [
                         files[0],
                         self.expose_only_current_frame,
-                    ]
+                    ],
                 }
             )["result"]
             result = harmony.containerise(
@@ -79,7 +79,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
                 image_node,
                 context,
                 self_name,
-                nodes=[image_node]
+                nodes=[image_node],
             )
             harmony.imprint(image_node, {"image_mode": "single"})
             return result
@@ -89,13 +89,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
             read_node = harmony.send(
                 {
                     "function": "AyonHarmony.Loaders.ImageSequenceLoader.importFiles",  # noqa: E501
-                    "args": [
-                        files,
-                        folder_name,
-                        product_name,
-                        1,
-                        group_id
-                    ]
+                    "args": [files, folder_name, product_name, 1, group_id],
                 }
             )["result"]
             result = harmony.containerise(
@@ -104,7 +98,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
                 read_node,
                 context,
                 self_name,
-                nodes=[read_node]
+                nodes=[read_node],
             )
             harmony.imprint(read_node, {"image_mode": "sequence"})
             return result
@@ -129,7 +123,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
             harmony.send(
                 {
                     "function": "AyonHarmony.replaceImageFile",
-                    "args": [node, single_path.as_posix()]
+                    "args": [node, single_path.as_posix()],
                 }
             )
             harmony.imprint(node, {"representation": repre_entity["id"]})
@@ -139,21 +133,17 @@ class ImageSequenceLoader(load.LoaderPlugin):
         files = []
         if collections:
             for f in list(collections[0]):
-                files.append(
-                    path.parent.joinpath(f).as_posix()
-                )
+                files.append(path.parent.joinpath(f).as_posix())
         else:
             if remainder:
-                files.append(
-                    path.parent.joinpath(remainder[0]).as_posix()
-                )
+                files.append(path.parent.joinpath(remainder[0]).as_posix())
         if not files and path.is_file():
             files = [path.as_posix()]
 
         harmony.send(
             {
-                "function": "AyonHarmony.Loaders.ImageSequenceLoader.replaceFiles",
-                "args": [files, node, 1]
+                "function": "AyonHarmony.Loaders.ImageSequenceLoader.replaceFiles",  # noqa: E501
+                "args": [files, node, 1],
             }
         )
 
@@ -161,18 +151,18 @@ class ImageSequenceLoader(load.LoaderPlugin):
             harmony.send(
                 {
                     "function": "AyonHarmony.setColor",
-                    "args": [node, [0, 255, 0, 255]]
-                })
+                    "args": [node, [0, 255, 0, 255]],
+                }
+            )
         else:
             harmony.send(
                 {
                     "function": "AyonHarmony.setColor",
-                    "args": [node, [255, 0, 0, 255]]
-                })
+                    "args": [node, [255, 0, 0, 255]],
+                }
+            )
 
-        harmony.imprint(
-            node, {"representation": repre_entity["id"]}
-        )
+        harmony.imprint(node, {"representation": repre_entity["id"]})
 
     def remove(self, container):
         """Remove loaded container.
@@ -185,9 +175,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
             return
         node = nodes[-1]
         harmony.imprint(node, {}, remove=True)
-        harmony.send(
-            {"function": "AyonHarmony.deleteNode", "args": [node]}
-        )
+        harmony.send({"function": "AyonHarmony.deleteNode", "args": [node]})
 
     def switch(self, container, context):
         """Switch loaded representations."""
