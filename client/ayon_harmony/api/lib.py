@@ -313,11 +313,14 @@ def copy_with_progress(src, dst):
     log.info(f"Successfully copied {src} to {dst}")
 
 
-def unzip_scene_file(filepath: str) -> str:
+def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     """Unzip a Harmony scene file and return the path to the .xstage file.
 
     Args:
         filepath (str): Path to the zip file.
+        headless (bool): If True, run without any UI interaction. When a
+            local cache exists with the same or newer timestamp, the local
+            version will be used automatically. Defaults to False.
 
     Returns:
         str: Path to the .xstage file.
@@ -351,6 +354,13 @@ def unzip_scene_file(filepath: str) -> str:
                 log.error(e)
                 raise Exception("Cannot delete working folder") from e
             unzip = True
+        elif headless:
+            # Local is newer or same timestamp - use local cache automatically
+            log.info(
+                "Headless mode: local cache is newer or same timestamp "
+                "as server version. Using local cache."
+            )
+            unzip = False
         else:
             # Local is newer or same timestamp - ask user
             msg_box = QtWidgets.QMessageBox()
@@ -361,17 +371,21 @@ def unzip_scene_file(filepath: str) -> str:
                 "A cached version of this scene exists that is newer or "
                 "with the same timestamp as the server version."
             )
-            msg_box.setInformativeText("Do you want to use the local file or re-cache from the server?")
-            msg_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            msg_box.setInformativeText(
+                "Do you want to use the local file or re-cache from the server?"
+            )
+            msg_box.setStandardButtons(
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            )
             msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
 
             msg_box.button(QtWidgets.QMessageBox.Yes).setText("Use Local")
             msg_box.button(QtWidgets.QMessageBox.No).setText("From Server")
-            
+
             msg_box.setModal(True)
 
             result = msg_box.exec_()
-            
+
             if result == QtWidgets.QMessageBox.No:
                 try:
                     shutil.rmtree(local_scene_dir_path)
