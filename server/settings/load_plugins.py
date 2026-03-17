@@ -1,7 +1,7 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
 
-class ImageLoaderPluginModel(BaseSettingsModel):
+class ImageSequenceLoaderPluginModel(BaseSettingsModel):
     enabled: bool = SettingsField(True, title="Enabled")
     expose_only_current_frame: bool = SettingsField(
         default=False,
@@ -33,12 +33,9 @@ class HarmonyLoadPlugins(BaseSettingsModel):
             "Example value: {folder[name]}-{product[name]}"
         ),
     )
-
-
-class HarmonyLoadPlugins(BaseSettingsModel):
-    ImageLoader: ImageLoaderPluginModel = SettingsField(
-        title="ImageLoader",
-        default_factory=ImageLoaderPluginModel,
+    ImageSequenceLoader: ImageSequenceLoaderPluginModel = SettingsField(
+        title="Image or Sequence Loader",
+        default_factory=ImageSequenceLoaderPluginModel,
     )
     TemplateLoader: BackdropLoaderPluginModel = SettingsField(
         default_factory=BackdropLoaderPluginModel,

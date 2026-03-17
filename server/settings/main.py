@@ -15,15 +15,11 @@ class HarmonySettings(BaseSettingsModel):
     )
     load: HarmonyLoadPlugins = SettingsField(
         default_factory=HarmonyLoadPlugins,
-        title="Load plugins"
+        title="Loader plugins",
     )
     create: HarmonyCreatePlugins = SettingsField(
         default_factory=HarmonyCreatePlugins,
         title="Creator plugins"
-    )
-    load: HarmonyLoadPlugins = SettingsField(
-        default_factory=HarmonyLoadPlugins,
-        title="Loader plugins",
     )
     publish: HarmonyPublishPlugins = SettingsField(
         default_factory=HarmonyPublishPlugins,
@@ -95,7 +91,7 @@ DEFAULT_HARMONY_SETTING = {
     },
     "load": {
         "override_name": "",
-        "ImageLoader": {
+        "ImageSequenceLoader": {
             "enabled": True,
             "expose_only_current_frame": False
         },
