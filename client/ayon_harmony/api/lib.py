@@ -18,6 +18,7 @@ import time
 from uuid import uuid4
 import collections
 from typing import Optional
+from functools import lru_cache
 
 from qtpy import QtWidgets, QtCore, QtGui
 
@@ -855,6 +856,7 @@ def find_backdrop_by_name(name: str) -> Optional[dict]:
     return None
 
 
+@lru_cache(maxsize=1)
 def get_layers_info() -> list[dict[str, str]]:
     """Returns list of dicts with info about timeline layers
 
@@ -863,7 +865,7 @@ def get_layers_info() -> list[dict[str, str]]:
     layers_info = send(
         {
             "function": "AyonHarmony.getLayerInfos",
-            "args": []
+            "args": [top_only]
         }
     )["result"]
     layers_info = [layer for layer in layers_info if layer["enabled"]]
