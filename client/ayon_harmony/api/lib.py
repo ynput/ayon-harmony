@@ -279,7 +279,7 @@ def copy_with_progress(src, dst):
         100
     )
     progress.setStyleSheet(style.load_stylesheet())
-    progress.setWindowTitle("Transfering File")
+    progress.setWindowTitle("Transferring File")
     progress.setWindowModality(QtCore.Qt.WindowModal)
     progress.setMinimumDuration(0)
     progress.setValue(0)
@@ -356,7 +356,7 @@ def unzip_scene_file(filepath: str) -> str:
             msg_box = QtWidgets.QMessageBox()
             msg_box.setStyleSheet(style.load_stylesheet())
             msg_box.setIcon(QtWidgets.QMessageBox.Question)
-            msg_box.setWindowTitle("Local cache of version Exists")
+            msg_box.setWindowTitle("Local cache of version exists")
             msg_box.setText(
                 "A cached version of this scene exists that is newer or "
                 "with the same timestamp as the server version."
