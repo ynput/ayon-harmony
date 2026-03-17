@@ -12,10 +12,10 @@ class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
 
     product_types = {"harmony.template"}
-    representations = {"tpl"}
+    representations = {"*"}
+    extensions = {"zip"}
     label = "Load Template"
     icon = "gift"
-    override_name = ""
 
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.

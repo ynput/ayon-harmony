@@ -94,13 +94,16 @@ DEFAULT_HARMONY_SETTING = {
         }
     },
     "load": {
+        "override_name": "",
         "ImageLoader": {
             "enabled": True,
             "expose_only_current_frame": False
         },
         "TemplateLoader": {
-            "enabled": True,
-            "override_name": ""
+            "enabled": True
+        },
+        "PsdLoader": {
+            "enabled": True
         }
     },
     "publish": {

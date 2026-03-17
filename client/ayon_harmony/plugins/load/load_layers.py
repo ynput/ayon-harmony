@@ -8,6 +8,7 @@ class PsdLoader(harmony.BackdropBaseLoader):
     """Load Photoshop file (.psd)."""
 
     product_types = {"image"}
-    representations = {"psd"}
+    representations = {"*"}
+    extensions = {"psd"}
     label = "Load Photoshop Layers"
     icon = "layers"
