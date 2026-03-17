@@ -7,7 +7,8 @@ import ayon_harmony.api as harmony
 class PsdLoader(harmony.BackdropBaseLoader):
     """Load Photoshop file (.psd)."""
 
-    product_types = {"image"}
+    product_base_types = {"image"}
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"psd"}
     label = "Load Photoshop Layers"
