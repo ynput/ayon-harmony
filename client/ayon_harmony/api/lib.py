@@ -306,10 +306,20 @@ def copy_with_progress(src, dst):
                     QtWidgets.QApplication.processEvents()
         
         shutil.copystat(src, dst)
-        
+
+    except Exception:
+        # Remove partially written destination file to avoid corrupted state
+        try:
+            if os.path.exists(dst):
+                os.remove(dst)
+        except OSError as cleanup_error:
+            # Log but don't mask the original exception
+            print(f"Warning: Failed to remove partial file '{dst}': {cleanup_error}")
+        raise  # Re-raise the original exception to the caller
+
     finally:
         progress.close()
-    
+
     log.info(f"Successfully copied {src} to {dst}")
 
 
