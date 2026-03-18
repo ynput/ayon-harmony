@@ -7,7 +7,21 @@ import ayon_harmony.api as harmony
 
 
 class BackdropBaseLoader(load.LoaderPlugin):
-    """Load nodes into a backdrop."""
+    """Load nodes into a backdrop.
+
+    Uses shared 'override_name' from harmony load settings (see
+    HarmonyLoadPlugins.override_name).
+    """
+
+    override_name = ""
+
+    @classmethod
+    def apply_settings(cls, project_settings):
+        super().apply_settings(project_settings)
+        load_settings = (
+            project_settings.get("harmony", {}).get("load", {})
+        )
+        cls.override_name = load_settings.get("override_name", "")
 
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.
@@ -22,6 +36,10 @@ class BackdropBaseLoader(load.LoaderPlugin):
         self_name = self.__class__.__name__
         filepath = self.filepath_from_context(context)
 
+        # Override container name from shared setting
+        if self.override_name:
+            name = self.override_name.format(**context)
+
         backdrop_name = harmony.send(
             {
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
@@ -31,7 +49,7 @@ class BackdropBaseLoader(load.LoaderPlugin):
 
         # We must validate the group_node
         return harmony.containerise(
-            name,
+            backdrop_name,
             namespace,
             backdrop_name,
             context,

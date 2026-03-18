@@ -16,7 +16,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
     order = pyblish.api.CollectorOrder - 0.4
     hosts = ["harmony"]
 
-    product_type_mapping = {
+    product_base_type_mapping = {
         "render": [],
         "harmony.template": [],
         "palette": ["palette"]
@@ -24,24 +24,25 @@ class CollectInstances(pyblish.api.InstancePlugin):
     pair_media = True
 
     def process(self, instance: pyblish.api.Instance):
-
         # skip render farm product type as it is collected separately
-        product_type = instance.data["productType"]
-        if product_type == "workfile":
+        product_base_type = instance.data["productBaseType"]
+        if product_base_type == "workfile":
             return
 
         node = instance.data["transientData"]["node"]
 
         instance.data["setMembers"] = [node]
 
-        families = [product_type]
+        families = [product_base_type]
 
         creator_attributes = instance.data.get("creator_attributes", {})
-        if product_type == "render":
+        if product_base_type == "render":
             render_target = creator_attributes["render_target"]
             families.append(f"render.{render_target}")
 
-        families.extend(self.product_type_mapping.get(product_type, []))
+        families.extend(
+            self.product_base_type_mapping.get(product_base_type, [])
+        )
 
         mark_for_review = creator_attributes.get("mark_for_review")
         if mark_for_review:
@@ -51,7 +52,7 @@ class CollectInstances(pyblish.api.InstancePlugin):
 
         # If set in plugin, pair the scene Version with
         # thumbnails and review media.
-        if self.pair_media and product_type == "scene":
+        if self.pair_media and product_base_type == "scene":
             instance.context.data["scene_instance"] = instance
 
         # Produce diagnostic message for any graphical

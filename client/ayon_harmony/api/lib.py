@@ -27,6 +27,9 @@ from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
 
+# Function 'save_next_version' is used by javascript integration
+from ayon_core.pipeline.workfile import save_next_version  # noqa: F401
+
 from ayon_harmony import HARMONY_ADDON_ROOT
 
 from .server import Server
@@ -887,7 +890,7 @@ def find_backdrop_by_name(name: str) -> Optional[dict]:
 
 
 @lru_cache(maxsize=1)
-def get_layers_info() -> list[dict[str, str]]:
+def get_layers_info(top_only: bool = True) -> list[dict[str, str]]:
     """Returns list of dicts with info about timeline layers
 
     'position' goes from 0 at the top and increases to bottom on timeline
