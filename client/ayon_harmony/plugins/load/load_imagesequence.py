@@ -119,11 +119,10 @@ class ImageSequenceLoader(load.LoaderPlugin):
         path = Path(self.filepath_from_context(context))
 
         if container.get("image_mode") == "single":
-            single_path = Path(get_representation_path(repre_entity))
             harmony.send(
                 {
                     "function": "AyonHarmony.replaceImageFile",
-                    "args": [node, single_path.as_posix()],
+                    "args": [node, path.as_posix()],
                 }
             )
             harmony.imprint(node, {"representation": repre_entity["id"]})
