@@ -299,7 +299,12 @@ def copy_with_progress(src, dst):
                     fdst.write(chunk)
                     bytes_copied += len(chunk)
 
-                    percent = int((bytes_copied / file_size) * 100)
+                    if file_size > 0:
+                        percent = int((bytes_copied / file_size) * 100)
+                    else:
+                        # Handle empty source file gracefully
+                        percent = 100
+
                     progress.setValue(percent)
                     
                     # Process Qt events to keep UI responsive
@@ -363,7 +368,7 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
             except Exception as e:
                 log.error(e)
                 raise Exception(
-                    f"Cannot delete working folder {local_scene_dir_path}"
+                    f"Cannot delete working folder: {local_scene_dir_path}"
                 ) from e
             unzip = True
         elif headless:
