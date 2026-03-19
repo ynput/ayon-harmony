@@ -412,7 +412,9 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                     shutil.rmtree(local_scene_dir_path)
                 except Exception as e:
                     log.error(e)
-                    raise Exception("Cannot delete working folder") from e
+                    raise Exception(
+                       f"Cannot delete working folder '{local_scene_dir_path}'"
+                    ) from e
                 unzip = True
             else:
                 unzip = False
