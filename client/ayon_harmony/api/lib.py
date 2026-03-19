@@ -295,6 +295,7 @@ def copy_with_progress(src, dst):
     try:
         with open(src, 'rb') as fsrc:
             with open(dst, 'wb') as fdst:
+                last_process_events = time.monotonic()
                 while True:
                     chunk = fsrc.read(chunk_size)
                     if not chunk:
@@ -312,8 +313,13 @@ def copy_with_progress(src, dst):
                     progress.setValue(percent)
                     
                     # Process Qt events to keep UI responsive
-                    QtWidgets.QApplication.processEvents()
-        
+                    now = time.monotonic()
+                    if now - last_process_events >= 0.05:
+                        QtWidgets.QApplication.processEvents(
+                            QtCore.QEventLoop.AllEvents, 50
+                        )
+                        last_process_events = now
+
         shutil.copystat(src, dst)
 
     except Exception:
