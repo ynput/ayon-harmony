@@ -572,6 +572,7 @@ def zip_and_move(source, destination):
     progress = QtWidgets.QProgressDialog(
         "Archiving scene files...",
         None,
+        0,
         max(1, len(file_list))
     )
     progress.setStyleSheet(style.load_stylesheet())
