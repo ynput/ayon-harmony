@@ -261,7 +261,7 @@ def localize_file(filepath):
     os.makedirs(local_scene_dir_path, exist_ok=True)
 
     local_zip = os.path.join(local_scene_dir_path, os.path.basename(filepath))
-    print(f"Copying {filepath} to {local_zip}")
+    log.info(f"Copying {filepath} to {local_zip}")
 
     copy_with_progress(filepath, local_zip)
     return local_zip
