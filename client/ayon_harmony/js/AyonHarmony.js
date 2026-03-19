@@ -131,6 +131,133 @@ AyonHarmony.setColor = function(nodes, rgba) {
 
 
 /**
+ * Compute bounding box of all backdrops and nodes in "Top".
+ * @return {{top: number, right: number, bottom: number}|null} Bounds or null if empty.
+ */
+AyonHarmony.computeExistingBounds = function() {
+    var existingBackdrops = Backdrop.backdrops("Top");
+    var existingNodes = node.subNodes("Top");
+    if (existingBackdrops.length === 0 && existingNodes.length === 0) {
+        return null;
+    }
+
+    // Envelope of all backdrops and nodes
+    var bounds = { top: Infinity, right: -Infinity, bottom: -Infinity };
+    existingBackdrops.forEach(function(b) {
+        var right = b.position.x + b.position.w;
+        if (right > bounds.right) bounds.right = right;
+        if (b.position.y < bounds.top) bounds.top = b.position.y;
+        var bottom = b.position.y + b.position.h;
+        if (bottom > bounds.bottom) bounds.bottom = bottom;
+    });
+    existingNodes.forEach(function(nodePath) {
+        var nodeRight = node.coordX(nodePath) + node.width(nodePath);
+        if (nodeRight > bounds.right) bounds.right = nodeRight;
+        var nodeTop = node.coordY(nodePath);
+        if (nodeTop < bounds.top) bounds.top = nodeTop;
+        var nodeBottom = nodeTop + node.height(nodePath);
+        if (nodeBottom > bounds.bottom) bounds.bottom = nodeBottom;
+    });
+    if (bounds.right === -Infinity) return null;
+    return bounds;
+};
+
+
+/**
+ * Prevent new content from overlapping existing content by applying minimal offset.
+ * Horizontal: move right. Vertical: move above.
+ * @param {{top: number, right: number, bottom: number}|null} existingBounds - From computeExistingBounds (before adding new content).
+ * @param {Array} newBackdrops - New backdrop objects with .position, .title.text.
+ * @param {Array<string>} newNodes - Node path strings.
+ * @return {Array|null} allBackdrops array after move, or null if no offset applied.
+ */
+AyonHarmony.preventOverlap = function(existingBounds, newBackdrops, newNodes) {
+    if (!existingBounds || (newBackdrops.length === 0 && newNodes.length === 0)) {
+        return null;
+    }
+
+    // Bounding box of new content
+    var pastedLeft = Infinity;
+    var pastedTop = Infinity;
+    var pastedBottom = -Infinity;
+    newBackdrops.forEach(function(b) {
+        if (b.position.x < pastedLeft) pastedLeft = b.position.x;
+        if (b.position.y < pastedTop) pastedTop = b.position.y;
+        var bBottom = b.position.y + b.position.h;
+        if (bBottom > pastedBottom) pastedBottom = bBottom;
+    });
+    newNodes.forEach(function(nodePath) {
+        var nx = node.coordX(nodePath);
+        if (nx < pastedLeft) pastedLeft = nx;
+        var ny = node.coordY(nodePath);
+        if (ny < pastedTop) pastedTop = ny;
+        var nBottom = ny + node.height(nodePath);
+        if (nBottom > pastedBottom) pastedBottom = nBottom;
+    });
+
+    // Minimal offset to clear overlap: 100px gap
+    var potentialOffsetX = 0;
+    var potentialOffsetY = 0;
+    if (pastedLeft !== Infinity) {
+        potentialOffsetX = Math.max(0, existingBounds.right - pastedLeft + 100);
+    }
+    if (pastedTop !== Infinity && pastedBottom > -Infinity &&
+        pastedTop < existingBounds.bottom && pastedBottom > existingBounds.top) {
+        potentialOffsetY = existingBounds.top - pastedBottom - 100;
+    }
+
+    // Use the smallest offset so content stays as close as possible
+    var offsetX = 0;
+    var offsetY = 0;
+    if (potentialOffsetX > 0 && potentialOffsetY !== 0) {
+        var absY = Math.abs(potentialOffsetY);
+        if (potentialOffsetX <= absY) {
+            offsetX = potentialOffsetX;
+        } else {
+            offsetY = potentialOffsetY;
+        }
+    } else if (potentialOffsetX > 0) {
+        offsetX = potentialOffsetX;
+    } else if (potentialOffsetY !== 0) {
+        offsetY = potentialOffsetY;
+    }
+
+    if (offsetX === 0 && offsetY === 0) {
+        return null;
+    }
+
+    // Resolve new backdrops to indices in full list (match by title + position)
+    var allBackdropsBeforeMove = Backdrop.backdrops("Top");
+    var pastedBackdropIndices = [];
+    newBackdrops.forEach(function(pastedBackdrop) {
+        for (var i = 0; i < allBackdropsBeforeMove.length; i++) {
+            var b = allBackdropsBeforeMove[i];
+            if (b.title.text === pastedBackdrop.title.text &&
+                b.position.x === pastedBackdrop.position.x &&
+                b.position.y === pastedBackdrop.position.y) {
+                pastedBackdropIndices.push(i);
+                break;
+            }
+        }
+    });
+
+    // Apply offset to nodes and backdrops
+    newNodes.forEach(function(nodePath) {
+        var newX = node.coordX(nodePath) + offsetX;
+        var newY = node.coordY(nodePath) + offsetY;
+        node.setCoord(nodePath, newX, newY);
+    });
+    var allBackdrops = Backdrop.backdrops("Top");
+    pastedBackdropIndices.forEach(function(idx) {
+        allBackdrops[idx].position.x += offsetX;
+        allBackdrops[idx].position.y += offsetY;
+    });
+    Backdrop.setBackdrops("Top", allBackdrops);
+    return allBackdrops;
+};
+
+
+/**
  * Extract Backdrop as Template file.
  * @function
  * @param {array} args  Arguments for template extraction.
@@ -507,39 +634,70 @@ AyonHarmony.movePaletteToIndex = function(args) {
 
 /**
  * Get layers info
- * 
+ * Use native Harmony API to avoid OpenHarmony wrapper overhead for better performance.
+ *
  * Return information about name, fullName, selection etc.
  * @function
-* @return {object} Object with info about node/layer.
+ * @param {boolean} [topOnly=false] If true, only return layers at the top level (not inside groups).
+ * @return {object[]} Array of objects with info about node/layer.
  */
-AyonHarmony.getLayerInfos = function() {
-    var scn = $.scene;
-    var readNodes = scn.getNodesByType("READ");
-    var layerInfos = [];
-    var info = {};
+AyonHarmony.getLayerInfos = function(topOnly) {
+    if (topOnly === undefined) {
+        topOnly = false;
+    }
+    var result = [];
+    var numLayers = Timeline.numLayers;
 
-    for (var i = 0; i < readNodes.length; i++) {
-        var readNode = readNodes[i];
-
-        try {
-    		var timelineIndex = readNode.timelineIndex();
-        } catch (error) {
-            var timelineIndex = 999;
-        }
-
-        info = {
-            "name": readNode.name,
-            "color": readNode.nodeColor.toString(),
-            "fullName": readNode.toString(),
-            "selected": readNode.selected,
-            "position": timelineIndex,
-            "enabled": readNode.enabled
-        };
-
-    layerInfos.push(info);
+    // Build selected layers lookup
+    var selectedLayers = {};
+    var numSelected = Timeline.numLayerSel;
+    for (var s = 0; s < numSelected; s++) {
+        selectedLayers[Timeline.selToLayer(s)] = true;
     }
 
-    return layerInfos;
+    // Iterate timeline layers using native API
+    for (var i = 0; i < numLayers; i++) {
+        // Skip non-node layers (columns, etc.)
+        if (!Timeline.layerIsNode(i)) continue;
+
+        var nodePath = Timeline.layerToNode(i);
+
+        // Determine Group Status
+        // node.parentNode(nodePath) returns the path of the parent (e.g., "Top/MyGroup")
+        var parentPath = node.parentNode(nodePath);
+
+        // In Harmony, "Top" is the root level. Anything else means it's in a group.
+        var isInsideGroup = (parentPath !== "Top" && parentPath !== "");
+
+        // Filter to top-level only if requested
+        if (topOnly && isInsideGroup) continue;
+
+        var groupName = isInsideGroup ? node.getName(parentPath) : null;
+
+        // Get node properties using native API
+        var nodeColor = node.getColor(nodePath);
+
+        // Convert to hex format #RRGGBBAA
+        var r = ("00" + nodeColor.r.toString(16)).slice(-2);
+        var g = ("00" + nodeColor.g.toString(16)).slice(-2);
+        var b = ("00" + nodeColor.b.toString(16)).slice(-2);
+        var a = ("00" + nodeColor.a.toString(16)).slice(-2);
+        var colorStr = '#' + r + g + b + a;
+
+        result.push({
+            "name": node.getName(nodePath),
+            "color": colorStr,
+            "fullName": nodePath,
+            "selected": selectedLayers[i] === true,
+            "position": i,
+            "enabled": node.getEnable(nodePath),
+            "isGrouped": isInsideGroup,
+            "parentGroup": groupName,
+            "parentPath": parentPath
+        });
+    }
+
+    return result;
 };
 
 /**

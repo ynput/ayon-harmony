@@ -11,8 +11,10 @@ import ayon_harmony.api as harmony
 class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
 
-    product_types = {"harmony.template"}
-    representations = {"tpl"}
+    product_base_types = {"harmony.template"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"zip"}
     label = "Load Template"
     icon = "gift"
 
@@ -31,6 +33,11 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         temp_dir = tempfile.mkdtemp()
         zip_file = self.filepath_from_context(context)
 
+        # Override container name
+        override_name = ""
+        if self.override_name:
+            override_name = self.override_name.format(**context)
+
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(temp_dir)
 
@@ -39,7 +46,10 @@ class TemplateLoader(harmony.BackdropBaseLoader):
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
                 # Published tpl name is not consistent, use first found,
                 #   must be only one
-                "args": next(Path(temp_dir).glob("*.tpl")).as_posix(),
+                "args": [
+                    next(Path(temp_dir).glob("*.tpl")).as_posix(),
+                    override_name
+                ],
             }
         )["result"]
 
@@ -48,7 +58,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
 
         # We must validate the group_node
         return harmony.containerise(
-            name,
+            backdrop_name,
             namespace,
             backdrop_name,
             context,

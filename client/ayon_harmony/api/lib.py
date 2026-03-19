@@ -18,6 +18,7 @@ import time
 from uuid import uuid4
 import collections
 from typing import Optional
+from functools import lru_cache
 
 from qtpy import QtWidgets, QtCore, QtGui
 
@@ -25,6 +26,9 @@ from ayon_core.lib import is_using_ayon_console, env_value_to_bool
 from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
+
+# Function 'save_next_version' is used by javascript integration
+from ayon_core.pipeline.workfile import save_next_version  # noqa: F401
 
 from ayon_harmony import HARMONY_ADDON_ROOT
 
@@ -320,6 +324,15 @@ def unzip_scene_file(filepath: str) -> str:
         )
         if zip_based_name in relative_path_xstage:
             break
+
+    # Rename .xstage file if it doesn't match the expected name
+    expected_xstage_path = os.path.join(
+        local_scene_dir_path, zip_based_name
+    )
+    if scene_path != expected_xstage_path:
+        log.info(f"Renaming {scene_path} to {expected_xstage_path}")
+        shutil.move(scene_path, expected_xstage_path)
+        scene_path = expected_xstage_path
 
     if not os.path.exists(scene_path):
         raise Exception(
@@ -708,7 +721,8 @@ def find_backdrop_by_name(name: str) -> Optional[dict]:
     return None
 
 
-def get_layers_info() -> list[dict[str, str]]:
+@lru_cache(maxsize=1)
+def get_layers_info(top_only: bool = True) -> list[dict[str, str]]:
     """Returns list of dicts with info about timeline layers
 
     'position' goes from 0 at the top and increases to bottom on timeline
@@ -716,7 +730,7 @@ def get_layers_info() -> list[dict[str, str]]:
     layers_info = send(
         {
             "function": "AyonHarmony.getLayerInfos",
-            "args": []
+            "args": [top_only]
         }
     )["result"]
     layers_info = [layer for layer in layers_info if layer["enabled"]]
