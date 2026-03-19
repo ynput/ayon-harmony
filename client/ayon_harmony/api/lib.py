@@ -258,6 +258,7 @@ def localize_file(filepath):
         str: Path to localized file, or original if already local.
     """
     local_scene_dir_path = os.path.join(os.path.expanduser("~"), ".ayon", "harmony")
+    os.makedirs(local_scene_dir_path, exist_ok=True)
 
     local_zip = os.path.join(local_scene_dir_path, os.path.basename(filepath))
     print(f"Copying {filepath} to {local_zip}")
