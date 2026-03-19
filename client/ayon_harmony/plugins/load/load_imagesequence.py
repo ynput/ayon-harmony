@@ -7,7 +7,6 @@ from pathlib import Path
 import clique
 
 from ayon_core.pipeline import load
-from ayon_core.pipeline import get_representation_path
 from ayon_core.pipeline.context_tools import is_representation_from_latest
 import ayon_harmony.api as harmony
 
@@ -34,6 +33,29 @@ class ImageSequenceLoader(load.LoaderPlugin):
     settings_category = "harmony"
     expose_only_current_frame = False
 
+    @staticmethod
+    def _resolve_files_for_representation(target_path: Path) -> list[str]:
+        """Resolve ordered file paths for the sequence containing the path.
+
+        Picks the clique collection that includes the representation file name.
+        """
+        parent = target_path.parent
+        names = os.listdir(parent.as_posix())
+        collections, remainder = clique.assemble(names)
+        basename = target_path.name
+        for coll in collections:
+            if basename in coll:
+                return [parent.joinpath(f).as_posix() for f in coll]
+        if basename in remainder:
+            return [parent.joinpath(basename).as_posix()]
+        elif target_path.is_file():
+            return [target_path.as_posix()]
+        else:
+            raise RuntimeError(
+                "Could not resolve image files for representation path: "
+                f"{target_path}"
+            )
+
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.
 
@@ -46,19 +68,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
         """
         fname = Path(self.filepath_from_context(context))
         self_name = self.__class__.__name__
-        collections, remainder = clique.assemble(
-            os.listdir(fname.parent.as_posix())
-        )
-        files = []
-        if collections:
-            for f in list(collections[0]):
-                files.append(fname.parent.joinpath(f).as_posix())
-        else:
-            if remainder:
-                files.append(fname.parent.joinpath(remainder[0]).as_posix())
-        if not files and fname.is_file():
-            files = [fname.as_posix()]
-
+        files = self._resolve_files_for_representation(fname)
         folder_name = context["folder"]["name"]
         product_name = context["product"]["name"]
 
@@ -128,17 +138,7 @@ class ImageSequenceLoader(load.LoaderPlugin):
             harmony.imprint(node, {"representation": repre_entity["id"]})
             return
 
-        collections, remainder = clique.assemble(os.listdir(path.parent))
-        files = []
-        if collections:
-            for f in list(collections[0]):
-                files.append(path.parent.joinpath(f).as_posix())
-        else:
-            if remainder:
-                files.append(path.parent.joinpath(remainder[0]).as_posix())
-        if not files and path.is_file():
-            files = [path.as_posix()]
-
+        files = self._resolve_files_for_representation(path)
         harmony.send(
             {
                 "function": "AyonHarmony.Loaders.ImageSequenceLoader.replaceFiles",  # noqa: E501
