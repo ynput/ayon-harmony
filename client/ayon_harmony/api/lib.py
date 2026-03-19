@@ -580,10 +580,16 @@ def zip_and_move(source, destination):
     
     try:
         with _ZipFile(zip_path, 'w', zipfile.ZIP_STORED) as zipf:
+            last_process_events = time.monotonic()
             for idx, (file_path, arcname) in enumerate(file_list):
                 zipf.write(file_path, arcname)
                 progress.setValue(idx + 1)
-                QtWidgets.QApplication.processEvents()
+                now = time.monotonic()
+                if now - last_process_events >= 0.05:
+                    QtWidgets.QApplication.processEvents(
+                        QtCore.QEventLoop.AllEvents, 50
+                    )
+                    last_process_events = now
 
         with _ZipFile(zip_path) as zr:
             if zr.testzip() is not None:
