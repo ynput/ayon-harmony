@@ -1,12 +1,24 @@
 # -*- coding: utf-8 -*-
 """Collect render instances in Harmony."""
 from pathlib import Path
+import attr
+
+import pyblish.api
 
 from ayon_core.lib.dateutils import get_formatted_current_time
 from ayon_core.pipeline import publish
-import pyblish.api
+from ayon_core.pipeline.publish import RenderInstance
 
 import ayon_harmony.api as harmony
+
+
+@attr.s
+class HarmonyRenderInstance(RenderInstance):
+    # necessary for farm submission
+    outputType = attr.ib(default="Image")
+    outputFormat = attr.ib(default="PNG4")
+    outputStartFrame = attr.ib(default=1)
+    leadingZeros = attr.ib(default=3)
 
 
 class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
@@ -77,18 +89,32 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
             creator_attributes = instance.data.get("creator_attributes", {})
             render_target = creator_attributes.get("render_target", "default")
 
+            node = instance.data["setMembers"][0]
+            # 0 - filename / 1 - type / 2 - zeros / 3 - start / 4 - enabled
+            info = harmony.send(
+                {
+                    "function": f"AyonHarmony.getRenderNodeSettings",
+                    "args": node
+                }
+            )["result"]
+
             product_name = instance.data["productName"]
-            product_type = "render"
-            render_instance = publish.RenderInstance(
+            product_base_type = instance.data["productBaseType"]
+            product_type = instance.data["productType"]
+
+            instance_families = instance.data.get("families", [])
+
+            render_instance = HarmonyRenderInstance(
                 version=version,
                 time=get_formatted_current_time(),
                 source=context.data["currentFile"],
                 name=product_name,
                 label="{} - {}".format(product_name, product_type),
                 productName=product_name,
+                productBaseType=product_base_type,
                 productType=product_type,
                 family=product_type,
-                families=["render", f"render.{render_target}", "review"],
+                families=instance_families,
                 folderPath=folder_path,
                 task=instance.data.get("task"),
                 attachTo=False,
@@ -121,6 +147,11 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
                 farm=(render_target == "farm"),
                 ignoreFrameHandleCheck=True,
                 source_instance=instance,
+                # for farm submission
+                outputType="Image",
+                outputFormat=info[1],
+                outputStartFrame=info[3],
+                leadingZeros=info[2],
             )
 
             if render_instance:
