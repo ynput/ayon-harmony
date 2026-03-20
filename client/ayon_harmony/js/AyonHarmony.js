@@ -608,9 +608,17 @@ AyonHarmony.importImageFile = function(args) {
 AyonHarmony.replaceImageFile = function(args) {
     var imageNodePath = args[0];
     var filePath = args[1];
+    var newImageNode = null;
 
-    var newImageNode = $.scn.root.importImage(filePath);
-    AyonHarmony.substituteNode(imageNodePath, newImageNode.path);
+    $.beginUndo("AYON: Replace Image");
+    try {
+        newImageNode = $.scn.root.importImage(filePath);
+        AyonHarmony.substituteNode(imageNodePath, newImageNode.path);
+    } catch (error) {
+        $.cancelUndo();
+        throw error;
+    }
+    $.endUndo();
 
     return newImageNode.path;
 }
