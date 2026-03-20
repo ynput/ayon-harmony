@@ -1,3 +1,4 @@
+import collections
 import re
 
 from ayon_core.lib import BoolDef, EnumDef
@@ -24,58 +25,61 @@ class HarmonyCreatorBase:
 
         If legacy instances are detected in the scene, create
         `maya_cached_legacy_instances` there and fill it with
-        all legacy products under product type as a key.
+        all legacy products under product base type as a key.
 
         Args:
             Dict[str, Any]: Shared data.
 
         """
-        if shared_data.get("harmony_cached_instance_data") is None:
-            cache = dict()
-            cache_legacy = dict()
+        if shared_data.get("harmony_cached_instance_data") is not None:
+            return shared_data
 
-            # Collect scene data once instead of calling `read()` per node
-            scene_data = harmony.get_scene_data()
-            all_top_names = harmony.get_all_top_names()
-            cleaned_scene_data = False
-            for entity_name, entity_data in reversed(
-                scene_data.copy().items()
-            ):
-                # Filter orphaned instances
-                if entity_name not in all_top_names:
-                    del scene_data[entity_name]
-                    cleaned_scene_data = True
-                    continue
+        cache = collections.defaultdict(list)
+        cache_legacy = collections.defaultdict(list)
 
-                if entity_data.get("id") not in {
-                    AYON_INSTANCE_ID, AVALON_INSTANCE_ID
-                }:
-                    continue
+        # Collect scene data once instead of calling `read()` per node
+        scene_data = harmony.get_scene_data()
+        all_top_names = harmony.get_all_top_names()
+        scene_data_changed = False
+        for entity_name, entity_data in reversed(
+            scene_data.copy().items()
+        ):
+            # Filter orphaned instances
+            if entity_name not in all_top_names:
+                del scene_data[entity_name]
+                scene_data_changed = True
+                continue
 
-                creator_id = entity_data.get("creator_identifier")
-                if creator_id is not None:
-                    # creator instance
-                    cache.setdefault(creator_id, []).append(entity_name)
-                else:
-                    # legacy instance
-                    product_type = entity_data.get(
-                        "productType") or entity_data.get("family")
+            if entity_data.get("id") not in {
+                AYON_INSTANCE_ID, AVALON_INSTANCE_ID
+            }:
+                continue
 
-                    if product_type is None:
-                        # must be a broken instance
-                        continue
+            creator_id = entity_data.get("creator_identifier")
+            if creator_id is not None:
+                # creator instance
+                cache[creator_id].append(entity_name)
+                continue
 
-                    cache_legacy.setdefault(product_type, []).append(
-                        entity_name
-                    )
+            # legacy instance
+            product_base_type = (
+                entity_data.get("productType")
+                or entity_data.get("family")
+            )
 
-            shared_data["harmony_cached_scene_data"] = scene_data
-            shared_data["harmony_cached_instance_data"] = cache
-            shared_data["harmony_cached_legacy_instances_names"] = cache_legacy
+            if product_base_type is None:
+                # must be a broken instance
+                continue
 
-            # Update scene data if cleaned
-            if cleaned_scene_data:
-                harmony.set_scene_data(scene_data)
+            cache_legacy[product_base_type].append(entity_name)
+
+        shared_data["harmony_cached_scene_data"] = scene_data
+        shared_data["harmony_cached_instance_data"] = cache
+        shared_data["harmony_cached_legacy_instances_names"] = cache_legacy
+
+        # Update scene data if cleaned
+        if scene_data_changed:
+            harmony.set_scene_data(scene_data)
 
         return shared_data
 
@@ -92,14 +96,24 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
     settings_category = "harmony"
 
     def create(self, product_name, instance_data, pre_create_data):
+        product_type = instance_data.get("productType")
+        if not product_type:
+            pt_items = self.get_product_type_items()
+            if pt_items:
+                product_type = pt_items[0].product_type
+            else:
+                product_type = self.product_base_type
+            instance_data["productType"] = product_type
+
         # Create the node
         node = self.product_impl(product_name, instance_data, pre_create_data)
 
         instance = CreatedInstance(
-            self.product_base_type,
-            product_name,
-            instance_data,
-            self,
+            product_base_type=self.product_base_type,
+            product_type=product_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
         )
         instance.transient_data["node"] = node
         harmony.imprint(node, instance.data_to_store())
@@ -123,18 +137,24 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
 
     def collect_instances(self):
         cache = self.cache_instance_data(self.collection_shared_data)
-        for node_name in cache.get("harmony_cached_instance_data").get(
-                self.identifier, []):
-            data = cache.get("harmony_cached_scene_data")[node_name]
+        scene_data = cache["harmony_cached_scene_data"]
+        for node_name in (
+            cache["harmony_cached_instance_data"][self.identifier]
+        ):
+            data = scene_data[node_name]
 
-            product_type = data.get("productType")
-            if product_type is None:
-                product_type = data["family"]
-                data["productType"] = product_type
-            data["family"] = product_type
+            product_base_type = data.get("productBaseType")
+            if not product_base_type:
+                product_base_type = data.get("productType")
+                if product_base_type:
+                    data["productBaseType"] = product_base_type
 
-            instance = CreatedInstance.from_existing(instance_data=data,
-                                                     creator=self)
+            if not product_base_type:
+                product_base_type = data["family"]
+                data["productType"] = product_base_type
+                data["productBaseType"] = product_base_type
+
+            instance = CreatedInstance.from_existing(data, self)
             instance.transient_data["node"] = node_name
 
             # Active state is based of the node's active state
@@ -362,10 +382,11 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
                 f"Auto-creating {self.product_base_type} instance..."
             )
             current_instance = CreatedInstance(
-                self.product_base_type,
-                product_name,
-                data,
-                self,
+                product_base_type=self.product_base_type,
+                product_type=self.product_type,
+                product_name=product_name,
+                data=data,
+                creator=self,
             )
             self._add_instance_to_context(current_instance)
         elif (
@@ -380,6 +401,7 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
                 task_entity=task_entity,
                 variant=variant,
                 host_name=host_name,
+                product_type=self.product_type,
             )
 
             current_instance["folderPath"] = folder_entity["path"]
@@ -390,9 +412,9 @@ class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
 
     def collect_instances(self):
         cache = self.cache_instance_data(self.collection_shared_data)
-        for node in cache.get("harmony_cached_instance_data").get(
-                self.identifier, []):
-            data = cache.get("harmony_cached_scene_data")[node]
+        scene_data = cache["harmony_cached_scene_data"]
+        for node in cache["harmony_cached_instance_data"][self.identifier]:
+            data = scene_data[node]
             created_instance = CreatedInstance.from_existing(data, self)
             created_instance.transient_data["node"] = self._node_name
             self._add_instance_to_context(created_instance)

@@ -28,7 +28,8 @@ class ExtractSourceForReview(publish.Extractor):
 
     def process(self, instance):
         """Plugin entry point."""
-        if instance.data["productType"] != "review":
+        product_base_type = instance.data["productBaseType"]
+        if product_base_type != "review":
             self.log.info("Not primary `review` product type, skipping.")
             return
 

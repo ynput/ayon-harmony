@@ -1,6 +1,6 @@
 name = "harmony"
 title = "Harmony"
-version = "0.4.11+dev"
+version = "0.5.0+dev"
 client_dir = "ayon_harmony"
 app_host_name = "harmony"
 project_can_override_addon_version = True

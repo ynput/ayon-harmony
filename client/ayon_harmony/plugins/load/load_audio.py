@@ -33,7 +33,8 @@ function %s(args)
 class ImportAudioLoader(load.LoaderPlugin):
     """Import audio."""
 
-    product_types = {"shot", "audio"}
+    product_base_types = {"shot", "audio"}
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"wav"}
     label = "Import Audio"

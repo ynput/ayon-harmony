@@ -120,18 +120,21 @@ class CollectFarmRender(publish.AbstractCollectRender):
             product_name = inst.data["productName"]
             task_name = inst.data.get("task")
 
-            product_type = inst.data("productType")
+            product_base_type = inst.data["productBaseType"]
+            product_type = inst.data["productType"]
+
             instance_families = inst.data.get("families", [])
 
             render_instance = HarmonyRenderInstance(
+                productBaseType=product_base_type,
+                productType=product_type,
                 version=version,
                 time=get_formatted_current_time(),
                 source=context.data["currentFile"],
                 name=product_name,
-                label="{} - {}".format(product_name, product_type),
+                label=f"{product_name} - {product_base_type}",
                 productName=product_name,
-                productType=product_type,
-                family=product_type,
+                family=product_base_type,
                 families=instance_families,
                 farm=True,
                 folderPath=folder_path,
