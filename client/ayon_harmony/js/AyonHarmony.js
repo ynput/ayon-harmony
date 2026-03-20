@@ -431,15 +431,40 @@ AyonHarmony.substituteNode = function(nodePath, newNodePath) {
     if (oldNode instanceof $.oDrawingNode) {
         var oldDrawing = oldNode.getAttributeByName("DRAWING.ELEMENT");
         var newDrawing = newNode.getAttributeByName("DRAWING.ELEMENT");
+        var exposureMap = [];
 
-        // Clear keyframes
-        newDrawing.frames.forEach(function(frame) {
-            newDrawing.setValue("", frame.frameNumber);
+        // Cache old exposure first, so we can restore it exactly.
+        oldDrawing.frames.forEach(function(frame) {
+            if (frame.frameNumber > 0) {
+                exposureMap.push({
+                    frameNumber: frame.frameNumber,
+                    isBlank: frame.isBlank
+                });
+            }
         });
 
-        // Set keyframes
-        oldDrawing.keyframes.forEach(function(kf) {
-            newDrawing.setValue(kf.value, kf.frameNumber);
+        var newDrawingName = "";
+        newDrawing.frames.forEach(function(frame) {
+            if (frame.frameNumber > 0 && frame.value !== "") {
+                newDrawingName = frame.value;
+            }
+        });
+
+        // Clear all values on the new drawing.
+        newDrawing.frames.forEach(function(frame) {
+            if (frame.frameNumber > 0) {
+                newDrawing.setValue("", frame.frameNumber);
+            }
+        });
+
+        // Restore full frame-by-frame exposure.
+        // Non-blank frames must be remapped to the new element drawing name.
+        exposureMap.forEach(function(frameData) {
+            if (frameData.isBlank) {
+                newDrawing.setValue("", frameData.frameNumber);
+            } else {
+                newDrawing.setValue(newDrawingName, frameData.frameNumber);
+            }
         });
     }
 
