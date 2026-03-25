@@ -7,6 +7,14 @@ import shutil
 
 import ayon_harmony.api as harmony
 
+from ayon_core.pipeline import (
+    register_loader_plugin_path,
+    register_creator_plugin_path,
+    deregister_loader_plugin_path,
+    deregister_creator_plugin_path,
+    AVALON_CONTAINER_ID,
+    AYON_CONTAINER_ID,
+)
 
 class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
@@ -51,14 +59,49 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             }
         )["result"]
 
-        # Cleanup the temp directory
-        shutil.rmtree(temp_dir)
-
-        # We must validate the group_node
-        return harmony.containerise(
+        containerized = harmony.containerise(
             backdrop_name,
             namespace,
             backdrop_name,
             context,
             self_name
         )
+
+        data = {
+        "schema": "openpype:container-2.0",
+        "id": AYON_CONTAINER_ID,
+        "name": backdrop_name,
+        "namespace": namespace,
+        "loader": str(self_name),
+        "representation": context["representation"]["id"]
+        }
+
+        harmony.send({"script": f"""
+        var backdrops = Backdrop.backdrops("Top");
+        var targetBackdrop = null;
+        for (var i = 0; i < backdrops.length; i++) {{
+            if (backdrops[i].title.text === "{backdrop_name}") {{
+                targetBackdrop = backdrops[i];
+                break;
+            }}
+        }}
+
+        if (targetBackdrop) {{
+            var x = targetBackdrop.position.x + 50;
+            var y = targetBackdrop.position.y + 50;
+            
+            var noteName = "templateID-{context["representation"]["id"]}";
+            var result = node.add("Top", noteName, "NOTE", x, y, 0);
+            node.setTextAttr(result, "text", frame.current(), "{data}");
+            MessageLog.trace("NOTE créé : " + result + " à x:" + x + " y:" + y);
+        }} 
+        else {{
+            MessageLog.trace("Backdrop introuvable !");
+        }}
+        """})
+
+        # Cleanup the temp directory
+        shutil.rmtree(temp_dir)
+
+        # We must validate the group_node
+        return containerized

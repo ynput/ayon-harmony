@@ -43,6 +43,8 @@ LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
 CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 INVENTORY_PATH = os.path.join(PLUGINS_DIR, "inventory")
 
+script_dir = Path(__file__).parent
+LOG = f"{script_dir}" + "/LOG.txt"
 
 class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     name = "harmony"
@@ -243,7 +245,7 @@ def is_container_data(data: dict) -> bool:
     return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
 
 
-def ls(): 
+def ls():
     """Yields containers from Harmony scene.
 
     Clean up scene data from orphaned containers.
@@ -255,6 +257,7 @@ def ls():
     containers_names = (
         harmony.get_all_top_names() | harmony.get_palettes_paths()
     )
+
     cleaned_scene_data = False
     for entity_name, entity_data in scene_data.copy().items():
         if not is_container_data(entity_data):
@@ -270,6 +273,37 @@ def ls():
             entity_data["objectName"] = entity_data["name"]
         yield entity_data
 
+    # nodes = harmony.send(
+    #     {"function": "node.getNodes", "args": ["NOTE"]}
+    # )["result"]
+
+    # for node in nodes:
+    #     if node.split("-")[0] == "Top/templateID":
+    #         data = harmony.send(
+    #             {"function": "node.getTextAttr", "args": [node, 1.0, "text"]}
+    #         )["result"]
+    #         break
+    
+    func = """function returnNodeAttr() {
+    var nodes = node.getNodes(["NOTE"]);
+    for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].split("-")[0] === "Top/templateID") {
+            return node.getTextAttr(nodes[i], 1.0, "text");
+        }
+    }
+    return null;
+    }
+    returnNodeAttr"""
+
+    data = harmony.send({"function": func})["result"]
+
+    with open(LOG, "a") as f:
+        f.write(f"#################\n")
+        f.write(f"get_all_top_names : {harmony.get_all_top_names()}\n")
+        f.write(f"containers_names : {containers_names}\n")
+        f.write(f"scene_data : {scene_data}\n")
+        f.write(f"data : {data}\n")
+        
     # Update scene data if cleaned
     if cleaned_scene_data:
         harmony.set_scene_data(scene_data)
