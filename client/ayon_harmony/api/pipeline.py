@@ -320,14 +320,15 @@ def is_container_data(data: dict) -> bool:
     """Return whether data is container data."""
     return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
 
-def read_note_nodes():
+
+def read_note_nodes() -> dict:
     """Read all note nodes containing metadata in the scene and return text as a dictionary.
 
     Returns:
         dict: Dictionary with metadata.
 
     """
-    
+
     func = """function returnNodeAttr() {
     var nodes = node.getNodes(["NOTE"]);
     var results = [];
