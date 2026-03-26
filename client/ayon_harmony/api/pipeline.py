@@ -320,11 +320,41 @@ def is_container_data(data: dict) -> bool:
     """Return whether data is container data."""
     return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
 
+def read_note_nodes():
+    """Read all note nodes containing metadata in the scene and return text as a dictionary.
+
+    Returns:
+        dict: Dictionary with metadata.
+
+    """
+    
+    func = """function returnNodeAttr() {
+    var nodes = node.getNodes(["NOTE"]);
+    var results = [];
+    for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].split("-")[0] === "Top/templateID") {
+            var data = node.getTextAttr(nodes[i], 1.0, "text");
+            results.push(data);
+            }
+        }
+        return results;
+    }
+    returnNodeAttr"""
+
+    metadata_list = harmony.send({"function": func})["result"]
+
+    metadata_dict = {}
+    for note in metadata_list:
+        metadata_dict |= ast.literal_eval(note)
+
+    return metadata_dict
+
 
 def ls():
     """Yields containers from Harmony scene.
 
     Clean up scene data from orphaned containers.
+    look for note nodes with metadata and add them to scene data if not registered.
 
     Yields:
         dict: container
@@ -349,27 +379,9 @@ def ls():
             entity_data["objectName"] = entity_data["name"]
         yield entity_data
 
-    # to look for new containers pasted to the scene
-    func = """function returnNodeAttr() {
-    var nodes = node.getNodes(["NOTE"]);
-    var results = [];
-    for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].split("-")[0] === "Top/templateID") {
-            var data = node.getTextAttr(nodes[i], 1.0, "text");
-            results.push(data);
-            }
-        }
-        return results;
-    }
-    returnNodeAttr"""
+    metadata = read_note_nodes()
 
-    note_node_texts = harmony.send({"function": func})["result"]
-
-    note_dict = {}
-    for note in note_node_texts:
-        note_dict |= ast.literal_eval(note)
-
-    for entity_name, entity_data in note_dict.items():
+    for entity_name, entity_data in metadata.items():
         if entity_name not in scene_data:
             updated_scene_data = True
             scene_data[entity_name] = entity_data

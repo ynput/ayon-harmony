@@ -24,6 +24,8 @@ class TemplateLoader(harmony.BackdropBaseLoader):
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.
 
+        Write metadata to note node for better tracking.
+
         Args:
             context (:class:`pyblish.api.Context`): Context.
             name (str, optional): Container name.
@@ -72,7 +74,30 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             }
         }
 
-        # to allow the backdrop to be pasted to another scene, we store the metadata in a note node
+        self.metadata_to_note(backdrop_name, data, context)
+
+        # Cleanup the temp directory
+        shutil.rmtree(temp_dir)
+
+        # We must validate the group_node
+        return harmony.containerise(
+            backdrop_name,
+            namespace,
+            backdrop_name,
+            context,
+            self_name
+        )
+    
+    def metadata_to_note(self, backdrop_name, data, context):
+        """Create a note node and write metadata to that node.
+
+        Args: 
+            backdrop_name (str): Name of the backdrop to which the note will be attached.
+            data (dict): Metadata to be stored in the note.
+            context (:class:`pyblish.api.Context`): The context containing representation information.
+        
+        """
+
         harmony.send(
             {
                 "script": f"""
@@ -91,14 +116,4 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             }
         )
 
-        # Cleanup the temp directory
-        shutil.rmtree(temp_dir)
 
-        # We must validate the group_node
-        return harmony.containerise(
-            backdrop_name,
-            namespace,
-            backdrop_name,
-            context,
-            self_name
-        )
