@@ -363,10 +363,10 @@ def ls():
     }
     returnNodeAttr"""
 
-    note_node_text = harmony.send({"function": func})["result"]
+    note_node_texts = harmony.send({"function": func})["result"]
 
     note_dict = {}
-    for note in note_node_text:
+    for note in note_node_texts:
         note_dict |= ast.literal_eval(note)
 
     for entity_name, entity_data in note_dict.items():
