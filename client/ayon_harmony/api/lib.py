@@ -296,23 +296,19 @@ def unzip_scene_file(filepath: str) -> str:
                     main_name, local_scene_dir_path.name
                 )
 
-                zip_ref.extract(
-                    zip_info,
-                    (
-                        local_scene_dir_path.parent
-                        # Deal with zip files with root directory
-                        if zip_info.filename.startswith(
-                            f"{local_scene_dir_path.name}/"
-                        )
-                        else local_scene_dir_path
-                    ),
+                extract_root = (
+                    local_scene_dir_path.parent
+                    # Deal with zip files with root directory
+                    if zip_info.filename.startswith(
+                        f"{local_scene_dir_path.name}/"
+                    )
+                    else local_scene_dir_path
                 )
+                zip_ref.extract(zip_info, extract_root)
 
                 # Keep the first xstage file as the scene path
                 if not scene_path and zip_info.filename.endswith(".xstage"):
-                    scene_path = local_scene_dir_path.parent.joinpath(
-                        zip_info.filename
-                    )
+                    scene_path = Path(extract_root).joinpath(zip_info.filename)
 
     if not scene_path:
         raise Exception("No xstage file was found.")
