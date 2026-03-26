@@ -85,10 +85,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
                 var noteName = "templateID-{context["representation"]["id"]}";
                 var result = node.add("Top", noteName, "NOTE", x, y, 0);
                 node.setTextAttr(result, "text", 1.0, "{data}");
-                MessageLog.trace("note created : " + result + " at x:" + x + " y:" + y);
-        }}
-        else {{
-            MessageLog.trace("Backdrop not found !");
+                MessageLog.trace("Note created : " + result + " at x:" + x + " y:" + y);
         }}
         """
             }
