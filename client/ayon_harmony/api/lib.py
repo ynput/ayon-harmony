@@ -282,17 +282,31 @@ def unzip_scene_file(filepath: str) -> str:
         else:
             unzip = False
 
-    root_name = None
     if unzip:
         scene_path = None
         with _ZipFile(filepath, "r") as zip_ref:
-            root_name = Path(zip_ref.namelist()[0])
+            main_name = next(
+                Path(name).stem
+                for name in zip_ref.namelist()
+                if name.endswith(".xstage")
+            )
             for zip_info in zip_ref.infolist():
                 # Replace the root name with the local scene directory name
                 zip_info.filename = zip_info.filename.replace(
-                    root_name.name, local_scene_dir_path.name
+                    main_name, local_scene_dir_path.name
                 )
-                zip_ref.extract(zip_info, local_scene_dir_path.parent)
+
+                zip_ref.extract(
+                    zip_info,
+                    (
+                        local_scene_dir_path.parent
+                        # Deal with zip files with root directory
+                        if zip_info.filename.startswith(
+                            f"{local_scene_dir_path.name}/"
+                        )
+                        else local_scene_dir_path
+                    ),
+                )
 
                 # Keep the first xstage file as the scene path
                 if not scene_path and zip_info.filename.endswith(".xstage"):
