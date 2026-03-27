@@ -321,12 +321,11 @@ def is_container_data(data: dict) -> bool:
     return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
 
 
-def read_note_nodes() -> dict:
-    """Read all note nodes containing metadata in the scene and return text as a dictionary.
+def get_metadata_from_note()-> dict:
+    """Get metadata of templates from note nodes and return them as a dictionary.
 
     Returns:
-        dict: Dictionary with metadata.
-
+        dict[str, dict]: Dictionary with metadata.
     """
 
     func = """function returnNodeAttr() {
@@ -380,12 +379,13 @@ def ls():
             entity_data["objectName"] = entity_data["name"]
         yield entity_data
 
-    metadata = read_note_nodes()
+    metadata = get_metadata_from_note()
 
     for entity_name, entity_data in metadata.items():
         if entity_name not in scene_data:
             updated_scene_data = True
             scene_data[entity_name] = entity_data
+        yield entity_data
 
     if updated_scene_data:
         harmony.set_scene_data(scene_data)

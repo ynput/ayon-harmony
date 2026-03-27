@@ -24,7 +24,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.
 
-        Write metadata to note node for better tracking.
+        Write metadata to note node in the backdrop for better tracking of the container and its metadata.
 
         Args:
             context (:class:`pyblish.api.Context`): Context.
@@ -63,7 +63,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             }
         )["result"]
 
-        data = {
+        metadata = {
             backdrop_name: {
                 "schema": "openpype:container-2.0",
                 "id": AYON_CONTAINER_ID,
@@ -74,7 +74,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             }
         }
 
-        self.metadata_to_note(backdrop_name, data, context)
+        self.write_metadata_to_note(backdrop_name, metadata, context)
 
         # Cleanup the temp directory
         shutil.rmtree(temp_dir)
@@ -88,14 +88,13 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             self_name
         )
 
-    def metadata_to_note(self, backdrop_name, data, context):
+    def write_metadata_to_note(self, backdrop_name : str, metadata : dict, context):
         """Create a note node and write metadata to that node.
 
         Args:
             backdrop_name (str): Name of the backdrop to which the note will be attached.
-            data (dict): Metadata to be stored in the note.
+            metadata (dict): Metadata to be stored in the note.
             context (:class:`pyblish.api.Context`): The context containing representation information.
-
         """
 
         harmony.send(
@@ -109,7 +108,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
                 
                 var noteName = "templateID-{context["representation"]["id"]}";
                 var result = node.add("Top", noteName, "NOTE", x, y, 0);
-                node.setTextAttr(result, "text", 1.0, "{data}");
+                node.setTextAttr(result, "text", 1.0, "{metadata}");
                 MessageLog.trace("Note created : " + result + " at x:" + x + " y:" + y);
         }}
         """
