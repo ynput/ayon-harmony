@@ -325,7 +325,7 @@ def get_metadata_from_note()-> dict:
     """Get metadata of templates from note nodes and return them as a dictionary.
 
     Returns:
-        dict[str, dict]: Dictionary with metadata.
+        dict: Dictionary with metadata.
     """
 
     func = """function returnNodeAttr() {
