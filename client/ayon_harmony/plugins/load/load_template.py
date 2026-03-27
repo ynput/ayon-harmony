@@ -31,7 +31,6 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             name (str, optional): Container name.
             namespace (str, optional): Container namespace.
             data (dict, optional): Additional data passed into loader.
-
         """
         # Load template.
         self_name = self.__class__.__name__
