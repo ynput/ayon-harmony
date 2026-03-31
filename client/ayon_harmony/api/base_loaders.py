@@ -28,7 +28,7 @@ class BackdropBaseLoader(load.LoaderPlugin):
             "parent_backdrop_matching", False
         )
 
-    def _resolve_parent_backdrop_name(self, context)->str:
+    def _resolve_parent_backdrop_name(self, context) -> str:
         """Resolve parent backdrop name from folder hierarchy.
 
         Returns matching existing backdrop name (case-insensitive) or the
@@ -37,7 +37,8 @@ class BackdropBaseLoader(load.LoaderPlugin):
         """
 
         folder_path = (context.get("folder") or {}).get("path")
-        hierarchy = Path(folder_path).parts[1:-1]  # Without root "/" neither folder name
+        # Without root "/" neither folder name
+        hierarchy = Path(folder_path).parts[1:-1]
         if not hierarchy:
             return None
 
