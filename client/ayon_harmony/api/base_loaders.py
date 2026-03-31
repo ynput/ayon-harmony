@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Base classes for loaders."""
 
+from pathlib import Path
 from ayon_core.pipeline import load
 
 import ayon_harmony.api as harmony
@@ -14,6 +15,7 @@ class BackdropBaseLoader(load.LoaderPlugin):
     """
 
     override_name = ""
+    parent_backdrop_matching = False
 
     @classmethod
     def apply_settings(cls, project_settings):
@@ -22,6 +24,39 @@ class BackdropBaseLoader(load.LoaderPlugin):
             project_settings.get("harmony", {}).get("load", {})
         )
         cls.override_name = load_settings.get("override_name", "")
+        cls.parent_backdrop_matching = load_settings.get(
+            "parent_backdrop_matching", False
+        )
+
+    def _resolve_parent_backdrop_name(self, context)->str:
+        """Resolve parent backdrop name from folder hierarchy.
+
+        Returns matching existing backdrop name (case-insensitive) or the
+        most direct folder segment for backdrop creation when there is no
+        existing match.
+        """
+
+        folder_path = (context.get("folder") or {}).get("path")
+        hierarchy = Path(folder_path).parts[1:-1]  # Without root "/" neither folder name
+        if not hierarchy:
+            return None
+
+        scene_backdrops = harmony.send(
+            {"function": "Backdrop.backdrops", "args": ["Top"]}
+        )["result"]
+
+        lower_to_original = {}
+        for backdrop in scene_backdrops:
+            title = backdrop.get("title", {}).get("text")
+            if title and title.lower() not in lower_to_original:
+                lower_to_original[title.lower()] = title
+
+        for segment in reversed(hierarchy):
+            matched_name = lower_to_original.get(segment.lower())
+            if matched_name:
+                return matched_name
+
+        return hierarchy[-1]
 
     def load(self, context, name=None, namespace=None, data=None):
         """Plugin entry point.
@@ -40,10 +75,14 @@ class BackdropBaseLoader(load.LoaderPlugin):
         if self.override_name:
             name = self.override_name.format(**context)
 
+        parent_backdrop_name = None
+        if self.parent_backdrop_matching:
+            parent_backdrop_name = self._resolve_parent_backdrop_name(context)
+
         backdrop_name = harmony.send(
             {
                 "function": f"AyonHarmony.Loaders.{self_name}.loadContainer",
-                "args": [filepath, name],
+                "args": [filepath, name, parent_backdrop_name],
             }
         )["result"]
 

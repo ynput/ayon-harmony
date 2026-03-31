@@ -22,6 +22,10 @@ var AyonHarmony = {
     Publish: {}
 };
 
+var PARENT_BACKDROP_GRID_GAP = 100;
+var PARENT_BACKDROP_PADDING = 50;
+var PARENT_BACKDROP_TITLE_HEIGHT = 40;
+
 
 /**
  * Show message in Harmony.
@@ -162,98 +166,439 @@ AyonHarmony.computeExistingBounds = function() {
     return bounds;
 };
 
+/**
+ * Find backdrop by name (case-insensitive).
+ * @param {string} backdropName Name to search for.
+ * @return {object|null} Matching backdrop object.
+ */
+AyonHarmony.findParentBackdrop = function(backdropName) {
+    var normalizedName = String(backdropName).toLowerCase();
+    var backdrops = Backdrop.backdrops("Top");
+    for (var i = 0; i < backdrops.length; i++) {
+        var title = backdrops[i].title && backdrops[i].title.text;
+        if (title && title.toLowerCase() === normalizedName) {
+            return backdrops[i];
+        }
+    }
+    return null;
+};
 
 /**
- * Prevent new content from overlapping existing content by applying minimal offset.
- * Horizontal: move right. Vertical: move above.
- * @param {{top: number, right: number, bottom: number}|null} existingBounds - From computeExistingBounds (before adding new content).
- * @param {Array} newBackdrops - New backdrop objects with .position, .title.text.
- * @param {Array<string>} newNodes - Node path strings.
- * @return {Array|null} allBackdrops array after move, or null if no offset applied.
+ * Ensure a parent backdrop exists by case-insensitive name.
+ * Creates one around new content bounds if not found.
+ *
+ * @param {string} backdropName Parent backdrop name.
+ * @param {object} contentBounds Bounds of newly loaded content.
+ * @return {object|null} Existing or newly created backdrop.
  */
-AyonHarmony.preventOverlap = function(existingBounds, newBackdrops, newNodes) {
-    if (!existingBounds || (newBackdrops.length === 0 && newNodes.length === 0)) {
-        return null;
+AyonHarmony.ensureParentBackdrop = function(backdropName, contentBounds) {
+    var parentBackdrop = AyonHarmony.findParentBackdrop(backdropName);
+    if (parentBackdrop) {  // Existing backdrop found
+        return parentBackdrop;
     }
 
-    // Bounding box of new content
-    var pastedLeft = Infinity;
-    var pastedTop = Infinity;
-    var pastedBottom = -Infinity;
-    newBackdrops.forEach(function(b) {
-        if (b.position.x < pastedLeft) pastedLeft = b.position.x;
-        if (b.position.y < pastedTop) pastedTop = b.position.y;
-        var bBottom = b.position.y + b.position.h;
-        if (bBottom > pastedBottom) pastedBottom = bBottom;
-    });
-    newNodes.forEach(function(nodePath) {
-        var nx = node.coordX(nodePath);
-        if (nx < pastedLeft) pastedLeft = nx;
-        var ny = node.coordY(nodePath);
-        if (ny < pastedTop) pastedTop = ny;
-        var nBottom = ny + node.height(nodePath);
-        if (nBottom > pastedBottom) pastedBottom = nBottom;
-    });
-
-    // Minimal offset to clear overlap: 100px gap
-    var potentialOffsetX = 0;
-    var potentialOffsetY = 0;
-    if (pastedLeft !== Infinity) {
-        potentialOffsetX = Math.max(0, existingBounds.right - pastedLeft + 100);
-    }
-    if (pastedTop !== Infinity && pastedBottom > -Infinity &&
-        pastedTop < existingBounds.bottom && pastedBottom > existingBounds.top) {
-        potentialOffsetY = existingBounds.top - pastedBottom - 100;
-    }
-
-    // Use the smallest offset so content stays as close as possible
-    var offsetX = 0;
-    var offsetY = 0;
-    if (potentialOffsetX > 0 && potentialOffsetY !== 0) {
-        var absY = Math.abs(potentialOffsetY);
-        if (potentialOffsetX <= absY) {
-            offsetX = potentialOffsetX;
-        } else {
-            offsetY = potentialOffsetY;
+    // Create backdrop around content bounds
+    var initialArea = {
+        x: contentBounds.left - PARENT_BACKDROP_PADDING,
+        y: contentBounds.top - (
+            PARENT_BACKDROP_TITLE_HEIGHT + PARENT_BACKDROP_PADDING
+        ),
+        w: (contentBounds.right - contentBounds.left)
+            + (PARENT_BACKDROP_PADDING * 2),
+        h: (contentBounds.bottom - contentBounds.top)
+            + (PARENT_BACKDROP_PADDING * 2)
+            + PARENT_BACKDROP_TITLE_HEIGHT
+    };
+    var safeArea = AyonHarmony.findNonOverlappingArea(initialArea);
+    return Backdrop.addBackdrop(
+        "Top",
+        {
+            "position": {
+                "x": safeArea.x,
+                "y": safeArea.y,
+                "w": safeArea.w,
+                "h": safeArea.h
+            },
+            "title": {
+                "text": backdropName,
+                "size": 14,
+                "font": "Arial"
+            }
         }
-    } else if (potentialOffsetX > 0) {
-        offsetX = potentialOffsetX;
-    } else if (potentialOffsetY !== 0) {
-        offsetY = potentialOffsetY;
+    );
+};
+
+/**
+ * Apply an area position to a backdrop by name.
+ *
+ * @param {string} backdropName Backdrop title.
+ * @param {object} area Position object {x, y, w, h}.
+ * @return {Array} Updated backdrop list.
+ */
+AyonHarmony.applyAreaToBackdrop = function(backdropName, area) {
+    var allBackdrops = Backdrop.backdrops("Top");
+    for (var i = 0; i < allBackdrops.length; i++) {
+        var title = allBackdrops[i].title && allBackdrops[i].title.text;
+        if (title && title.toLowerCase() === backdropName.toLowerCase()) {
+            allBackdrops[i].position.x = area.x;
+            allBackdrops[i].position.y = area.y;
+            allBackdrops[i].position.w = area.w;
+            allBackdrops[i].position.h = area.h;
+            break;
+        }
+    }
+    Backdrop.setBackdrops("Top", allBackdrops);
+    return allBackdrops;
+};
+
+/**
+ * Compute bounds for a set of backdrops and nodes.
+ *
+ * @param {Array} backdrops Backdrop objects.
+ * @param {Array<string>} nodes Node path strings.
+ * @return {object} Bounding box.
+ */
+AyonHarmony.getContentBounds = function(backdrops, nodes) {
+    var bounds = {
+        left: Infinity,
+        top: Infinity,
+        right: -Infinity,
+        bottom: -Infinity
+    };
+    backdrops.forEach(function(backdrop) {
+        var left = backdrop.position.x;
+        var top = backdrop.position.y;
+        var right = left + backdrop.position.w;
+        var bottom = top + backdrop.position.h;
+        if (left < bounds.left) bounds.left = left;
+        if (top < bounds.top) bounds.top = top;
+        if (right > bounds.right) bounds.right = right;
+        if (bottom > bounds.bottom) bounds.bottom = bottom;
+    });
+    nodes.forEach(function(nodePath) {
+        var left = node.coordX(nodePath);
+        var top = node.coordY(nodePath);
+        var right = left + node.width(nodePath);
+        var bottom = top + node.height(nodePath);
+        if (left < bounds.left) bounds.left = left;
+        if (top < bounds.top) bounds.top = top;
+        if (right > bounds.right) bounds.right = right;
+        if (bottom > bounds.bottom) bounds.bottom = bottom;
+    });
+    return bounds;
+};
+
+/**
+ * Check if 2 rectangles intersect.
+ * @param {object} a Rect {left, top, right, bottom}
+ * @param {object} b Rect {left, top, right, bottom}
+ * @return {boolean}
+ */
+AyonHarmony.rectsOverlap = function(a, b) {
+    return !(a.right <= b.left || a.left >= b.right
+        || a.bottom <= b.top || a.top >= b.bottom);
+};
+
+/**
+ * Find a non-overlapping area in Top by shifting to the right.
+ * @param {object} area Position object {x, y, w, h}.
+ * @return {object} Non-overlapping position object {x, y, w, h}.
+ */
+AyonHarmony.findNonOverlappingArea = function(area) {
+    var candidate = {
+        x: area.x,
+        y: area.y,
+        w: area.w,
+        h: area.h
+    };
+    var occupiedRects = [];
+    Backdrop.backdrops("Top").forEach(function(backdrop) {
+        occupiedRects.push({
+            left: backdrop.position.x,
+            top: backdrop.position.y,
+            right: backdrop.position.x + backdrop.position.w,
+            bottom: backdrop.position.y + backdrop.position.h
+        });
+    });
+    node.subNodes("Top").forEach(function(nodePath) {
+        occupiedRects.push({
+            left: node.coordX(nodePath),
+            top: node.coordY(nodePath),
+            right: node.coordX(nodePath) + node.width(nodePath),
+            bottom: node.coordY(nodePath) + node.height(nodePath)
+        });
+    });
+
+    var safety = 0;
+    while (safety < 10000) {
+        safety++;
+        var candidateRect = {
+            left: candidate.x,
+            top: candidate.y,
+            right: candidate.x + candidate.w,
+            bottom: candidate.y + candidate.h
+        };
+        var overlap = null;
+        for (var i = 0; i < occupiedRects.length; i++) {
+            if (AyonHarmony.rectsOverlap(candidateRect, occupiedRects[i])) {
+                overlap = occupiedRects[i];
+                break;
+            }
+        }
+        if (!overlap) {
+            break;
+        }
+        candidate.x = overlap.right + PARENT_BACKDROP_GRID_GAP;
+    }
+    return candidate;
+};
+
+/**
+ * Prevent new content from overlapping existing content.
+ * If area is passed, placement is constrained inside it and the area may be
+ * expanded to fit.
+ *
+ * Placement preference: move right first, then below.
+ *
+ * @param {Array} newBackdrops New backdrop objects with .position, .title.text.
+ * @param {Array<string>} newNodes New node path strings.
+ * @param {object|null} area Optional area {x, y, w, h}.
+ * @param {string|null} excludeBackdropName Optional backdrop name to ignore in occupancy.
+ * @return {object} Object with `allBackdrops` and `area`.
+ */
+AyonHarmony.preventOverlap = function(
+    newBackdrops, newNodes, area, excludeBackdropName
+) {
+    if (newBackdrops.length === 0 && newNodes.length === 0) {
+        return {
+            allBackdrops: Backdrop.backdrops("Top"),
+            area: area || null
+        };
     }
 
-    if (offsetX === 0 && offsetY === 0) {
-        return null;
+    var bounds = AyonHarmony.getContentBounds(newBackdrops, newNodes);
+    if (bounds.right === -Infinity) {
+        return {
+            allBackdrops: Backdrop.backdrops("Top"),
+            area: area || null
+        };
     }
 
-    // Resolve new backdrops to indices in full list (match by title + position)
-    var allBackdropsBeforeMove = Backdrop.backdrops("Top");
-    var pastedBackdropIndices = [];
+    var contentWidth = Math.max(1, bounds.right - bounds.left);
+    var contentHeight = Math.max(1, bounds.bottom - bounds.top);
+
+    var newBackdropSnapshot = {};
+    newBackdrops.forEach(function(backdrop) {
+        var signature = [
+            backdrop.title.text,
+            backdrop.position.x,
+            backdrop.position.y,
+            backdrop.position.w,
+            backdrop.position.h
+        ].join("|");
+        newBackdropSnapshot[signature] = true;
+    });
+
+    var areaRect = null;
+    if (area) {
+        areaRect = {
+            x: area.x,
+            y: area.y,
+            w: area.w,
+            h: area.h
+        };
+    }
+
+    var usable = {
+        left: -Infinity,
+        top: -Infinity,
+        right: Infinity,
+        bottom: Infinity
+    };
+    if (areaRect) {
+        usable.left = areaRect.x + PARENT_BACKDROP_PADDING;
+        usable.top = areaRect.y + PARENT_BACKDROP_TITLE_HEIGHT
+            + PARENT_BACKDROP_PADDING;
+        usable.right = areaRect.x + areaRect.w - PARENT_BACKDROP_PADDING;
+        usable.bottom = areaRect.y + areaRect.h - PARENT_BACKDROP_PADDING;
+    }
+
+    var occupiedRects = [];
+    Backdrop.backdrops("Top").forEach(function(backdrop) {
+        if (excludeBackdropName && backdrop.title && backdrop.title.text
+            && backdrop.title.text.toLowerCase() === excludeBackdropName.toLowerCase()) {
+            return;
+        }
+        var signature = [
+            backdrop.title.text,
+            backdrop.position.x,
+            backdrop.position.y,
+            backdrop.position.w,
+            backdrop.position.h
+        ].join("|");
+        if (newBackdropSnapshot[signature]) {
+            return;
+        }
+        var rect = {
+            left: backdrop.position.x,
+            top: backdrop.position.y,
+            right: backdrop.position.x + backdrop.position.w,
+            bottom: backdrop.position.y + backdrop.position.h
+        };
+        if (areaRect) {
+            var areaBounds = {
+                left: usable.left,
+                top: usable.top,
+                right: usable.right,
+                bottom: usable.bottom
+            };
+            if (!AyonHarmony.rectsOverlap(rect, areaBounds)) {
+                return;
+            }
+        }
+        occupiedRects.push(rect);
+    });
+
+    var slotWidth = contentWidth + PARENT_BACKDROP_GRID_GAP;
+    var slotHeight = contentHeight + PARENT_BACKDROP_GRID_GAP;
+    var candidateLeft = areaRect ? usable.left : bounds.left;
+    var candidateTop = areaRect ? usable.top : bounds.top;
+    var maxRight = -Infinity;
+    var maxChildWidth = 0;
+    var maxChildHeight = 0;
+    occupiedRects.forEach(function(rect) {
+        if (rect.right > maxRight) maxRight = rect.right;
+        var width = rect.right - rect.left;
+        var height = rect.bottom - rect.top;
+        if (width > maxChildWidth) maxChildWidth = width;
+        if (height > maxChildHeight) maxChildHeight = height;
+    });
+
+    if (areaRect) {
+        // Keep a stable grid pitch across mixed sizes by using the larger
+        // value between the new content and current children.
+        slotWidth = Math.max(contentWidth, maxChildWidth) + PARENT_BACKDROP_GRID_GAP;
+        slotHeight = Math.max(contentHeight, maxChildHeight) + PARENT_BACKDROP_GRID_GAP;
+
+        var foundInsideArea = false;
+        for (
+            var rowTop = usable.top;
+            rowTop + contentHeight <= usable.bottom;
+            rowTop += slotHeight
+        ) {
+            for (
+                var colLeft = usable.left;
+                colLeft + contentWidth <= usable.right;
+                colLeft += slotWidth
+            ) {
+                var inAreaCandidate = {
+                    left: colLeft,
+                    top: rowTop,
+                    right: colLeft + contentWidth,
+                    bottom: rowTop + contentHeight
+                };
+                var hasOverlap = false;
+                for (var idx = 0; idx < occupiedRects.length; idx++) {
+                    if (AyonHarmony.rectsOverlap(inAreaCandidate, occupiedRects[idx])) {
+                        hasOverlap = true;
+                        break;
+                    }
+                }
+                if (!hasOverlap) {
+                    candidateLeft = colLeft;
+                    candidateTop = rowTop;
+                    foundInsideArea = true;
+                    break;
+                }
+            }
+            if (foundInsideArea) {
+                break;
+            }
+        }
+
+        if (!foundInsideArea) {
+            candidateLeft = Math.max(maxRight, usable.left) + PARENT_BACKDROP_GRID_GAP;
+            candidateTop = usable.top;
+
+            var requiredRight = candidateLeft + contentWidth + PARENT_BACKDROP_PADDING;
+            var currentRight = areaRect.x + areaRect.w;
+            if (requiredRight > currentRight) {
+                areaRect.w = requiredRight - areaRect.x;
+                usable.right = areaRect.x + areaRect.w - PARENT_BACKDROP_PADDING;
+            }
+
+            var requiredBottom = candidateTop + contentHeight + PARENT_BACKDROP_PADDING;
+            var currentBottom = areaRect.y + areaRect.h;
+            if (requiredBottom > currentBottom) {
+                areaRect.h = requiredBottom - areaRect.y;
+                usable.bottom = areaRect.y + areaRect.h - PARENT_BACKDROP_PADDING;
+            }
+        }
+    } else {
+        var safety = 0;
+        while (safety < 10000) {
+            safety++;
+            var candidate = {
+                left: candidateLeft,
+                top: candidateTop,
+                right: candidateLeft + contentWidth,
+                bottom: candidateTop + contentHeight
+            };
+            var overlapRect = null;
+            for (var index = 0; index < occupiedRects.length; index++) {
+                if (AyonHarmony.rectsOverlap(candidate, occupiedRects[index])) {
+                    overlapRect = occupiedRects[index];
+                    break;
+                }
+            }
+            if (!overlapRect) {
+                break;
+            }
+            candidateLeft += slotWidth;
+        }
+    }
+
+    var offsetX = candidateLeft - bounds.left;
+    var offsetY = candidateTop - bounds.top;
+
+    newNodes.forEach(function(nodePath) {
+        node.setCoord(
+            nodePath,
+            node.coordX(nodePath) + offsetX,
+            node.coordY(nodePath) + offsetY
+        );
+    });
+
+    var allBackdrops = Backdrop.backdrops("Top");
     newBackdrops.forEach(function(pastedBackdrop) {
-        for (var i = 0; i < allBackdropsBeforeMove.length; i++) {
-            var b = allBackdropsBeforeMove[i];
-            if (b.title.text === pastedBackdrop.title.text &&
-                b.position.x === pastedBackdrop.position.x &&
-                b.position.y === pastedBackdrop.position.y) {
-                pastedBackdropIndices.push(i);
+        // Prefer object identity to avoid accidentally moving pre-existing
+        // backdrop with the same title/coordinates.
+        for (var j = 0; j < allBackdrops.length; j++) {
+            if (allBackdrops[j] === pastedBackdrop) {
+                allBackdrops[j].position.x += offsetX;
+                allBackdrops[j].position.y += offsetY;
+                return;
+            }
+        }
+        for (var index = 0; index < allBackdrops.length; index++) {
+            var backdrop = allBackdrops[index];
+            if (backdrop.title.text === pastedBackdrop.title.text &&
+                backdrop.position.x === pastedBackdrop.position.x &&
+                backdrop.position.y === pastedBackdrop.position.y &&
+                backdrop.position.w === pastedBackdrop.position.w &&
+                backdrop.position.h === pastedBackdrop.position.h) {
+                allBackdrops[index].position.x += offsetX;
+                allBackdrops[index].position.y += offsetY;
                 break;
             }
         }
     });
-
-    // Apply offset to nodes and backdrops
-    newNodes.forEach(function(nodePath) {
-        var newX = node.coordX(nodePath) + offsetX;
-        var newY = node.coordY(nodePath) + offsetY;
-        node.setCoord(nodePath, newX, newY);
-    });
-    var allBackdrops = Backdrop.backdrops("Top");
-    pastedBackdropIndices.forEach(function(idx) {
-        allBackdrops[idx].position.x += offsetX;
-        allBackdrops[idx].position.y += offsetY;
-    });
     Backdrop.setBackdrops("Top", allBackdrops);
-    return allBackdrops;
+
+    return {
+        allBackdrops: allBackdrops,
+        area: areaRect
+    };
 };
 
 
