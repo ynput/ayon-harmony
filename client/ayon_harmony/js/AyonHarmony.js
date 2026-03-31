@@ -87,6 +87,36 @@ AyonHarmony.getSceneSettings = function() {
 
 
 /**
+ * Get information important for render output.
+ * @function
+ * @param nodePath {String} node path.
+ * @return {array} array of render info.
+ *
+ * @example
+ *
+ * var ret = [
+ *    file_prefix, // like foo/bar-
+ *    type, // PNG4, ...
+ *    leading_zeros, // 3 - for 0001
+ *    start // start frame
+ * ]
+ */
+AyonHarmony.getRenderNodeSettings = function(nodePath) {
+    var output = [
+        node.getTextAttr(
+            nodePath, frame.current(), 'DRAWING_NAME'),
+        node.getTextAttr(
+            nodePath, frame.current(), 'DRAWING_TYPE'),
+        node.getTextAttr(
+            nodePath, frame.current(), 'LEADING_ZEROS'),
+        node.getTextAttr(nodePath, frame.current(), 'START'),
+        node.getEnable(nodePath)
+    ];
+
+    return output;
+};
+
+/**
  * Set color of nodes.
  * @function
  * @param {array} nodes List of nodes.
