@@ -1,6 +1,18 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
 
+class ImageSequenceLoaderPluginModel(BaseSettingsModel):
+    enabled: bool = SettingsField(True, title="Enabled")
+    expose_only_current_frame: bool = SettingsField(
+        default=False,
+        title="Expose only current frame",
+        description=(
+          "If enabled, only the current frame will be exposed, "
+          "all other frames will be set to empty.",
+        ),
+    )
+
+
 class BackdropLoaderPluginModel(BaseSettingsModel):
     """Shared model for backdrop-based loaders."""
 
@@ -20,6 +32,10 @@ class HarmonyLoadPlugins(BaseSettingsModel):
             "Example keys: project[name], folder[name], product[name]...\n"
             "Example value: {folder[name]}-{product[name]}"
         ),
+    )
+    ImageSequenceLoader: ImageSequenceLoaderPluginModel = SettingsField(
+        title="Image or Sequence Loader",
+        default_factory=ImageSequenceLoaderPluginModel,
     )
     TemplateLoader: BackdropLoaderPluginModel = SettingsField(
         default_factory=BackdropLoaderPluginModel,
