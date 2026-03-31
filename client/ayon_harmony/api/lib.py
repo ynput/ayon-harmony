@@ -62,7 +62,6 @@ class ProcessContext:
         if cls.process is not None and cls.process.poll() is not None:
             log.info("Server is not running, closing")
             ProcessContext.stdout_broker.stop()
-            QtWidgets.QApplication.quit()
 
 
 def signature(postfix="func") -> str:
@@ -249,11 +248,104 @@ def get_local_harmony_path(filepath):
     return os.path.join(harmony_path, basename)
 
 
-def unzip_scene_file(filepath: str) -> str:
+def localize_file(filepath):
+    """Copy file to local temp location for faster processing.
+    
+    Args:
+        filepath (str): Path to the file (possibly on network).
+        
+    Returns:
+        str: Path to localized file, or original if already local.
+    """
+    local_scene_dir_path = os.path.join(os.path.expanduser("~"), ".ayon", "harmony")
+    os.makedirs(local_scene_dir_path, exist_ok=True)
+
+    local_zip = os.path.join(local_scene_dir_path, os.path.basename(filepath))
+    log.info(f"Copying {filepath} to {local_zip}")
+
+    copy_with_progress(filepath, local_zip)
+    return local_zip
+
+
+def copy_with_progress(src, dst):
+    """Copy file with a progress bar dialog.
+    
+    Args:
+        src (str): Source file path.
+        dst (str): Destination file path.
+    """
+    file_size = os.path.getsize(src)
+
+    progress = QtWidgets.QProgressDialog(
+        f"Copying {os.path.basename(src)}...",
+        None,
+        0,
+        100
+    )
+    progress.setStyleSheet(style.load_stylesheet())
+    progress.setWindowTitle("Transferring File")
+    progress.setWindowModality(QtCore.Qt.WindowModal)
+    progress.setMinimumDuration(0)
+    progress.setValue(0)
+    progress.setCancelButton(None)
+    
+    chunk_size = 1024 * 1024  # 1MB chunks
+    bytes_copied = 0
+    
+    try:
+        with open(src, 'rb') as fsrc:
+            with open(dst, 'wb') as fdst:
+                last_process_events = time.monotonic()
+                while True:
+                    chunk = fsrc.read(chunk_size)
+                    if not chunk:
+                        break
+                    
+                    fdst.write(chunk)
+                    bytes_copied += len(chunk)
+
+                    if file_size > 0:
+                        percent = int((bytes_copied / file_size) * 100)
+                    else:
+                        # Handle empty source file gracefully
+                        percent = 100
+
+                    progress.setValue(percent)
+                    
+                    # Process Qt events to keep UI responsive
+                    now = time.monotonic()
+                    if now - last_process_events >= 0.05:
+                        QtWidgets.QApplication.processEvents(
+                            QtCore.QEventLoop.AllEvents, 50
+                        )
+                        last_process_events = now
+
+        shutil.copystat(src, dst)
+
+    except Exception:
+        # Remove partially written destination file to avoid corrupted state
+        try:
+            if os.path.exists(dst):
+                os.remove(dst)
+        except OSError as cleanup_error:
+            # Log but don't mask the original exception
+            print(f"Warning: Failed to remove partial file '{dst}': {cleanup_error}")
+        raise  # Re-raise the original exception to the caller
+
+    finally:
+        progress.close()
+
+    log.info(f"Successfully copied {src} to {dst}")
+
+
+def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     """Unzip a Harmony scene file and return the path to the .xstage file.
 
     Args:
         filepath (str): Path to the zip file.
+        headless (bool): If True, run without any UI interaction. When a
+            local cache exists with the same or newer timestamp, the local
+            version will be used automatically. Defaults to False.
 
     Returns:
         str: Path to the .xstage file.
@@ -280,14 +372,63 @@ def unzip_scene_file(filepath: str) -> str:
         unzip = False
         # Check remote scene is newer than local.
         if os.path.getmtime(scene_path) < os.path.getmtime(filepath):
+            # Remote is newer, delete local and unzip
             try:
                 shutil.rmtree(local_scene_dir_path)
             except Exception as e:
                 log.error(e)
-                raise Exception("Cannot delete working folder") from e
+                raise Exception(
+                    f"Cannot delete working folder: {local_scene_dir_path}"
+                ) from e
             unzip = True
+        elif headless:
+            # Local is newer or same timestamp - use local cache automatically
+            log.info(
+                "Headless mode: local cache is newer or same timestamp "
+                "as server version. Using local cache."
+            )
+            unzip = False
+        else:
+            # Local is newer or same timestamp - ask user
+            msg_box = QtWidgets.QMessageBox()
+            msg_box.setStyleSheet(style.load_stylesheet())
+            msg_box.setIcon(QtWidgets.QMessageBox.Question)
+            msg_box.setWindowTitle("Local cache of version exists")
+            msg_box.setText(
+                "A cached version of this scene exists that is newer or "
+                "with the same timestamp as the server version."
+            )
+            msg_box.setInformativeText(
+                "Do you want to use the local file or re-cache from the server?"
+            )
+            msg_box.setStandardButtons(
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            )
+            msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
+
+            msg_box.button(QtWidgets.QMessageBox.Yes).setText("Use Local")
+            msg_box.button(QtWidgets.QMessageBox.No).setText("From Server")
+
+            msg_box.setModal(True)
+
+            result = msg_box.exec_()
+
+            if result == QtWidgets.QMessageBox.No:
+                try:
+                    shutil.rmtree(local_scene_dir_path)
+                except Exception as e:
+                    log.error(e)
+                    raise Exception(
+                       f"Cannot delete working folder '{local_scene_dir_path}'"
+                    ) from e
+                unzip = True
+            else:
+                unzip = False
 
     if unzip:
+        original_filepath = filepath
+        filepath = localize_file(filepath)
+
         with _ZipFile(filepath, "r") as zip_ref:
             zip_ref.extractall(local_scene_dir_path)
 
@@ -424,12 +565,55 @@ def zip_and_move(source, destination):
         destination (str): Destination file path to zip file.
 
     """
-    os.chdir(os.path.dirname(source))
-    shutil.make_archive(os.path.basename(source), "zip", source)
-    with _ZipFile(os.path.basename(source) + ".zip") as zr:
-        if zr.testzip() is not None:
-            raise Exception("File archive is corrupted.")
-    shutil.move(os.path.basename(source) + ".zip", destination)
+    zip_file = os.path.basename(source) + ".zip"
+    zip_path = os.path.join(os.path.dirname(source), zip_file)
+
+    file_list = []
+    for root, dirs, files in os.walk(source):
+        for file in files:
+            file_path = os.path.join(root, file)
+            arcname = os.path.relpath(file_path, source)
+            file_list.append((file_path, arcname))
+    
+    progress = QtWidgets.QProgressDialog(
+        "Archiving scene files...",
+        None,
+        0,
+        max(1, len(file_list))
+    )
+    progress.setStyleSheet(style.load_stylesheet())
+    progress.setWindowTitle("Creating Archive")
+    progress.setWindowModality(QtCore.Qt.WindowModal)
+    progress.setMinimumDuration(0)
+    progress.setCancelButton(None)
+    
+    try:
+        with _ZipFile(zip_path, 'w', zipfile.ZIP_STORED) as zipf:
+            last_process_events = time.monotonic()
+            for idx, (file_path, arcname) in enumerate(file_list):
+                zipf.write(file_path, arcname)
+                progress.setValue(idx + 1)
+                now = time.monotonic()
+                if now - last_process_events >= 0.05:
+                    QtWidgets.QApplication.processEvents(
+                        QtCore.QEventLoop.AllEvents, 50
+                    )
+                    last_process_events = now
+
+        with _ZipFile(zip_path) as zr:
+            if zr.testzip() is not None:
+                raise Exception("File archive is corrupted.")
+
+        copy_with_progress(zip_path, destination)
+        os.remove(zip_path)
+        
+    except Exception as e:
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+        raise
+    finally:
+        progress.close()
+    
     log.debug(f"Saved '{source}' to '{destination}'")
 
 
