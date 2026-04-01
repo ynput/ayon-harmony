@@ -354,7 +354,8 @@ def ls():
     """Yields containers from Harmony scene.
 
     Clean up scene data from orphaned containers.
-    look for note nodes with metadata and add them to scene data if not registered.
+
+    Look for note nodes with metadata and add them to scene data if not registered.
 
     Yields:
         dict: container
