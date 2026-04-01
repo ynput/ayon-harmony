@@ -332,7 +332,7 @@ def read_metadata_from_notes() -> dict:
     var nodes = node.getNodes(["NOTE"]);
     var results = [];
     for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].indexOf("Top/ayon-metadata") !== -1) {
+        if (nodes[i].indexOf("ayon-metadata") !== -1) {
             var data = node.getTextAttr(nodes[i], 1.0, "text");
             results.push(data);
             }
