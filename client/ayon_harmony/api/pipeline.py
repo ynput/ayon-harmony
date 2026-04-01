@@ -321,8 +321,8 @@ def is_container_data(data: dict) -> bool:
     return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
 
 
-def get_metadata_from_note()-> dict:
-    """Get metadata of templates from note nodes and return them as a dictionary.
+def read_metadata_from_notes() -> dict:
+    """Read metadata of templates from note nodes and return them as a dictionary.
 
     Returns:
         dict: Dictionary with metadata.
@@ -332,7 +332,7 @@ def get_metadata_from_note()-> dict:
     var nodes = node.getNodes(["NOTE"]);
     var results = [];
     for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].split("-")[0] === "Top/templateID") {
+        if (nodes[i].indexOf("Top/ayon-metadata") !== -1) {
             var data = node.getTextAttr(nodes[i], 1.0, "text");
             results.push(data);
             }
@@ -379,7 +379,7 @@ def ls():
             entity_data["objectName"] = entity_data["name"]
         yield entity_data
 
-    metadata = get_metadata_from_note()
+    metadata = read_metadata_from_notes()
 
     for entity_name, entity_data in metadata.items():
         if entity_name not in scene_data:
