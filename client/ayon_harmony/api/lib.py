@@ -250,14 +250,16 @@ def get_local_harmony_path(filepath):
 
 def localize_file(filepath):
     """Copy file to local temp location for faster processing.
-    
+
     Args:
         filepath (str): Path to the file (possibly on network).
-        
+
     Returns:
         str: Path to localized file, or original if already local.
     """
-    local_scene_dir_path = os.path.join(os.path.expanduser("~"), ".ayon", "harmony")
+    local_scene_dir_path = os.path.join(
+        os.path.expanduser("~"), ".ayon", "harmony"
+    )
     os.makedirs(local_scene_dir_path, exist_ok=True)
 
     local_zip = os.path.join(local_scene_dir_path, os.path.basename(filepath))
@@ -269,7 +271,7 @@ def localize_file(filepath):
 
 def copy_with_progress(src, dst):
     """Copy file with a progress bar dialog.
-    
+
     Args:
         src (str): Source file path.
         dst (str): Destination file path.
@@ -288,10 +290,10 @@ def copy_with_progress(src, dst):
     progress.setMinimumDuration(0)
     progress.setValue(0)
     progress.setCancelButton(None)
-    
+
     chunk_size = 1024 * 1024  # 1MB chunks
     bytes_copied = 0
-    
+
     try:
         with open(src, 'rb') as fsrc:
             with open(dst, 'wb') as fdst:
@@ -300,7 +302,7 @@ def copy_with_progress(src, dst):
                     chunk = fsrc.read(chunk_size)
                     if not chunk:
                         break
-                    
+
                     fdst.write(chunk)
                     bytes_copied += len(chunk)
 
@@ -311,7 +313,7 @@ def copy_with_progress(src, dst):
                         percent = 100
 
                     progress.setValue(percent)
-                    
+
                     # Process Qt events to keep UI responsive
                     now = time.monotonic()
                     if now - last_process_events >= 0.05:
@@ -329,7 +331,10 @@ def copy_with_progress(src, dst):
                 os.remove(dst)
         except OSError as cleanup_error:
             # Log but don't mask the original exception
-            print(f"Warning: Failed to remove partial file '{dst}': {cleanup_error}")
+            print(
+                "Warning: Failed to remove partial file "
+                f"'{dst}': {cleanup_error}"
+            )
         raise  # Re-raise the original exception to the caller
 
     finally:
@@ -399,7 +404,8 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 "with the same timestamp as the server version."
             )
             msg_box.setInformativeText(
-                "Do you want to use the local file or re-cache from the server?"
+                "Do you want to use the local file or "
+                "re-cache from the server?"
             )
             msg_box.setStandardButtons(
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
@@ -426,7 +432,6 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 unzip = False
 
     if unzip:
-        original_filepath = filepath
         filepath = localize_file(filepath)
 
         with _ZipFile(filepath, "r") as zip_ref:
@@ -574,7 +579,7 @@ def zip_and_move(source, destination):
             file_path = os.path.join(root, file)
             arcname = os.path.relpath(file_path, source)
             file_list.append((file_path, arcname))
-    
+
     progress = QtWidgets.QProgressDialog(
         "Archiving scene files...",
         None,
@@ -586,7 +591,7 @@ def zip_and_move(source, destination):
     progress.setWindowModality(QtCore.Qt.WindowModal)
     progress.setMinimumDuration(0)
     progress.setCancelButton(None)
-    
+
     try:
         with _ZipFile(zip_path, 'w', zipfile.ZIP_STORED) as zipf:
             last_process_events = time.monotonic()
@@ -606,14 +611,14 @@ def zip_and_move(source, destination):
 
         copy_with_progress(zip_path, destination)
         os.remove(zip_path)
-        
-    except Exception as e:
+
+    except Exception:
         if os.path.exists(zip_path):
             os.remove(zip_path)
         raise
     finally:
         progress.close()
-    
+
     log.debug(f"Saved '{source}' to '{destination}'")
 
 
