@@ -93,7 +93,7 @@ class CollectHarmonyRenderInstances(publish.AbstractCollectRender):
             # 0 - filename / 1 - type / 2 - zeros / 3 - start / 4 - enabled
             info = harmony.send(
                 {
-                    "function": f"AyonHarmony.getRenderNodeSettings",
+                    "function": "AyonHarmony.getRenderNodeSettings",
                     "args": node
                 }
             )["result"]
