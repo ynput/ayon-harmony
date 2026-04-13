@@ -91,6 +91,7 @@ DEFAULT_HARMONY_SETTING = {
     },
     "load": {
         "override_name": "",
+        "parent_backdrop_matching": False,
         "ImageSequenceLoader": {
             "enabled": True,
             "expose_only_current_frame": False

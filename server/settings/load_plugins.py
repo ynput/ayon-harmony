@@ -33,6 +33,16 @@ class HarmonyLoadPlugins(BaseSettingsModel):
             "Example value: {folder[name]}-{product[name]}"
         ),
     )
+    parent_backdrop_matching: bool = SettingsField(
+        False,
+        title="Parent Backdrop Matching",
+        description=(
+            "Match loaded content's folder hierarchy to existing scene "
+            "backdrops (case-insensitive) and place inside the matching "
+            "parent. If no match is found, a new parent backdrop is created "
+            "using the most direct folder name."
+        ),
+    )
     ImageSequenceLoader: ImageSequenceLoaderPluginModel = SettingsField(
         title="Image or Sequence Loader",
         default_factory=ImageSequenceLoaderPluginModel,

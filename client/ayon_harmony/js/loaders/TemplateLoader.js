@@ -29,12 +29,14 @@ var TemplateLoader = function() {};
  * // arguments are in this order:
  * var args = [
  *     templatePath, // Path to tpl file
- *     overrideName // Override name of backdrop container
+ *     overrideName, // Override name of backdrop container
+ *     parentBackdropName // Optional parent backdrop name
  * ];
  */
 TemplateLoader.prototype.loadContainer = function(args) {
     var templatePath = args[0];
     var overrideName = args[1] || "";
+    var parentBackdropName = args[2] || null;
 
     // Copy from template file
     MessageLog.trace("loadContainer:: ");
@@ -61,8 +63,6 @@ TemplateLoader.prototype.loadContainer = function(args) {
         return { baseName: name, count: 1 };
     }
 
-    var existingBounds = AyonHarmony.computeExistingBounds();
-
     var _copyOptions = copyPaste.getCurrentCreateOptions();
     var _tpl = copyPaste.copyFromTemplate(templatePath, 0, 999, _copyOptions);
 
@@ -73,13 +73,60 @@ TemplateLoader.prototype.loadContainer = function(args) {
 
     var pastedBackdrops = selection.selectedBackdrops();
     var pastedNodes = selection.selectedNodes();
-    var allBackdrops = AyonHarmony.preventOverlap(
-        existingBounds, pastedBackdrops, pastedNodes
-    ) || Backdrop.backdrops("Top");
+    var mainBackdropBeforeMove = pastedBackdrops[0] || null;
+    var parentArea = null;
+    if (parentBackdropName) {
+        var pastedBounds = AyonHarmony.getContentBounds(
+            pastedBackdrops, pastedNodes
+        );
+        var parentBackdrop = AyonHarmony.ensureParentBackdrop(
+            parentBackdropName, pastedBounds
+        );
+        parentArea = {
+            x: parentBackdrop.position.x,
+            y: parentBackdrop.position.y,
+            w: parentBackdrop.position.w,
+            h: parentBackdrop.position.h
+        };
+    }
+
+    var overlapResult = AyonHarmony.preventOverlap(
+        pastedBackdrops, pastedNodes, parentArea, parentBackdropName
+    );
+    var allBackdrops = overlapResult.allBackdrops;
+
+    if (parentBackdropName && overlapResult.area && parentArea &&
+        (overlapResult.area.x !== parentArea.x ||
+        overlapResult.area.y !== parentArea.y ||
+        overlapResult.area.w !== parentArea.w ||
+        overlapResult.area.h !== parentArea.h)) {
+        allBackdrops = AyonHarmony.applyAreaToBackdrop(
+            parentBackdropName, overlapResult.area
+        );
+    }
+
+    var mainBackdrop = null;
+    if (mainBackdropBeforeMove) {
+        for (var backdropIndex = 0; backdropIndex < allBackdrops.length; backdropIndex++) {
+            var backdrop = allBackdrops[backdropIndex];
+            if (backdrop.title.text === mainBackdropBeforeMove.title.text &&
+                backdrop.position.w === mainBackdropBeforeMove.position.w &&
+                backdrop.position.h === mainBackdropBeforeMove.position.h) {
+                mainBackdrop = backdrop;
+                break;
+            }
+        }
+    }
+    if (!mainBackdrop && allBackdrops.length > 0) {
+        mainBackdrop = allBackdrops[0];
+    }
+    if (!mainBackdrop) {
+        return "";
+    }
 
     // Override name if provided
     if (overrideName) {
-        allBackdrops[0].title.text = overrideName;
+        mainBackdrop.title.text = overrideName;
     }
 
     // Count existing backdrops by base name
@@ -97,7 +144,7 @@ TemplateLoader.prototype.loadContainer = function(args) {
     }
 
     // Increment count of backdrop with the same base name
-    var mainBackdropName = allBackdrops[0].title.text;
+    var mainBackdropName = mainBackdrop.title.text;
     var mainBackdropParsed = parseBackdropName(mainBackdropName);
     var count = backdropCounts[mainBackdropParsed.baseName] !== undefined ? backdropCounts[mainBackdropParsed.baseName] : 1;
     if (count > 1){
@@ -106,7 +153,7 @@ TemplateLoader.prototype.loadContainer = function(args) {
     }
 
     // Set name of main backdrop (always at index 0)
-    allBackdrops[0].title.text = mainBackdropName;
+    mainBackdrop.title.text = mainBackdropName;
 
     // Update backdrops in scene
     Backdrop.setBackdrops("Top", allBackdrops);
