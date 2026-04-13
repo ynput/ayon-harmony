@@ -362,21 +362,15 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     """
     print(f"Localizing {filepath}")
 
-    local_scene_dir_path = get_local_harmony_path(filepath)
-    scene_name = os.path.basename(local_scene_dir_path)
-    if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
-        # unzipped with duplicated scene_name
-        local_scene_dir_path = os.path.join(local_scene_dir_path, scene_name)
-
-    scene_path = os.path.join(
-        local_scene_dir_path, f"{scene_name}.xstage"
+    local_scene_dir_path = Path(get_local_harmony_path(filepath))
+    scene_path = local_scene_dir_path.joinpath(
+        f"{local_scene_dir_path.name}.xstage"
     )
 
     unzip = True
-    if os.path.exists(scene_path):
-        unzip = False
+    if scene_path.exists():
         # Check remote scene is newer than local.
-        if os.path.getmtime(scene_path) < os.path.getmtime(filepath):
+        if scene_path.stat().st_mtime < Path(filepath).stat().st_mtime:
             # Remote is newer, delete local and unzip
             try:
                 shutil.rmtree(local_scene_dir_path)
@@ -433,59 +427,36 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
 
     if unzip:
         filepath = localize_file(filepath)
-
         with _ZipFile(filepath, "r") as zip_ref:
-            zip_ref.extractall(local_scene_dir_path)
-
-        if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
-            # unzipped with duplicated scene_name
-            local_scene_dir_path = os.path.join(
-                local_scene_dir_path, scene_name
+            main_name = next(
+                Path(name).stem
+                for name in zip_ref.namelist()
+                if name.endswith(".xstage")
             )
-
-    # find any xstage files is directory, prefer the one with the same name
-    # as directory (plus extension)
-    xstage_files = []
-    for root, _, files in os.walk(local_scene_dir_path):
-        for file in files:
-            if os.path.splitext(file)[1] == ".xstage":
-                full_path = os.path.join(root, file)
-                relative_path = os.path.relpath(
-                    full_path, local_scene_dir_path
+            for zip_info in zip_ref.infolist():
+                # Replace the root name with the local scene directory name
+                zip_info.filename = zip_info.filename.replace(
+                    main_name, local_scene_dir_path.name
                 )
-                xstage_files.append(relative_path)
 
-    if not os.path.basename("temp.zip"):
-        if not xstage_files:
-            raise Exception("No xstage file was found.")
+                extract_root = (
+                    local_scene_dir_path.parent
+                    # Deal with zip files with root directory
+                    if zip_info.filename.startswith(
+                        f"{local_scene_dir_path.name}/"
+                    )
+                    else local_scene_dir_path
+                )
+                zip_ref.extract(zip_info, extract_root)
 
-    # prefer the one named as zip file
-    zip_based_name = "{}.xstage".format(
-        os.path.splitext(os.path.basename(filepath))[0])
+                # Keep the first xstage file as the scene path
+                if not scene_path and zip_info.filename.endswith(".xstage"):
+                    scene_path = Path(extract_root).joinpath(zip_info.filename)
 
-    xstage_files.reverse()  # prefer 0 found xstage
-    for relative_path_xstage in xstage_files:
-        scene_path = os.path.join(
-            local_scene_dir_path, relative_path_xstage
-        )
-        if zip_based_name in relative_path_xstage:
-            break
+    if not scene_path:
+        raise Exception("No xstage file was found.")
 
-    # Rename .xstage file if it doesn't match the expected name
-    expected_xstage_path = os.path.join(
-        local_scene_dir_path, zip_based_name
-    )
-    if scene_path != expected_xstage_path:
-        log.info(f"Renaming {scene_path} to {expected_xstage_path}")
-        shutil.move(scene_path, expected_xstage_path)
-        scene_path = expected_xstage_path
-
-    if not os.path.exists(scene_path):
-        raise Exception(
-            f"Expected '{scene_path}' not found in '{local_scene_dir_path}'."
-        )
-
-    return scene_path
+    return scene_path.as_posix()
 
 
 def launch_zip_file(filepath):
