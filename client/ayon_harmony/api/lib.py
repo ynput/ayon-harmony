@@ -70,7 +70,10 @@ class ProcessContext:
 
 def _on_application_close():
     """Gracefully close Harmony launch process on explicit close event."""
-    if ProcessContext.process is not None and ProcessContext.process.poll() is None:
+    if (
+        ProcessContext.process is not None
+        and ProcessContext.process.poll() is None
+    ):
         try:
             ProcessContext.process.terminate()
             ProcessContext.process.wait(timeout=10)
