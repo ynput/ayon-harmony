@@ -38,6 +38,10 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         if self.override_name:
             override_name = self.override_name.format(**context)
 
+        parent_backdrop_name = None
+        if self.parent_backdrop_matching:
+            parent_backdrop_name = self._resolve_parent_backdrop_name(context)
+
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(temp_dir)
 
@@ -48,7 +52,8 @@ class TemplateLoader(harmony.BackdropBaseLoader):
                 #   must be only one
                 "args": [
                     next(Path(temp_dir).glob("*.tpl")).as_posix(),
-                    override_name
+                    override_name,
+                    parent_backdrop_name
                 ],
             }
         )["result"]
