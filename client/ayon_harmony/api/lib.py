@@ -22,7 +22,11 @@ from functools import lru_cache
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from ayon_core.lib import is_using_ayon_console, env_value_to_bool
+from ayon_core.lib import (
+    is_using_ayon_console,
+    env_value_to_bool,
+    register_event_callback,
+)
 from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
@@ -64,6 +68,36 @@ class ProcessContext:
             ProcessContext.stdout_broker.stop()
 
 
+def _on_application_close():
+    """Gracefully close Harmony launch process on explicit close event."""
+    if (
+        ProcessContext.process is not None
+        and ProcessContext.process.poll() is None
+    ):
+        try:
+            ProcessContext.process.terminate()
+            ProcessContext.process.wait(timeout=10)
+        except Exception:
+            try:
+                ProcessContext.process.kill()
+            except Exception:
+                pass
+
+    if ProcessContext.server:
+        try:
+            ProcessContext.server.stop()
+        except Exception:
+            pass
+
+    if ProcessContext.stdout_broker:
+        try:
+            ProcessContext.stdout_broker.stop()
+        except Exception:
+            pass
+
+    QtWidgets.QApplication.quit()
+
+
 def signature(postfix="func") -> str:
     """Return random ECMA6 compatible function name.
 
@@ -98,6 +132,7 @@ def main(*subprocess_args):
 
     ProcessContext.stdout_broker = StdOutBroker('harmony')
     ProcessContext.stdout_broker.start()
+    register_event_callback("application.close", _on_application_close)
     launch(*subprocess_args)
 
     loop_timer = QtCore.QTimer()
