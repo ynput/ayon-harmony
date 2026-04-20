@@ -152,11 +152,10 @@ def main(*subprocess_args):
     loop_timer.start()
 
     res = app.exec_()
-    try:
-        sys.exit(res)
-    finally:
-        if ProcessContext.server:
-            ProcessContext.server.stop()
+    if ProcessContext.server:
+        ProcessContext.server.stop()
+
+    sys.exit(res)
 
 
 def setup_startup_scripts():
