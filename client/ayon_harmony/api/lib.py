@@ -463,25 +463,43 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     if unzip:
         filepath = localize_file(filepath)
         with _ZipFile(filepath, "r") as zip_ref:
+            names = zip_ref.namelist()
             main_name = next(
                 Path(name).stem
-                for name in zip_ref.namelist()
+                for name in names
                 if name.endswith(".xstage")
             )
-            for zip_info in zip_ref.infolist():
-                # Replace the root name with the local scene directory name
-                zip_info.filename = zip_info.filename.replace(
-                    main_name, local_scene_dir_path.name
-                )
 
-                extract_root = (
-                    local_scene_dir_path.parent
-                    # Deal with zip files with root directory
-                    if zip_info.filename.startswith(
-                        f"{local_scene_dir_path.name}/"
-                    )
-                    else local_scene_dir_path
-                )
+            # Detect if the archive is wrapped in a single root directory
+            # named after `main_name`. When it is, we extract into the
+            # parent of the local scene dir so the (renamed) root dir
+            # becomes the local scene dir itself.
+            has_root_dir = all(
+                name == f"{main_name}/"
+                or name.startswith(f"{main_name}/")
+                for name in names
+            )
+            extract_root = (
+                local_scene_dir_path.parent
+                if has_root_dir
+                else local_scene_dir_path
+            )
+            new_name = local_scene_dir_path.name
+
+            for zip_info in zip_ref.infolist():
+                # Only rename entries at the top level of the archive.
+                # Subdirectory contents are left untouched so that
+                # similarly-named paths inside the scene are preserved.
+                head, sep, tail = zip_info.filename.partition("/")
+                if sep:
+                    # Nested path: only rename when the first segment
+                    # is the archive's root directory.
+                    if head == main_name:
+                        zip_info.filename = f"{new_name}/{tail}"
+                elif Path(head).stem == main_name:
+                    # Top-level file named like `{main_name}.<ext>`.
+                    zip_info.filename = f"{new_name}{Path(head).suffix}"
+
                 zip_ref.extract(zip_info, extract_root)
 
                 # Keep the first xstage file as the scene path
