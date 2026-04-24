@@ -485,26 +485,28 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 else local_scene_dir_path
             )
             new_name = local_scene_dir_path.name
+            root_prefix = f"{main_name}/"
+
+            def _rename_top_level_file(name):
+                if "/" not in name and Path(name).stem == main_name:
+                    return f"{new_name}{Path(name).suffix}"
+                return name
 
             for zip_info in zip_ref.infolist():
-                # Only rename entries at the top level of the archive.
-                # Subdirectory contents are left untouched so that
-                # similarly-named paths inside the scene are preserved.
-                head, sep, tail = zip_info.filename.partition("/")
-                if sep:
-                    # Nested path: only rename when the first segment
-                    # is the archive's root directory.
-                    if head == main_name:
-                        zip_info.filename = f"{new_name}/{tail}"
-                elif Path(head).stem == main_name:
-                    # Top-level file named like `{main_name}.<ext>`.
-                    zip_info.filename = f"{new_name}{Path(head).suffix}"
+                if has_root_dir:
+                    # Root-dir archives are handled by applying the same
+                    # top-level file rename one level deeper and then
+                    # reattaching the renamed root directory prefix.
+                    relative_name = zip_info.filename[len(root_prefix):]
+                    relative_name = _rename_top_level_file(relative_name)
+                    zip_info.filename = f"{new_name}/{relative_name}"
+                else:
+                    zip_info.filename = _rename_top_level_file(
+                        zip_info.filename
+                    )
 
                 zip_ref.extract(zip_info, extract_root)
-
-                # Keep the first xstage file as the scene path
-                if not scene_path and zip_info.filename.endswith(".xstage"):
-                    scene_path = Path(extract_root).joinpath(zip_info.filename)
+        scene_path = next(local_scene_dir_path.glob("*.xstage"), None)
 
     if not scene_path:
         raise Exception("No xstage file was found.")
