@@ -73,7 +73,7 @@ TemplateLoader.prototype.loadContainer = function(args) {
 
     var pastedBackdrops = selection.selectedBackdrops();
     var pastedNodes = selection.selectedNodes();
-    var mainBackdropBeforeMove = pastedBackdrops[0] || null;
+    var mainBackdropBeforeMove = AyonHarmony.findMainBackdrop(pastedBackdrops);
     var parentArea = null;
     if (parentBackdropName) {
         var pastedBounds = AyonHarmony.getContentBounds(
