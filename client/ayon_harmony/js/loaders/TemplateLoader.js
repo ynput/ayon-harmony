@@ -68,95 +68,105 @@ TemplateLoader.prototype.loadContainer = function(args) {
 
     // Paste into scene
     var pasteOptions = copyPaste.getCurrentPasteOptions();
-    pasteOptions.extendScene = true; // TODO does this work?
-    copyPaste.pasteNewNodes(_tpl, "Top", pasteOptions);
-
-    var pastedBackdrops = selection.selectedBackdrops();
-    var pastedNodes = selection.selectedNodes();
-    var mainBackdropBeforeMove = pastedBackdrops[0] || null;
-    var parentArea = null;
-    if (parentBackdropName) {
-        var pastedBounds = AyonHarmony.getContentBounds(
-            pastedBackdrops, pastedNodes
+    pasteOptions.extendScene = true;
+    $.beginUndo('AYON: Load Template');
+    try {
+        copyPaste.pasteNewNodes(_tpl, "Top", pasteOptions);
+        var pastedBackdrops = selection.selectedBackdrops();
+        var _allSelected = selection.selectedNodes();
+        var topPastedNodes = _allSelected.filter(
+            function(nodePath) { return node.parentNode(nodePath) === "Top"; }
         );
-        var parentBackdrop = AyonHarmony.ensureParentBackdrop(
-            parentBackdropName, pastedBounds
+        var mainBackdropBeforeMove = pastedBackdrops[0] || null;
+        var parentArea = null;
+        if (parentBackdropName) {
+            var pastedBounds = AyonHarmony.getContentBounds(
+                pastedBackdrops, topPastedNodes
+            );
+            var parentBackdrop = AyonHarmony.ensureParentBackdrop(
+                parentBackdropName, pastedBounds
+            );
+            parentArea = {
+                x: parentBackdrop.position.x,
+                y: parentBackdrop.position.y,
+                w: parentBackdrop.position.w,
+                h: parentBackdrop.position.h
+            };
+        }
+
+        var overlapResult = AyonHarmony.preventOverlap(
+            pastedBackdrops, topPastedNodes, parentArea, parentBackdropName
         );
-        parentArea = {
-            x: parentBackdrop.position.x,
-            y: parentBackdrop.position.y,
-            w: parentBackdrop.position.w,
-            h: parentBackdrop.position.h
-        };
-    }
+        var allBackdrops = overlapResult.allBackdrops;
 
-    var overlapResult = AyonHarmony.preventOverlap(
-        pastedBackdrops, pastedNodes, parentArea, parentBackdropName
-    );
-    var allBackdrops = overlapResult.allBackdrops;
+        if (parentBackdropName && overlapResult.area && parentArea &&
+            (overlapResult.area.x !== parentArea.x ||
+            overlapResult.area.y !== parentArea.y ||
+            overlapResult.area.w !== parentArea.w ||
+            overlapResult.area.h !== parentArea.h)) {
+            allBackdrops = AyonHarmony.applyAreaToBackdrop(
+                parentBackdropName, overlapResult.area
+            );
+        }
 
-    if (parentBackdropName && overlapResult.area && parentArea &&
-        (overlapResult.area.x !== parentArea.x ||
-        overlapResult.area.y !== parentArea.y ||
-        overlapResult.area.w !== parentArea.w ||
-        overlapResult.area.h !== parentArea.h)) {
-        allBackdrops = AyonHarmony.applyAreaToBackdrop(
-            parentBackdropName, overlapResult.area
-        );
-    }
-
-    var mainBackdrop = null;
-    if (mainBackdropBeforeMove) {
-        for (var backdropIndex = 0; backdropIndex < allBackdrops.length; backdropIndex++) {
-            var backdrop = allBackdrops[backdropIndex];
-            if (backdrop.title.text === mainBackdropBeforeMove.title.text &&
-                backdrop.position.w === mainBackdropBeforeMove.position.w &&
-                backdrop.position.h === mainBackdropBeforeMove.position.h) {
-                mainBackdrop = backdrop;
-                break;
+        var mainBackdrop = null;
+        if (mainBackdropBeforeMove) {
+            for (var backdropIndex = 0; backdropIndex < allBackdrops.length; backdropIndex++) {
+                var backdrop = allBackdrops[backdropIndex];
+                if (backdrop.title.text === mainBackdropBeforeMove.title.text &&
+                    backdrop.position.w === mainBackdropBeforeMove.position.w &&
+                    backdrop.position.h === mainBackdropBeforeMove.position.h) {
+                    mainBackdrop = backdrop;
+                    break;
+                }
             }
         }
-    }
-    if (!mainBackdrop && allBackdrops.length > 0) {
-        mainBackdrop = allBackdrops[0];
-    }
-    if (!mainBackdrop) {
-        return "";
-    }
-
-    // Override name if provided
-    if (overrideName) {
-        mainBackdrop.title.text = overrideName;
-    }
-
-    // Count existing backdrops by base name
-    var backdropCounts = {};
-    for (var i = 0; i < allBackdrops.length; i++) {
-        var parsed = parseBackdropName(allBackdrops[i].title.text);
-        var baseName = parsed.baseName;
-        var count = parsed.count;
-
-        if (backdropCounts[baseName]) {
-            backdropCounts[baseName]++;
-        } else {
-            backdropCounts[baseName] = count;
+        if (!mainBackdrop && allBackdrops.length > 0) {
+            mainBackdrop = allBackdrops[0];
         }
+        if (!mainBackdrop) {
+            $.cancelUndo();
+            return "";
+        }
+
+        // Override name if provided
+        if (overrideName) {
+            mainBackdrop.title.text = overrideName;
+        }
+
+        // Count existing backdrops by base name
+        var backdropCounts = {};
+        for (var i = 0; i < allBackdrops.length; i++) {
+            var parsed = parseBackdropName(allBackdrops[i].title.text);
+            var baseName = parsed.baseName;
+            var count = parsed.count;
+
+            if (backdropCounts[baseName]) {
+                backdropCounts[baseName]++;
+            } else {
+                backdropCounts[baseName] = count;
+            }
+        }
+
+        // Increment count of backdrop with the same base name
+        var mainBackdropName = mainBackdrop.title.text;
+        var mainBackdropParsed = parseBackdropName(mainBackdropName);
+        var count = backdropCounts[mainBackdropParsed.baseName] !== undefined ? backdropCounts[mainBackdropParsed.baseName] : 1;
+        if (count > 1){
+            // count -1 to match imported nodes which start from _1
+            mainBackdropName = mainBackdropName + "_" + (count - 1);
+        }
+
+        // Set name of main backdrop (always at index 0)
+        mainBackdrop.title.text = mainBackdropName;
+
+        // Update backdrops in scene
+        Backdrop.setBackdrops("Top", allBackdrops);
+    } catch (_err) {
+        $.cancelUndo();
+        throw _err;
     }
-
-    // Increment count of backdrop with the same base name
-    var mainBackdropName = mainBackdrop.title.text;
-    var mainBackdropParsed = parseBackdropName(mainBackdropName);
-    var count = backdropCounts[mainBackdropParsed.baseName] !== undefined ? backdropCounts[mainBackdropParsed.baseName] : 1;
-    if (count > 1){
-        // count -1 to match imported nodes which start from _1
-        mainBackdropName = mainBackdropName + "_" + (count - 1);
-    }
-
-    // Set name of main backdrop (always at index 0)
-    mainBackdrop.title.text = mainBackdropName;
-
-    // Update backdrops in scene
-    Backdrop.setBackdrops("Top", allBackdrops);
+    $.endUndo();
 
     return mainBackdropName;
 };
