@@ -71,7 +71,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         )
 
     def switch(self, container, context):
-        """Switch representation containers (zip → tpl extraction before JS)."""
+        """Switch representation containers."""
         self_name = self.__class__.__name__
         container_name = container["name"]
         container_namespace = container["namespace"]
@@ -104,7 +104,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
                 ],
             }
         )["result"]
-    
+
         # Cleanup the temp directory
         shutil.rmtree(temp_dir)
 

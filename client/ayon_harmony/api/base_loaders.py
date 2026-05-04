@@ -141,7 +141,13 @@ class BackdropBaseLoader(load.LoaderPlugin):
         new_backdrop_name = harmony.send(
             {
                 "function": "AyonHarmony.switchContainer",
-                "args": [backdrop, self_name, filepath, name, parent_backdrop_name],
+                "args": [
+                    backdrop,
+                    self_name,
+                    filepath,
+                    name,
+                    parent_backdrop_name,
+                ],
             }
         )["result"]
 
