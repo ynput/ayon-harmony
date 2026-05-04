@@ -862,13 +862,13 @@ AyonHarmony.setNodesLinks = function(links) {
 
 
 /**
- * Switch a container backdrop: preserves external links and user-modified
- * attribute values across a remove/load cycle.
+ * Switch a container backdrop: loads the new template at the same visual
+ * position as the old one and restores external node links.
  * @function
  * @param {Array} args
  *   [0] {object}      backdrop          Backdrop object (from Backdrop.backdrops).
  *   [1] {string}      loaderName        Key in AyonHarmony.Loaders (e.g. "TemplateLoader").
- *   [2] {string}      templatePath      Ready-to-use template path (e.g. .tpl file).
+ *   [2] {string}      templatePath      Ready-to-use .tpl path.
  *   [3] {string}      overrideName      Backdrop name override (or "").
  *   [4] {string|null} parentBackdropName
  * @return {string} New backdrop name.
@@ -880,9 +880,11 @@ AyonHarmony.switchContainer = function(args) {
     var overrideName       = args[3] || "";
     var parentBackdropName = args[4] || null;
 
-    // Capture external links and attribute snapshots before removing the old container.
+    var oldX          = backdrop.position.x;
+    var oldY          = backdrop.position.y;
     var backdropLinks = AyonHarmony.getBackdropLinks(backdrop);
 
+    // Capture attribute snapshots before removing the old container.
     var nodeSnapshots = {};
     function collectSnapshots(paths) {
         paths.forEach(function(p) {
@@ -900,9 +902,9 @@ AyonHarmony.switchContainer = function(args) {
         [templatePath, overrideName, parentBackdropName]
     );
 
-    // Apply snapshots to the new container, then restore external links.
     var newBackdrop = AyonHarmony.findParentBackdrop(newBackdropName);
     if (newBackdrop) {
+        // Restore attribute snapshots.
         function applySnapshots(paths) {
             paths.forEach(function(p) {
                 if (nodeSnapshots[p]) {
@@ -914,12 +916,41 @@ AyonHarmony.switchContainer = function(args) {
             });
         }
         applySnapshots(Backdrop.nodes(newBackdrop));
+
+        // Shift the newly loaded content to where the old backdrop was.
+        var dx = oldX - newBackdrop.position.x;
+        var dy = oldY - newBackdrop.position.y;
+        if (dx !== 0 || dy !== 0) {
+            Backdrop.nodes(newBackdrop).forEach(function(nodePath) {
+                node.setCoord(
+                    nodePath,
+                    node.coordX(nodePath) + dx,
+                    node.coordY(nodePath) + dy
+                );
+            });
+            var subBackdrops = AyonHarmony.getSubBackdrops(newBackdrop);
+            var allBackdrops = Backdrop.backdrops("Top");
+            allBackdrops.forEach(function(b) {
+                if (b.title.text === newBackdropName) {
+                    b.position.x += dx;
+                    b.position.y += dy;
+                    return;
+                }
+                for (var i = 0; i < subBackdrops.length; i++) {
+                    if (b.title.text === subBackdrops[i].title.text
+                        && b.position.x === subBackdrops[i].position.x
+                        && b.position.y === subBackdrops[i].position.y) {
+                        b.position.x += dx;
+                        b.position.y += dy;
+                        break;
+                    }
+                }
+            });
+            Backdrop.setBackdrops("Top", allBackdrops);
+        }
     }
 
-    // Restore external links after snapshots so internal pegs are at their
-    // user-modified positions before re-linking.
     AyonHarmony.setNodesLinks(backdropLinks);
-
     return newBackdropName;
 };
 
