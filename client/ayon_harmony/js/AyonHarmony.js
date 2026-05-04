@@ -681,41 +681,37 @@ AyonHarmony.getSubBackdrops = function(backdrop) {
  * @return {array} List of nodes links.
  */
 AyonHarmony.getBackdropLinks = function(backdrop) {
-    var backdropNodes = Backdrop.nodes(backdrop);
+    // Collect all nodes recursively (including those inside groups) so links
+    // between deep-nested nodes and nodes outside the backdrop are captured.
+    var backdropTopNodes = Backdrop.nodes(backdrop);
+    var backdropNodes = [];
+    function collect(paths) {
+        paths.forEach(function(p) {
+            backdropNodes.push(p);
+            var subs = node.subNodes(p);
+            if (subs && subs.length > 0) collect(subs);
+        });
+    }
+    collect(backdropTopNodes);
+
     var nodesLinks = [];
 
-    // Input links
+    // Input links — nodes outside the backdrop feeding into it.
     backdropNodes.forEach(function(n) {
         for (var i = 0; i < node.numberOfInputPorts(n); i++) {
             var link = node.srcNodeInfo(n, i);
-
-            // Skip if no link or if it's a node from the backdrop container
             if (link == null || backdropNodes.indexOf(link.node) > -1) continue;
-
-            nodesLinks.push({
-                srcNode: link.node,
-                srcPort: link.port,
-                dstNode: n,
-                dstPort: i,
-            });
+            nodesLinks.push({ srcNode: link.node, srcPort: link.port, dstNode: n, dstPort: i });
         }
     });
 
-    // Output links
+    // Output links — backdrop nodes feeding into nodes outside.
     backdropNodes.forEach(function(n) {
         for (var i = 0; i < node.numberOfOutputPorts(n); i++) {
             for (var j = 0; j < node.numberOfOutputLinks(n, i); j++) {
                 var link = node.dstNodeInfo(n, i, j);
-
-                // Skip if no link or if it's a node from the backdrop container
                 if (link == null || backdropNodes.indexOf(link.node) > -1) continue;
-
-                nodesLinks.push({
-                    srcNode: n,
-                    srcPort: i,
-                    dstNode: link.node,
-                    dstPort: link.port
-                });
+                nodesLinks.push({ srcNode: n, srcPort: i, dstNode: link.node, dstPort: link.port });
             }
         }
     });
@@ -863,6 +859,70 @@ AyonHarmony.setNodesLinks = function(links) {
         node.link(l.srcNode, l.srcPort, l.dstNode, l.dstPort);
     });
 };
+
+
+/**
+ * Switch a container backdrop: preserves external links and user-modified
+ * attribute values across a remove/load cycle.
+ * @function
+ * @param {Array} args
+ *   [0] {object}      backdrop          Backdrop object (from Backdrop.backdrops).
+ *   [1] {string}      loaderName        Key in AyonHarmony.Loaders (e.g. "TemplateLoader").
+ *   [2] {string}      templatePath      Ready-to-use template path (e.g. .tpl file).
+ *   [3] {string}      overrideName      Backdrop name override (or "").
+ *   [4] {string|null} parentBackdropName
+ * @return {string} New backdrop name.
+ */
+AyonHarmony.switchContainer = function(args) {
+    var backdrop           = args[0];
+    var loaderName         = args[1];
+    var templatePath       = args[2];
+    var overrideName       = args[3] || "";
+    var parentBackdropName = args[4] || null;
+
+    // Capture external links and attribute snapshots before removing the old container.
+    var backdropLinks = AyonHarmony.getBackdropLinks(backdrop);
+
+    var nodeSnapshots = {};
+    function collectSnapshots(paths) {
+        paths.forEach(function(p) {
+            var oN = $.scene.getNodeByPath(p);
+            if (oN) nodeSnapshots[p] = oN.getAttributeSnapshot();
+            var subs = node.subNodes(p);
+            if (subs && subs.length > 0) collectSnapshots(subs);
+        });
+    }
+    collectSnapshots(Backdrop.nodes(backdrop));
+
+    // Swap container.
+    AyonHarmony.removeBackdrop([backdrop, true]);
+    var newBackdropName = AyonHarmony.Loaders[loaderName].loadContainer(
+        [templatePath, overrideName, parentBackdropName]
+    );
+
+    // Apply snapshots to the new container, then restore external links.
+    var newBackdrop = AyonHarmony.findParentBackdrop(newBackdropName);
+    if (newBackdrop) {
+        function applySnapshots(paths) {
+            paths.forEach(function(p) {
+                if (nodeSnapshots[p]) {
+                    var oN = $.scene.getNodeByPath(p);
+                    if (oN) oN.applyAttributeSnapshot(nodeSnapshots[p]);
+                }
+                var subs = node.subNodes(p);
+                if (subs && subs.length > 0) applySnapshots(subs);
+            });
+        }
+        applySnapshots(Backdrop.nodes(newBackdrop));
+    }
+
+    // Restore external links after snapshots so internal pegs are at their
+    // user-modified positions before re-linking.
+    AyonHarmony.setNodesLinks(backdropLinks);
+
+    return newBackdropName;
+};
+
 
 /**
  * Remove backdrop and its contents.

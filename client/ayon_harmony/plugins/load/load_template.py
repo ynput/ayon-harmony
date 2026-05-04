@@ -69,3 +69,50 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             context,
             self_name
         )
+
+    def switch(self, container, context):
+        """Switch representation containers (zip → tpl extraction before JS)."""
+        self_name = self.__class__.__name__
+        container_name = container["name"]
+        container_namespace = container["namespace"]
+        backdrop = harmony.find_backdrop_by_name(container_name)
+
+        override_name = ""
+        if self.override_name:
+            override_name = self.override_name.format(**context)
+
+        parent_backdrop_name = None
+        if self.parent_backdrop_matching:
+            parent_backdrop_name = self._resolve_parent_backdrop_name(context)
+
+        temp_dir = tempfile.mkdtemp()
+        zip_path = self.filepath_from_context(context)
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(temp_dir)
+        template_path = next(Path(temp_dir).glob("*.tpl")).as_posix()
+
+        # Everything (snapshot, remove, load, restore) in one JS call
+        new_backdrop_name = harmony.send(
+            {
+                "function": "AyonHarmony.switchContainer",
+                "args": [
+                    backdrop,
+                    self_name,
+                    template_path,
+                    override_name,
+                    parent_backdrop_name,
+                ],
+            }
+        )["result"]
+    
+        # Cleanup the temp directory
+        shutil.rmtree(temp_dir)
+
+        harmony.remove(container_name)
+        return harmony.containerise(
+            new_backdrop_name,
+            container_namespace,
+            new_backdrop_name,
+            context,
+            self_name,
+        )
