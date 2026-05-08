@@ -561,9 +561,7 @@ AyonHarmony.preventOverlap = function(
     var offsetX = candidateLeft - bounds.left;
     var offsetY = candidateTop - bounds.top;
 
-    newNodes.filter(
-        function(nodePath) { return node.parentNode(nodePath) === "Top"; }
-    ).forEach(function(nodePath) {
+    newNodes.forEach(function(nodePath) {
         node.setCoord(
             nodePath,
             node.coordX(nodePath) + offsetX,
