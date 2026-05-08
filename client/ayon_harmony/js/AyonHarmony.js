@@ -459,6 +459,33 @@ AyonHarmony.preventOverlap = function(
         occupiedRects.push(rect);
     });
 
+    
+    // Also treat existing top-level nodes as occupied space so that new
+    // content is not placed on top of them even when no backdrops are present.
+    var newNodeSet = {};
+    newNodes.forEach(function(n) { newNodeSet[n] = true; });
+    node.subNodes("Top").forEach(function(nodePath) {
+        if (newNodeSet[nodePath]) { return; }
+        var rect = {
+            left: node.coordX(nodePath),
+            top: node.coordY(nodePath),
+            right: node.coordX(nodePath) + node.width(nodePath),
+            bottom: node.coordY(nodePath) + node.height(nodePath)
+        };
+        if (areaRect) {
+            var areaBounds = {
+                left: usable.left,
+                top: usable.top,
+                right: usable.right,
+                bottom: usable.bottom
+            };
+            if (!AyonHarmony.rectsOverlap(rect, areaBounds)) {
+                return;
+            }
+        }
+        occupiedRects.push(rect);
+    });
+
     var slotWidth = contentWidth + PARENT_BACKDROP_GRID_GAP;
     var slotHeight = contentHeight + PARENT_BACKDROP_GRID_GAP;
     var candidateLeft = areaRect ? usable.left : bounds.left;
@@ -554,7 +581,7 @@ AyonHarmony.preventOverlap = function(
             if (!overlapRect) {
                 break;
             }
-            candidateLeft += slotWidth;
+            candidateLeft = overlapRect.right + PARENT_BACKDROP_GRID_GAP;
         }
     }
 
