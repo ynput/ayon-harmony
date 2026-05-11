@@ -486,8 +486,6 @@ AyonHarmony.preventOverlap = function(
         occupiedRects.push(rect);
     });
 
-    var slotWidth = contentWidth + PARENT_BACKDROP_GRID_GAP;
-    var slotHeight = contentHeight + PARENT_BACKDROP_GRID_GAP;
     var candidateLeft = areaRect ? usable.left : bounds.left;
     var candidateTop = areaRect ? usable.top : bounds.top;
     var maxRight = -Infinity;
@@ -504,8 +502,8 @@ AyonHarmony.preventOverlap = function(
     if (areaRect) {
         // Keep a stable grid pitch across mixed sizes by using the larger
         // value between the new content and current children.
-        slotWidth = Math.max(contentWidth, maxChildWidth) + PARENT_BACKDROP_GRID_GAP;
-        slotHeight = Math.max(contentHeight, maxChildHeight) + PARENT_BACKDROP_GRID_GAP;
+        var slotWidth = Math.max(contentWidth, maxChildWidth) + PARENT_BACKDROP_GRID_GAP;
+        var slotHeight = Math.max(contentHeight, maxChildHeight) + PARENT_BACKDROP_GRID_GAP;
 
         var foundInsideArea = false;
         for (
