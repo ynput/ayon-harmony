@@ -29,6 +29,7 @@ class ExtractWorkfile(publish.Extractor):
         shutil.copytree(src, filepath)
 
         # Prep representation.
+        prev_cwd = os.getcwd()
         os.chdir(staging_dir)
         shutil.make_archive(
             f"{instance.name}",
@@ -39,6 +40,7 @@ class ExtractWorkfile(publish.Extractor):
         with ZipFile(os.path.basename(f"{instance.name}.zip")) as zr:
             if zr.testzip() is not None:
                 raise Exception("File archive is corrupted.")
+        os.chdir(prev_cwd)
 
         representation = {
             "name": "tpl",
