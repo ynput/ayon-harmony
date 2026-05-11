@@ -459,7 +459,6 @@ AyonHarmony.preventOverlap = function(
         occupiedRects.push(rect);
     });
 
-    
     // Also treat existing top-level nodes as occupied space so that new
     // content is not placed on top of them even when no backdrops are present.
     var newNodeSet = {};
