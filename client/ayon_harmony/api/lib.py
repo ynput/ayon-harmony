@@ -53,6 +53,8 @@ class ProcessContext:
     port = None
     stdout_broker = None
     workfile_tool = None
+    loop_timer = None
+    qt_app = None
 
     @classmethod
     def execute_in_main_thread(cls, func_to_call_from_main_thread):
@@ -64,8 +66,14 @@ class ProcessContext:
             callback = cls.callback_queue.popleft()
             callback()
         if cls.process is not None and cls.process.poll() is not None:
-            log.info("Server is not running, closing")
+            log.info("Server has stopped, cleaning up")
             ProcessContext.stdout_broker.stop()
+            if cls.loop_timer is not None:
+                cls.loop_timer.stop()
+                cls.loop_timer = None
+            if cls.qt_app is not None:
+                cls.qt_app.quit()
+            cls.process = None
 
 
 def _on_application_close():
@@ -133,15 +141,21 @@ def main(*subprocess_args):
     ProcessContext.stdout_broker = StdOutBroker('harmony')
     ProcessContext.stdout_broker.start()
     register_event_callback("application.close", _on_application_close)
+    ProcessContext.qt_app = app
     launch(*subprocess_args)
 
     loop_timer = QtCore.QTimer()
     loop_timer.setInterval(20)
+    ProcessContext.loop_timer = loop_timer
 
     loop_timer.timeout.connect(ProcessContext.main_thread_listen)
     loop_timer.start()
 
-    sys.exit(app.exec_())
+    res = app.exec_()
+    if ProcessContext.server:
+        ProcessContext.server.stop()
+
+    sys.exit(res)
 
 
 def setup_startup_scripts():
