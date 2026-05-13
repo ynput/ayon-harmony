@@ -880,6 +880,9 @@ AyonHarmony.switchContainer = function(args) {
     var overrideName       = args[3] || "";
     var parentBackdropName = args[4] || null;
 
+    selection.clearSelection();
+    $.beginUndo("AYON: Switch Container");
+
     var oldX          = backdrop.position.x;
     var oldY          = backdrop.position.y;
     var backdropLinks = AyonHarmony.getBackdropLinks(backdrop);
@@ -951,6 +954,7 @@ AyonHarmony.switchContainer = function(args) {
     }
 
     AyonHarmony.setNodesLinks(backdropLinks);
+    $.endUndo();
     return newBackdropName;
 };
 
