@@ -30,7 +30,8 @@ class ExtractTemplate(publish.Extractor):
 
         # Prep representation.
         shutil.make_archive(
-            base_name=Path(staging_dir, instance.name),
+            base_name=instance.name,
+            base_dir=staging_dir,
             format="zip",
             root_dir=Path(staging_dir, "harmony"),
         )
