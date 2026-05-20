@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Extract work file."""
 import os
+from pathlib import Path
 import platform
 import shutil
 from zipfile import ZipFile
@@ -29,18 +30,16 @@ class ExtractWorkfile(publish.Extractor):
         shutil.copytree(src, filepath)
 
         # Prep representation.
-        prev_cwd = os.getcwd()
-        os.chdir(staging_dir)
         shutil.make_archive(
-            f"{instance.name}",
-            "zip",
-            os.path.join(staging_dir, f"{instance.name}.tpl")
+            base_name=instance.name,
+            base_dir=staging_dir,
+            format="zip",
+            root_dir=Path(staging_dir, f"{instance.name}.tpl")
         )
         # Check if archive is ok
-        with ZipFile(os.path.basename(f"{instance.name}.zip")) as zr:
+        with ZipFile(Path(staging_dir, f"{instance.name}.zip")) as zr:
             if zr.testzip() is not None:
                 raise Exception("File archive is corrupted.")
-        os.chdir(prev_cwd)
 
         representation = {
             "name": "tpl",
