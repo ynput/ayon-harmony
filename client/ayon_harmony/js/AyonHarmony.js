@@ -459,8 +459,32 @@ AyonHarmony.preventOverlap = function(
         occupiedRects.push(rect);
     });
 
-    var slotWidth = contentWidth + PARENT_BACKDROP_GRID_GAP;
-    var slotHeight = contentHeight + PARENT_BACKDROP_GRID_GAP;
+    // Also treat existing top-level nodes as occupied space so that new
+    // content is not placed on top of them even when no backdrops are present.
+    var newNodeSet = {};
+    newNodes.forEach(function(n) { newNodeSet[n] = true; });
+    node.subNodes("Top").forEach(function(nodePath) {
+        if (newNodeSet[nodePath]) { return; }
+        var rect = {
+            left: node.coordX(nodePath),
+            top: node.coordY(nodePath),
+            right: node.coordX(nodePath) + node.width(nodePath),
+            bottom: node.coordY(nodePath) + node.height(nodePath)
+        };
+        if (areaRect) {
+            var areaBounds = {
+                left: usable.left,
+                top: usable.top,
+                right: usable.right,
+                bottom: usable.bottom
+            };
+            if (!AyonHarmony.rectsOverlap(rect, areaBounds)) {
+                return;
+            }
+        }
+        occupiedRects.push(rect);
+    });
+
     var candidateLeft = areaRect ? usable.left : bounds.left;
     var candidateTop = areaRect ? usable.top : bounds.top;
     var maxRight = -Infinity;
@@ -477,8 +501,8 @@ AyonHarmony.preventOverlap = function(
     if (areaRect) {
         // Keep a stable grid pitch across mixed sizes by using the larger
         // value between the new content and current children.
-        slotWidth = Math.max(contentWidth, maxChildWidth) + PARENT_BACKDROP_GRID_GAP;
-        slotHeight = Math.max(contentHeight, maxChildHeight) + PARENT_BACKDROP_GRID_GAP;
+        var slotWidth = Math.max(contentWidth, maxChildWidth) + PARENT_BACKDROP_GRID_GAP;
+        var slotHeight = Math.max(contentHeight, maxChildHeight) + PARENT_BACKDROP_GRID_GAP;
 
         var foundInsideArea = false;
         for (
@@ -554,7 +578,7 @@ AyonHarmony.preventOverlap = function(
             if (!overlapRect) {
                 break;
             }
-            candidateLeft += slotWidth;
+            candidateLeft = overlapRect.right + PARENT_BACKDROP_GRID_GAP;
         }
     }
 
