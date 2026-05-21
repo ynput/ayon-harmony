@@ -77,7 +77,7 @@ TemplateLoader.prototype.loadContainer = function(args) {
         var topPastedNodes = _allSelected.filter(
             function(nodePath) { return node.parentNode(nodePath) === "Top"; }
         );
-        var mainBackdropBeforeMove = pastedBackdrops[0] || null;
+        var mainBackdropBeforeMove = AyonHarmony.findMainBackdrop(pastedBackdrops);
         var parentArea = null;
         if (parentBackdropName) {
             var pastedBounds = AyonHarmony.getContentBounds(
