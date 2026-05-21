@@ -300,6 +300,89 @@ AyonHarmony.rectsOverlap = function(a, b) {
 };
 
 /**
+ * Check whether one backdrop fully contains another.
+ * @param {object} container Backdrop object with .position.
+ * @param {object} child Backdrop object with .position.
+ * @return {boolean}
+ */
+AyonHarmony.backdropContains = function(container, child) {
+    if (!container || !child || !container.position || !child.position) {
+        return false;
+    }
+    return container.position.x <= child.position.x
+        && container.position.y <= child.position.y
+        && (container.position.x + container.position.w)
+            >= (child.position.x + child.position.w)
+        && (container.position.y + container.position.h)
+            >= (child.position.y + child.position.h);
+};
+
+/**
+ * Find backdrop that contains all other backdrops.
+ * @param {Array} backdrops Backdrop objects.
+ * @return {object|null} Backdrop containing all others, if any.
+ */
+AyonHarmony.findBackdropContainingAll = function(backdrops) {
+    if (!backdrops || backdrops.length === 0) {
+        return null;
+    }
+    if (backdrops.length === 1) {
+        return backdrops[0];
+    }
+    for (var i = 0; i < backdrops.length; i++) {
+        var candidate = backdrops[i];
+        var containsAll = true;
+        for (var j = 0; j < backdrops.length; j++) {
+            if (i === j) {
+                continue;
+            }
+            if (!AyonHarmony.backdropContains(candidate, backdrops[j])) {
+                containsAll = false;
+                break;
+            }
+        }
+        if (containsAll) {
+            return candidate;
+        }
+    }
+    return null;
+};
+
+/**
+ * Find largest backdrop by area.
+ * @param {Array} backdrops Backdrop objects.
+ * @return {object|null} Largest backdrop.
+ */
+AyonHarmony.findLargestBackdrop = function(backdrops) {
+    if (!backdrops || backdrops.length === 0) {
+        return null;
+    }
+    var largest = backdrops[0];
+    for (var i = 1; i < backdrops.length; i++) {
+        var currentArea = backdrops[i].position.w * backdrops[i].position.h;
+        var largestArea = largest.position.w * largest.position.h;
+        if (currentArea > largestArea) {
+            largest = backdrops[i];
+        }
+    }
+    return largest;
+};
+
+/**
+ * Find main backdrop from a collection.
+ * Main backdrop is one containing all others, otherwise the largest.
+ * @param {Array} backdrops Backdrop objects.
+ * @return {object|null} Main backdrop.
+ */
+AyonHarmony.findMainBackdrop = function(backdrops) {
+    var containing = AyonHarmony.findBackdropContainingAll(backdrops);
+    if (containing) {
+        return containing;
+    }
+    return AyonHarmony.findLargestBackdrop(backdrops);
+};
+
+/**
  * Find a non-overlapping area in Top by shifting to the right.
  * @param {object} area Position object {x, y, w, h}.
  * @return {object} Non-overlapping position object {x, y, w, h}.
@@ -459,8 +542,32 @@ AyonHarmony.preventOverlap = function(
         occupiedRects.push(rect);
     });
 
-    var slotWidth = contentWidth + PARENT_BACKDROP_GRID_GAP;
-    var slotHeight = contentHeight + PARENT_BACKDROP_GRID_GAP;
+    // Also treat existing top-level nodes as occupied space so that new
+    // content is not placed on top of them even when no backdrops are present.
+    var newNodeSet = {};
+    newNodes.forEach(function(n) { newNodeSet[n] = true; });
+    node.subNodes("Top").forEach(function(nodePath) {
+        if (newNodeSet[nodePath]) { return; }
+        var rect = {
+            left: node.coordX(nodePath),
+            top: node.coordY(nodePath),
+            right: node.coordX(nodePath) + node.width(nodePath),
+            bottom: node.coordY(nodePath) + node.height(nodePath)
+        };
+        if (areaRect) {
+            var areaBounds = {
+                left: usable.left,
+                top: usable.top,
+                right: usable.right,
+                bottom: usable.bottom
+            };
+            if (!AyonHarmony.rectsOverlap(rect, areaBounds)) {
+                return;
+            }
+        }
+        occupiedRects.push(rect);
+    });
+
     var candidateLeft = areaRect ? usable.left : bounds.left;
     var candidateTop = areaRect ? usable.top : bounds.top;
     var maxRight = -Infinity;
@@ -477,8 +584,8 @@ AyonHarmony.preventOverlap = function(
     if (areaRect) {
         // Keep a stable grid pitch across mixed sizes by using the larger
         // value between the new content and current children.
-        slotWidth = Math.max(contentWidth, maxChildWidth) + PARENT_BACKDROP_GRID_GAP;
-        slotHeight = Math.max(contentHeight, maxChildHeight) + PARENT_BACKDROP_GRID_GAP;
+        var slotWidth = Math.max(contentWidth, maxChildWidth) + PARENT_BACKDROP_GRID_GAP;
+        var slotHeight = Math.max(contentHeight, maxChildHeight) + PARENT_BACKDROP_GRID_GAP;
 
         var foundInsideArea = false;
         for (
@@ -554,7 +661,7 @@ AyonHarmony.preventOverlap = function(
             if (!overlapRect) {
                 break;
             }
-            candidateLeft += slotWidth;
+            candidateLeft = overlapRect.right + PARENT_BACKDROP_GRID_GAP;
         }
     }
 
