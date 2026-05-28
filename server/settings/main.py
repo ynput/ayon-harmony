@@ -9,6 +9,14 @@ from .publish_plugins import HarmonyPublishPlugins
 class HarmonySettings(BaseSettingsModel):
     """Harmony Project Settings."""
 
+    show_outdated_containers_message: bool = SettingsField(
+        False,
+        title="Show outdated containers message",
+        description=(
+            "When enabled, show a popup in Harmony when the scene contains"
+            " outdated loaded containers."
+        ),
+    )
     imageio: HarmonyImageIOModel = SettingsField(
         default_factory=HarmonyImageIOModel,
         title="OCIO config"
@@ -28,6 +36,7 @@ class HarmonySettings(BaseSettingsModel):
 
 
 DEFAULT_HARMONY_SETTING = {
+    "show_outdated_containers_message": False,
     "create": {
         "CreateWorkfile": {
             "enabled": True,

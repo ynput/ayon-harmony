@@ -20,12 +20,21 @@ from ayon_core.pipeline import (
     AYON_CONTAINER_ID,
 )
 from ayon_core.pipeline.load import get_outdated_containers
-from ayon_core.pipeline.context_tools import get_current_task_entity
+from ayon_core.pipeline.context_tools import (
+    get_current_task_entity,
+    get_current_project_name,
+)
+from ayon_core.settings import get_project_settings
 
 from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
 
-from .lib import get_scene_data, set_scene_data
+from .lib import (
+    get_scene_data,
+    set_scene_data,
+    ProcessContext,
+    prompt_outdated_containers,
+)
 from .workio import (
     open_file,
     save_file,
@@ -169,8 +178,8 @@ def ensure_scene_settings():
 def check_inventory():
     """Check is scene contains outdated containers.
 
-    If it does it will colorize outdated nodes and display warning message
-    in Harmony.
+    If it does it will colorize outdated nodes and optionally display a
+    warning dialog.
     """
 
     outdated_containers = get_outdated_containers()
@@ -186,9 +195,11 @@ def check_inventory():
             )
     harmony.send({"function": "AyonHarmony.setColor", "args": outdated_nodes})
 
-    # Warn about outdated containers.
-    msg = "There are outdated containers in the scene."
-    harmony.send({"function": "AyonHarmony.message", "args": msg})
+    harmony_settings = get_project_settings(
+        get_current_project_name()
+    ).get("harmony", {})
+    if harmony_settings.get("show_outdated_containers_message", True):
+        ProcessContext.execute_in_main_thread(prompt_outdated_containers)
 
 
 def application_launch(event):
