@@ -197,8 +197,8 @@ def check_inventory():
 
     harmony_settings = get_project_settings(
         get_current_project_name()
-    ).get("harmony", {})
-    if harmony_settings.get("show_outdated_containers_message", True):
+    )["harmony"]
+    if harmony_settings["show_outdated_containers_message"]:
         ProcessContext.execute_in_main_thread(prompt_outdated_containers)
 
 
