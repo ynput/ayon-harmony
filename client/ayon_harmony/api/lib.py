@@ -693,25 +693,6 @@ def show(tool_name):
     return "nothing"
 
 
-def prompt_outdated_containers():
-    """Show outdated containers warning with option to open Scene Inventory."""
-    msg_box = QtWidgets.QMessageBox()
-    msg_box.setStyleSheet(style.load_stylesheet())
-    msg_box.setIcon(QtWidgets.QMessageBox.Warning)
-    msg_box.setWindowTitle("Outdated Containers")
-    msg_box.setText("There are outdated containers in the scene.")
-    manage_button = msg_box.addButton(
-        "Manage", QtWidgets.QMessageBox.AcceptRole
-    )
-    msg_box.addButton("Dismiss", QtWidgets.QMessageBox.RejectRole)
-    msg_box.setDefaultButton(manage_button)
-    msg_box.setModal(True)
-    msg_box.exec_()
-
-    if msg_box.clickedButton() == manage_button:
-        host_tools.show_scene_inventory()
-
-
 def get_scene_data():
     try:
         return send(

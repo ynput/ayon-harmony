@@ -2,9 +2,13 @@ import os
 from pathlib import Path
 import logging
 
+from qtpy import QtWidgets
+
+from ayon_core import style
+from ayon_core.tools.utils.host_tools import show_scene_inventory
 import pyblish.api
 
-from ayon_core.lib import register_event_callback
+from ayon_core.lib import is_headless_mode_enabled, register_event_callback
 from ayon_core.host import (
     HostBase,
     IWorkfileHost,
@@ -30,10 +34,9 @@ from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
 
 from .lib import (
+    ProcessContext,
     get_scene_data,
     set_scene_data,
-    ProcessContext,
-    prompt_outdated_containers,
 )
 from .workio import (
     open_file,
@@ -175,6 +178,25 @@ def ensure_scene_settings():
     set_scene_settings(valid_settings)
 
 
+def prompt_outdated_containers():
+    """Show outdated containers warning with option to open Scene Inventory."""
+    msg_box = QtWidgets.QMessageBox()
+    msg_box.setStyleSheet(style.load_stylesheet())
+    msg_box.setIcon(QtWidgets.QMessageBox.Warning)
+    msg_box.setWindowTitle("Outdated Containers")
+    msg_box.setText("There are outdated containers in the scene.")
+    manage_button = msg_box.addButton(
+        "Manage", QtWidgets.QMessageBox.AcceptRole
+    )
+    msg_box.addButton("Dismiss", QtWidgets.QMessageBox.RejectRole)
+    msg_box.setDefaultButton(manage_button)
+    msg_box.setModal(True)
+    msg_box.exec_()
+
+    if msg_box.clickedButton() == manage_button:
+        show_scene_inventory()
+
+
 def check_inventory():
     """Check is scene contains outdated containers.
 
@@ -198,7 +220,9 @@ def check_inventory():
     harmony_settings = get_project_settings(
         get_current_project_name()
     ).get("harmony", {})
-    if harmony_settings.get("show_outdated_containers_message", True):
+    if not is_headless_mode_enabled() and harmony_settings.get(
+        "show_outdated_containers_message", True
+    ):
         ProcessContext.execute_in_main_thread(prompt_outdated_containers)
 
 
