@@ -217,12 +217,7 @@ def check_inventory():
             )
     harmony.send({"function": "AyonHarmony.setColor", "args": outdated_nodes})
 
-    harmony_settings = get_project_settings(
-        get_current_project_name()
-    ).get("harmony", {})
-    if not is_headless_mode_enabled() and harmony_settings.get(
-        "show_outdated_containers_message", True
-    ):
+    if not is_headless_mode_enabled() and not os.getenv("AYON_AUTOMATION"):
         ProcessContext.execute_in_main_thread(prompt_outdated_containers)
 
 
