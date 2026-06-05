@@ -26,9 +26,7 @@ from ayon_core.pipeline import (
 from ayon_core.pipeline.load import get_outdated_containers
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity,
-    get_current_project_name,
 )
-from ayon_core.settings import get_project_settings
 
 from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
