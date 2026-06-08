@@ -23,6 +23,7 @@ from functools import lru_cache
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ayon_core.lib import (
+    is_headless_mode_enabled,
     is_using_ayon_console,
     env_value_to_bool,
     register_event_callback,
@@ -261,7 +262,10 @@ def launch(application_path, *args):
 
     open_workfile_app = env_value_to_bool("AYON_HARMONY_WORKFILES_ON_LAUNCH")
     workfile_already_open = ProcessContext.workfile_path
-    if open_workfile_app or not workfile_already_open:
+    if is_headless_mode_enabled():
+        if not workfile_already_open:
+            open_empty_workfile()
+    elif open_workfile_app or not workfile_already_open:
         ProcessContext.workfile_tool = host_tools.get_tool_by_name(
             "workfiles"
         )
