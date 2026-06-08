@@ -181,7 +181,7 @@ def prompt_outdated_containers():
     # Don't show UI in headless mode
     if is_headless_mode_enabled():
         return
-    
+
     msg_box = QtWidgets.QMessageBox()
     msg_box.setStyleSheet(style.load_stylesheet())
     msg_box.setIcon(QtWidgets.QMessageBox.Warning)
