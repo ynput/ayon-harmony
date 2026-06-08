@@ -178,6 +178,10 @@ def ensure_scene_settings():
 
 def prompt_outdated_containers():
     """Show outdated containers warning with option to open Scene Inventory."""
+    # Don't show UI in headless mode
+    if is_headless_mode_enabled():
+        return
+    
     msg_box = QtWidgets.QMessageBox()
     msg_box.setStyleSheet(style.load_stylesheet())
     msg_box.setIcon(QtWidgets.QMessageBox.Warning)
@@ -215,8 +219,7 @@ def check_inventory():
             )
     harmony.send({"function": "AyonHarmony.setColor", "args": outdated_nodes})
 
-    if not is_headless_mode_enabled() and not os.getenv("AYON_AUTOMATION"):
-        ProcessContext.execute_in_main_thread(prompt_outdated_containers)
+    ProcessContext.execute_in_main_thread(prompt_outdated_containers)
 
 
 def application_launch(event):
