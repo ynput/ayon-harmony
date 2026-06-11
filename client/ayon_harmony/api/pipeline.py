@@ -10,10 +10,7 @@ from ayon_core.tools.utils.host_tools import (
     show_workfiles,
 )
 
-from ayon_core.tools.utils.host_tools import show_scene_inventory
-
-import ast
-
+import json
 
 import pyblish.api
 
@@ -54,6 +51,8 @@ from .workio import (
     file_extensions,
     work_root
 )
+
+log_path = r"C:\Users\normaal\Documents\YuanDev\AYON-Development-Workbench\ayon-harmony\LOG.txt"
 
 log = logging.getLogger("ayon_harmony")
 
@@ -104,6 +103,8 @@ class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         return file_extensions()
 
     def get_containers(self):
+        with open(log_path, "a") as f:
+            f.write("@@@@@@@ get_containers\n")
         return ls()
 
     def get_context_data(self):
@@ -321,46 +322,72 @@ def is_container_data(data: dict) -> bool:
     return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
 
 
-def read_metadata_from_notes() -> dict:
-    """Read metadata of templates from note nodes and return them as a dictionary.
-
+def read_metadata_from_backdrops() -> dict:
+    """Read metadata of templates from backdrop description fields.
+    
+    Looks for backdrops containing '<AYON_METADATA/>' marker in their
+    description text and parses the JSON metadata that follows.
+    
     Returns:
         dict: Dictionary with metadata.
     """
-
-    func = """function returnNodeAttr() {
-    var nodes = node.getNodes(["NOTE"]);
-    var results = [];
-    for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].indexOf("ayon-metadata") !== -1) {
-            var data = node.getTextAttr(nodes[i], 1.0, "text");
-            results.push(data);
+    func = """function readBackdropMetadata() {
+        var backdrops = Backdrop.backdrops("Top");
+        var results = [];
+        for (var i = 0; i < backdrops.length; i++) {
+            var desc = backdrops[i].description.text || "";
+            var marker = "<AYON_METADATA/>";
+            var markerIndex = desc.indexOf(marker);
+            if (markerIndex !== -1) {
+                var jsonStr = desc.substring(markerIndex + marker.length).trim();
+                results.push(jsonStr);
             }
         }
         return results;
     }
-    returnNodeAttr"""
-
+    readBackdropMetadata"""
+    
     metadata_list = harmony.send({"function": func})["result"]
-
     metadata_dict = {}
-    for note in metadata_list:
-        metadata_dict |= ast.literal_eval(note)
-
+    for entry in metadata_list:
+        metadata_dict |= json.loads(entry)
     return metadata_dict
+
+def ensure_metadata_in_backdrop(backdrop_name: str, metadata: dict):
+    metadata_json = json.dumps(metadata).replace('"', '\\"')
+    separator = "\\n" * 100
+    harmony.send(
+        {
+            "script": f"""
+    var backdrops = Backdrop.backdrops("Top");
+    for (var i = 0; i < backdrops.length; i++) {{
+        if (backdrops[i].title.text === "{backdrop_name}") {{
+            var currentText = backdrops[i].description.text || "";
+            var marker = "<AYON_METADATA/>";
+            var markerIndex = currentText.indexOf(marker);
+            if (markerIndex === -1) {{
+                backdrops[i].description.text = currentText + marker + "\\n" + "{metadata_json}";
+                Backdrop.setBackdrops("Top", backdrops);
+                MessageLog.trace("Metadata ensured in backdrop: " + backdrops[i].title.text);
+            }}
+        }}
+    }}
+    """
+        }
+    )
 
 
 def ls():
     """Yields containers from Harmony scene.
 
     Clean up scene data from orphaned containers.
-
-    Look for note nodes with metadata and add them to scene data if not registered.
-
+    Look for backdrop metadata and add them to scene data if not registered.
     Yields:
         dict: container
     """
     scene_data = harmony.get_scene_data() or dict()
+    with open(log_path, "a") as f:
+        f.write(f"@@@@@@@ scene_data {scene_data}\n")
     containers_names = (
         harmony.get_all_top_names() | harmony.get_palettes_paths()
     )
@@ -380,13 +407,23 @@ def ls():
             entity_data["objectName"] = entity_data["name"]
         yield entity_data
 
-    metadata = read_metadata_from_notes()
+    METADATA_EXCLUDED_KEYS = {"nodes", "objectName"}
 
+    for entity_name, entity_data in scene_data.items():
+        if is_container_data(entity_data):
+            clean_data = {k: v for k, v in entity_data.items() 
+                        if k not in METADATA_EXCLUDED_KEYS}
+            ensure_metadata_in_backdrop(entity_name, {entity_name: clean_data})
+        
+    metadata = read_metadata_from_backdrops()
     for entity_name, entity_data in metadata.items():
         if entity_name not in scene_data:
             updated_scene_data = True
             scene_data[entity_name] = entity_data
         yield entity_data
+
+    with open(log_path, "a") as f:
+        f.write(f"@@@@@@@ updated_scene_data {updated_scene_data}\n")
 
     if updated_scene_data:
         harmony.set_scene_data(scene_data)

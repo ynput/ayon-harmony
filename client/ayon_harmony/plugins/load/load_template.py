@@ -10,7 +10,10 @@ import ayon_harmony.api as harmony
 from ayon_core.pipeline import (
     AYON_CONTAINER_ID,
 )
+import os
 
+log_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "LOG.txt")
+log_path = os.path.normpath(log_path)
 class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
 
@@ -73,7 +76,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             }
         }
 
-        self.write_metadata_to_note(backdrop_name, metadata)
+        harmony.ensure_metadata_in_backdrop(backdrop_name, metadata)
 
         # Cleanup the temp directory
         shutil.rmtree(temp_dir)
@@ -85,29 +88,4 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             backdrop_name,
             context,
             self_name
-        )
-
-    def write_metadata_to_note(self, backdrop_name: str, metadata: dict):
-        """Create a note node and write metadata to that node.
-
-        Args:
-            backdrop_name (str): Name of the backdrop to which the note will be attached.
-            metadata (dict): Metadata to be stored in the note.
-        """
-
-        harmony.send(
-            {
-                "script": f"""
-        var backdrops = Backdrop.backdrops("Top");
-        for (var i = 0; i < backdrops.length; i++) 
-            if (backdrops[i].title.text === "{backdrop_name}") {{
-                var x = backdrops[i].position.x + 50;
-                var y = backdrops[i].position.y + 50;
-                
-                var result = node.add("Top", "ayon-metadata", "NOTE", x, y, 0);
-                node.setTextAttr(result, "text", 1.0, "{metadata}");
-                MessageLog.trace("Note created : " + result + " at x:" + x + " y:" + y);
-        }}
-        """
-            }
         )
