@@ -2,9 +2,13 @@ import os
 from pathlib import Path
 import logging
 
+from qtpy import QtWidgets
+
+from ayon_core import style
+from ayon_core.tools.utils.host_tools import show_scene_inventory
 import pyblish.api
 
-from ayon_core.lib import register_event_callback
+from ayon_core.lib import is_headless_mode_enabled, register_event_callback
 from ayon_core.host import (
     HostBase,
     IWorkfileHost,
@@ -20,12 +24,18 @@ from ayon_core.pipeline import (
     AYON_CONTAINER_ID,
 )
 from ayon_core.pipeline.load import get_outdated_containers
-from ayon_core.pipeline.context_tools import get_current_task_entity
+from ayon_core.pipeline.context_tools import (
+    get_current_task_entity,
+)
 
 from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
 
-from .lib import get_scene_data, set_scene_data
+from .lib import (
+    ProcessContext,
+    get_scene_data,
+    set_scene_data,
+)
 from .workio import (
     open_file,
     save_file,
@@ -166,11 +176,34 @@ def ensure_scene_settings():
     set_scene_settings(valid_settings)
 
 
+def prompt_outdated_containers():
+    """Show outdated containers warning with option to open Scene Inventory."""
+    # Don't show UI in headless mode
+    if is_headless_mode_enabled():
+        return
+
+    msg_box = QtWidgets.QMessageBox()
+    msg_box.setStyleSheet(style.load_stylesheet())
+    msg_box.setIcon(QtWidgets.QMessageBox.Warning)
+    msg_box.setWindowTitle("Outdated Containers")
+    msg_box.setText("There are outdated containers in the scene.")
+    manage_button = msg_box.addButton(
+        "Manage", QtWidgets.QMessageBox.AcceptRole
+    )
+    msg_box.addButton("Dismiss", QtWidgets.QMessageBox.RejectRole)
+    msg_box.setDefaultButton(manage_button)
+    msg_box.setModal(True)
+    msg_box.exec_()
+
+    if msg_box.clickedButton() == manage_button:
+        show_scene_inventory()
+
+
 def check_inventory():
     """Check is scene contains outdated containers.
 
-    If it does it will colorize outdated nodes and display warning message
-    in Harmony.
+    If it does it will colorize outdated nodes and optionally display a
+    warning dialog.
     """
 
     outdated_containers = get_outdated_containers()
@@ -186,9 +219,7 @@ def check_inventory():
             )
     harmony.send({"function": "AyonHarmony.setColor", "args": outdated_nodes})
 
-    # Warn about outdated containers.
-    msg = "There are outdated containers in the scene."
-    harmony.send({"function": "AyonHarmony.message", "args": msg})
+    ProcessContext.execute_in_main_thread(prompt_outdated_containers)
 
 
 def application_launch(event):
