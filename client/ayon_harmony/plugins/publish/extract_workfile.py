@@ -31,8 +31,7 @@ class ExtractWorkfile(publish.Extractor):
 
         # Prep representation.
         shutil.make_archive(
-            base_name=instance.name,
-            base_dir=staging_dir,
+            base_name=Path(staging_dir, instance.name),
             format="zip",
             root_dir=Path(staging_dir, f"{instance.name}.tpl")
         )
