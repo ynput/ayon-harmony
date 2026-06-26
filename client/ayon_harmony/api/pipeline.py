@@ -240,7 +240,7 @@ def application_launch(event):
     harmony.send({"script": script})
     inject_ayon_js()
 
-    # ensure_scene_settings()
+    ensure_scene_settings()
     check_inventory()
 
 
