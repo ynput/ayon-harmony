@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Load template."""
+
 from pathlib import Path
 import tempfile
 import zipfile
 import shutil
 
 import ayon_harmony.api as harmony
-
 
 class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
@@ -28,7 +28,6 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             data (dict, optional): Additional data passed into loader.
 
         """
-        # Load template.
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
         zip_file = self.filepath_from_context(context)
@@ -42,6 +41,14 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         if self.parent_backdrop_matching:
             parent_backdrop_name = self._resolve_parent_backdrop_name(context)
 
+        scene_data = harmony.get_scene_data() or {}
+
+        existing_names = [
+            entity_name
+            for entity_name, entity_data in scene_data.items()
+            if isinstance(entity_data, dict) and entity_data.get("loader")
+        ]
+
         with zipfile.ZipFile(zip_file, "r") as zip_ref:
             zip_ref.extractall(temp_dir)
 
@@ -53,7 +60,8 @@ class TemplateLoader(harmony.BackdropBaseLoader):
                 "args": [
                     next(Path(temp_dir).glob("*.tpl")).as_posix(),
                     override_name,
-                    parent_backdrop_name
+                    parent_backdrop_name,
+                    existing_names,
                 ],
             }
         )["result"]
@@ -63,9 +71,9 @@ class TemplateLoader(harmony.BackdropBaseLoader):
 
         # We must validate the group_node
         return harmony.containerise(
-            backdrop_name,
-            namespace,
-            backdrop_name,
-            context,
+            backdrop_name, 
+            namespace, 
+            backdrop_name, 
+            context, 
             self_name
         )
