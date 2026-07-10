@@ -28,6 +28,8 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             data (dict, optional): Additional data passed into loader.
 
         """
+        # Load template.
+
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
         zip_file = self.filepath_from_context(context)
@@ -42,7 +44,6 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             parent_backdrop_name = self._resolve_parent_backdrop_name(context)
 
         scene_data = harmony.get_scene_data() or {}
-
         existing_names = [
             entity_name
             for entity_name, entity_data in scene_data.items()
@@ -71,9 +72,9 @@ class TemplateLoader(harmony.BackdropBaseLoader):
 
         # We must validate the group_node
         return harmony.containerise(
-            backdrop_name, 
-            namespace, 
-            backdrop_name, 
-            context, 
+            backdrop_name,
+            namespace,
+            backdrop_name,
+            context,
             self_name
         )
