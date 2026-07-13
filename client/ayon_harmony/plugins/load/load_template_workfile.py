@@ -6,7 +6,7 @@ import shutil
 from ayon_core.pipeline import load
 
 import ayon_harmony.api as harmony
-log_path = r"C:\Users\normaal\Documents\YuanDev\AYON-Development-Workbench\ayon-harmony\LOG.txt"
+
 
 class ImportTemplateLoader(load.LoaderPlugin):
     """Import Harmony workfiles."""

@@ -73,7 +73,6 @@ TemplateLoader.prototype.loadContainer = function(args) {
     $.beginUndo('AYON: Load Template');
     try {
         copyPaste.pasteNewNodes(_tpl, "Top", pasteOptions);
-
         var pastedBackdrops = selection.selectedBackdrops();
         var _allSelected = selection.selectedNodes();
         var topPastedNodes = _allSelected.filter(

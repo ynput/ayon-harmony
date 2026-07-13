@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Load template."""
-
 from pathlib import Path
 import tempfile
 import zipfile
 import shutil
 
 import ayon_harmony.api as harmony
+
 
 class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
@@ -29,7 +29,6 @@ class TemplateLoader(harmony.BackdropBaseLoader):
 
         """
         # Load template.
-
         self_name = self.__class__.__name__
         temp_dir = tempfile.mkdtemp()
         zip_file = self.filepath_from_context(context)

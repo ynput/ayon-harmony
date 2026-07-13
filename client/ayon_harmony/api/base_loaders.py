@@ -3,10 +3,8 @@
 
 from pathlib import Path
 from ayon_core.pipeline import load
-import traceback
 
 import ayon_harmony.api as harmony
-log_path = r"C:\Users\normaal\Documents\YuanDev\AYON-Development-Workbench\ayon-harmony\LOG.txt"
 
 
 class BackdropBaseLoader(load.LoaderPlugin):
@@ -98,7 +96,6 @@ class BackdropBaseLoader(load.LoaderPlugin):
             self_name
         )
 
-
     def remove(self, container):
         """Remove container.
 
@@ -125,7 +122,6 @@ class BackdropBaseLoader(load.LoaderPlugin):
         """
         return self.switch(container, context)
     
-   
     def switch(self, container, context):
         """Switch representation containers."""
         backdrop_name = container["name"]
