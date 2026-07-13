@@ -122,7 +122,6 @@ class BackdropBaseLoader(load.LoaderPlugin):
         """
         return self.switch(container, context)
 
-
     def switch(self, container, context):
         """Switch representation containers."""
         backdrop_name = container["name"]
