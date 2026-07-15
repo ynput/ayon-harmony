@@ -5,7 +5,10 @@ import logging
 from qtpy import QtWidgets
 
 from ayon_core import style
-from ayon_core.tools.utils.host_tools import show_scene_inventory
+from ayon_core.tools.utils.host_tools import (
+    show_scene_inventory,
+    show_workfiles,
+)
 import pyblish.api
 
 from ayon_core.lib import is_headless_mode_enabled, register_event_callback
@@ -35,6 +38,7 @@ from .lib import (
     ProcessContext,
     get_scene_data,
     set_scene_data,
+    is_temp_workfile,
 )
 from .workio import (
     open_file,
@@ -176,27 +180,61 @@ def ensure_scene_settings():
     set_scene_settings(valid_settings)
 
 
-def prompt_outdated_containers():
-    """Show outdated containers warning with option to open Scene Inventory."""
-    # Don't show UI in headless mode
+def _prompt_simple_choice(
+    title, text, accept_label, reject_label, informative_text=None
+):
+    """Show a modal warning dialog with two choices.
+
+    Returns:
+        bool: True if the accept button was clicked, False otherwise
+            (including when skipped in headless mode).
+    """
     if is_headless_mode_enabled():
-        return
+        return False
 
     msg_box = QtWidgets.QMessageBox()
     msg_box.setStyleSheet(style.load_stylesheet())
     msg_box.setIcon(QtWidgets.QMessageBox.Warning)
-    msg_box.setWindowTitle("Outdated Containers")
-    msg_box.setText("There are outdated containers in the scene.")
-    manage_button = msg_box.addButton(
-        "Manage", QtWidgets.QMessageBox.AcceptRole
+    msg_box.setWindowTitle(title)
+    msg_box.setText(text)
+    if informative_text:
+        msg_box.setInformativeText(informative_text)
+
+    accept_button = msg_box.addButton(
+        accept_label, QtWidgets.QMessageBox.AcceptRole
     )
-    msg_box.addButton("Dismiss", QtWidgets.QMessageBox.RejectRole)
-    msg_box.setDefaultButton(manage_button)
+    msg_box.addButton(reject_label, QtWidgets.QMessageBox.RejectRole)
+    msg_box.setDefaultButton(accept_button)
     msg_box.setModal(True)
     msg_box.exec_()
 
-    if msg_box.clickedButton() == manage_button:
+    return msg_box.clickedButton() == accept_button
+
+
+def prompt_outdated_containers():
+    """Show outdated containers warning with option to open Scene Inventory."""
+    if _prompt_simple_choice(
+        title="Outdated Containers",
+        text="There are outdated containers in the scene.",
+        accept_label="Manage",
+        reject_label="Dismiss",
+    ):
         show_scene_inventory()
+
+
+def prompt_new_workfile():
+    """Prompt user that they are working on the temporary workfile."""
+    if _prompt_simple_choice(
+        title="New Workfile",
+        text="You are working on a new, unsaved workfile.",
+        accept_label="Open Workfiles Window",
+        reject_label="Ignore",
+        informative_text=(
+            "Open the Workfiles window to save it, or continue working "
+            "on the temporary scene."
+        ),
+    ):
+        show_workfiles(save=True)
 
 
 def check_inventory():
@@ -242,6 +280,9 @@ def application_launch(event):
 
     # ensure_scene_settings()
     check_inventory()
+
+    if is_temp_workfile(ProcessContext.workfile_path):
+        prompt_new_workfile()
 
 
 def export_backdrop_as_template(backdrop, filepath):
