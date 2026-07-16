@@ -43,7 +43,8 @@ from .server import Server
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-TEMP_WORKFILE_NAME = "temp.zip"
+CURRENT_DIR = Path(__file__).parent.absolute()
+TEMP_WORKFILE_PATH = CURRENT_DIR / "temp.zip"
 
 
 class ProcessContext:
@@ -284,11 +285,11 @@ def check_workfiles_tool():
 
 def is_temp_workfile(filepath):
     """Check if filepath points to the temporary scratch workfile."""
-    return Path(filepath).name == TEMP_WORKFILE_NAME
+    return Path(filepath) == TEMP_WORKFILE_PATH
 
 
 def open_empty_workfile():
-    zip_file = os.path.join(os.path.dirname(__file__), TEMP_WORKFILE_NAME)
+    zip_file = str(TEMP_WORKFILE_PATH)
     temp_path = get_local_harmony_path(zip_file)
     if os.path.exists(temp_path):
         log.info(f"removing existing {temp_path}")
