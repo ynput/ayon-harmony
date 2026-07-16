@@ -289,7 +289,7 @@ def is_temp_workfile(filepath):
 
 
 def open_empty_workfile():
-    zip_file = str(TEMP_WORKFILE_PATH)
+    zip_file = TEMP_WORKFILE_PATH.as_posix()
     temp_path = get_local_harmony_path(zip_file)
     if os.path.exists(temp_path):
         log.info(f"removing existing {temp_path}")
