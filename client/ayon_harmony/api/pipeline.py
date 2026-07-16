@@ -282,7 +282,7 @@ def application_launch(event):
     check_inventory()
 
     if is_temp_workfile(ProcessContext.workfile_path):
-        prompt_new_workfile()
+        ProcessContext.execute_in_main_thread(prompt_new_workfile())
 
 
 def export_backdrop_as_template(backdrop, filepath):
