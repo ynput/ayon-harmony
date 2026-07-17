@@ -13,7 +13,7 @@ class HarmonyCacheDefaultSettings(BaseSettingsModel):
 
     use_default_setting: bool = SettingsField(
         default=False,
-        title="Use cache conflict default source",
+        title="Force cache conflict source",
         description=(
             "When a newer local version is detected, "
             "instead of prompting a dialog, always use "
@@ -24,7 +24,7 @@ class HarmonyCacheDefaultSettings(BaseSettingsModel):
     cache_default: str = SettingsField(
         "server",
         enum_resolver=cache_enum,
-        title="Default source",
+        title="Conflict source",
         description=(
             "Use Local will always pull from locally cached file "
             "if it's newer. From server will attempt to get a known version "
