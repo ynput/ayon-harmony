@@ -16,7 +16,7 @@ class HarmonySettings(BaseSettingsModel):
     )
     cache_default: HarmonyCacheDefaultSettings = SettingsField(
         default_factory=HarmonyCacheDefaultSettings,
-        title="Default cache conflict source",
+        title="Cache conflict resolution",
     )
     load: HarmonyLoadPlugins = SettingsField(
         default_factory=HarmonyLoadPlugins,
