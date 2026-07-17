@@ -28,6 +28,8 @@ from ayon_core.lib import (
     env_value_to_bool,
     register_event_callback,
 )
+from ayon_core.pipeline import get_current_project_name
+from ayon_core.settings import get_project_settings
 from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
@@ -404,6 +406,11 @@ def copy_with_progress(src, dst):
     log.info(f"Successfully copied {src} to {dst}")
 
 
+def get_harmony_settings():
+    project = get_current_project_name()
+    return get_project_settings(project).get("harmony")
+
+
 def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     """Unzip a Harmony scene file and return the path to the .xstage file.
 
@@ -449,30 +456,51 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
             )
             unzip = False
         else:
-            # Local is newer or same timestamp - ask user
-            msg_box = QtWidgets.QMessageBox()
-            msg_box.setStyleSheet(style.load_stylesheet())
-            msg_box.setIcon(QtWidgets.QMessageBox.Question)
-            msg_box.setWindowTitle("Local cache of version exists")
-            msg_box.setText(
-                "A cached version of this scene exists that is newer or "
-                "with the same timestamp as the server version."
-            )
-            msg_box.setInformativeText(
-                "Do you want to use the local file or "
-                "re-cache from the server?"
-            )
-            msg_box.setStandardButtons(
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-            )
-            msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
+            # Local is newer or same timestamp - ask user or defer to settings.
 
-            msg_box.button(QtWidgets.QMessageBox.Yes).setText("Use Local")
-            msg_box.button(QtWidgets.QMessageBox.No).setText("From Server")
+            use_default = False
+            default_opt = QtWidgets.QMessageBox.Yes
+            harmony_settings = get_harmony_settings()
+            cache_settings = (
+                harmony_settings.get("cache_default") if harmony_settings
+                else None
+            )
 
-            msg_box.setModal(True)
+            if cache_settings:
+                use_default = cache_settings.get("use_default_setting")
+                default_opt = {
+                    "local": QtWidgets.QMessageBox.Yes,
+                    "server": QtWidgets.QMessageBox.No,
+                }.get(cache_settings.get("cache_default", "local"))
 
-            result = msg_box.exec_()
+            result = None
+
+            if not use_default:
+                msg_box = QtWidgets.QMessageBox()
+                msg_box.setStyleSheet(style.load_stylesheet())
+                msg_box.setIcon(QtWidgets.QMessageBox.Question)
+                msg_box.setWindowTitle("Local cache of version exists")
+                msg_box.setText(
+                    "A cached version of this scene exists that is newer or "
+                    "with the same timestamp as the server version."
+                )
+                msg_box.setInformativeText(
+                    "Do you want to use the local file or "
+                    "re-cache from the server?"
+                )
+                msg_box.setStandardButtons(
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+                )
+                msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
+
+                msg_box.button(QtWidgets.QMessageBox.Yes).setText("Use Local")
+                msg_box.button(QtWidgets.QMessageBox.No).setText("From Server")
+
+                msg_box.setModal(True)
+
+                result = msg_box.exec_()
+            else:
+                result = default_opt
 
             if result == QtWidgets.QMessageBox.No:
                 try:
