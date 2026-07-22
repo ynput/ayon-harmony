@@ -10,19 +10,6 @@ if (typeof AyonHarmony === 'undefined') {
     include(AYON_HARMONY_JS.replace(/\\/g, "/"));
 }
 
-var JS_LOG_PATH = "C:/Users/normaal/Documents/YuanDev/AYON-Development-Workbench/ayon-harmony/LOG.txt";
-
-/**
- * Append a line to the shared log file.
- * @param {string} text
- */
-function writeJsLog(text) {
-    var file = new File(JS_LOG_PATH);
-    file.open(FileAccess.Append);
-    file.write(text + "\n");
-    file.close();
-}
-
 
 /**
  * Map a numeric PaletteObjectManager.Constants.Location value to a
@@ -49,6 +36,7 @@ function paletteLocationToStorage(location) {
     }
 }
 
+
 /**
  * @namespace
  * @classdesc CollectPalettes JS code.
@@ -66,25 +54,13 @@ CollectPalettes.prototype.getPalettes = function(local_only) {
 
     var palette_list = PaletteObjectManager.getScenePaletteList();
 
-    writeJsLog("@@@@@@@ getPalettes START");
-    writeJsLog("    local_only: " + local_only);
-    writeJsLog("    numPalettes: " + palette_list.numPalettes);
-
     var palettes = {};
     for(var i=0; i < palette_list.numPalettes; ++i) {
         var palette = palette_list.getPaletteByIndex(i);
-
-        var isExternal = (palette.location == PaletteObjectManager.Constants.Location.EXTERNAL);
-        var isSkipped = local_only && isExternal;
         var storage = paletteLocationToStorage(palette.location);
 
-        writeJsLog("    palette name: " + palette.getName());
-        writeJsLog("        location: " + palette.location + " (external: " + isExternal + ")");
-        writeJsLog("        storage: " + storage);
-        writeJsLog("        skipped: " + isSkipped);
-
         // if local_only is true, skip external palettes
-        if (isSkipped) {
+        if (local_only && palette.location == PaletteObjectManager.Constants.Location.EXTERNAL) {
             continue;
         }
 
@@ -93,8 +69,6 @@ CollectPalettes.prototype.getPalettes = function(local_only) {
             storage: storage
         };
     }
-
-    writeJsLog("@@@@@@@ getPalettes END - result: " + JSON.stringify(palettes));
 
     return palettes;
     

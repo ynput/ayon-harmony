@@ -10,18 +10,6 @@ if (typeof AyonHarmony === 'undefined') {
     include(AYON_HARMONY_JS.replace(/\\/g, "/"));
 }
 
-var JS_LOG_PATH = "C:/Users/normaal/Documents/YuanDev/AYON-Development-Workbench/ayon-harmony/LOG.txt";
-
-/**
- * Append a line to the shared log file.
- * @param {string} text
- */
-function writeJsLog(text) {
-    var file = new File(JS_LOG_PATH);
-    file.open(FileAccess.Append);
-    file.write(text + "\n");
-    file.close();
-}
 
 /**
  * @namespace
@@ -37,7 +25,6 @@ var ExtractPalette = function() {};
  * @return  {array}  [paletteName, palettePath]
  */
 ExtractPalette.prototype.getPalette = function(paletteId) {
-    writeJsLog("@@@@@@@ extractpalette JS START");
     var palette_list = PaletteObjectManager.getScenePaletteList();
     var palette = palette_list.getPaletteById(paletteId);
     var palette_name = palette.getName();
