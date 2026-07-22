@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """Utility functions used for AYON - Harmony integration."""
+
+from __future__ import annotations
+
 from pathlib import Path
 import platform
 import subprocess
@@ -457,23 +460,15 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
             unzip = False
         else:
             # Local is newer or same timestamp - ask user or defer to settings.
-
-            use_default = False
-            default_opt = QtWidgets.QMessageBox.Yes
             harmony_settings = get_harmony_settings()
-            cache_settings = (
-                harmony_settings.get("cache_default") if harmony_settings
-                else None
-            )
+            use_default = False
+            cache_settings = harmony_settings.get("cache_default")
+            use_default = cache_settings.get("force_default")
+            default_opt = QtWidgets.QMessageBox.Yes
+            if cache_settings["cache_default_source"] == "server":
+                default_opt = QtWidgets.QMessageBox.No
 
-            if cache_settings:
-                use_default = cache_settings.get("use_default_setting")
-                default_opt = {
-                    "local": QtWidgets.QMessageBox.Yes,
-                    "server": QtWidgets.QMessageBox.No,
-                }.get(cache_settings.get("cache_default", "local"))
-
-            result = None
+            result = default_opt
 
             if not use_default:
                 msg_box = QtWidgets.QMessageBox()
@@ -499,8 +494,6 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 msg_box.setModal(True)
 
                 result = msg_box.exec_()
-            else:
-                result = default_opt
 
             if result == QtWidgets.QMessageBox.No:
                 try:

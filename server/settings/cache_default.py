@@ -11,7 +11,7 @@ def cache_enum():
 class HarmonyCacheDefaultSettings(BaseSettingsModel):
     """Settings regarding behavior on detection of newer cache."""
 
-    use_default_setting: bool = SettingsField(
+    force_default: bool = SettingsField(
         default=False,
         title="Force cache conflict source",
         description=(
@@ -21,7 +21,7 @@ class HarmonyCacheDefaultSettings(BaseSettingsModel):
         )
     )
 
-    cache_default: str = SettingsField(
+    cache_default_source: str = SettingsField(
         "server",
         enum_resolver=cache_enum,
         title="Conflict source",

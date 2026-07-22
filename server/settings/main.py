@@ -95,7 +95,7 @@ DEFAULT_HARMONY_SETTING = {
         }
     },
     "cache_default": {
-        "use_default_setting": False,
+        "force_default": False,
         "cache_default": "server",
     },
     "load": {
