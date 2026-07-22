@@ -71,7 +71,7 @@ CollectPalettes.prototype.getPalettes = function(local_only) {
     }
 
     return palettes;
-    
 };
+
 // add self to AYON Loaders
 AyonHarmony.Publish.CollectPalettes = new CollectPalettes();

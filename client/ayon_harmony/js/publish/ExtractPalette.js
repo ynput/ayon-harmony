@@ -10,7 +10,6 @@ if (typeof AyonHarmony === 'undefined') {
     include(AYON_HARMONY_JS.replace(/\\/g, "/"));
 }
 
-
 /**
  * @namespace
  * @classdesc Code for extracting palettes.
@@ -28,7 +27,6 @@ ExtractPalette.prototype.getPalette = function(paletteId) {
     var palette_list = PaletteObjectManager.getScenePaletteList();
     var palette = palette_list.getPaletteById(paletteId);
     var palette_name = palette.getName();
-    writeJsLog("        palette.getPath() + '/' + palette.getName() + '.plt'" + palette.getPath() + '/' + palette.getName() + '.plt');
     return [
         palette_name,
         (palette.getPath() + '/' + palette.getName() + '.plt')
