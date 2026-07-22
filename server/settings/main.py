@@ -96,7 +96,7 @@ DEFAULT_HARMONY_SETTING = {
     },
     "cache_default": {
         "force_default": False,
-        "cache_default": "server",
+        "cache_default_source": "server",
     },
     "load": {
         "override_name": "",
