@@ -1,4 +1,5 @@
 """Harmony Create Placeholder Plugin."""
+
 import ayon_harmony.api as harmony
 from ayon_core.pipeline.workfile.workfile_template_builder import (
     CreatePlaceholderItem,
@@ -20,9 +21,10 @@ class HarmonyPlaceholderCreatePlugin(
         """Populate a placeholder by running its configured Creator."""
         self.populate_create_placeholder(placeholder)
 
-    def repopulate_placeholder(self, placeholder: CreatePlaceholderItem) -> None:
-        """Re-populate an existing create placeholder (e.g. on workfile reopen).
-        """
+    def repopulate_placeholder(
+        self, placeholder: CreatePlaceholderItem
+    ) -> None:
+        """Re-populate an existing create placeholder (e.g. on workfile reopen)."""
         self.populate_create_placeholder(placeholder)
 
     def get_placeholder_options(self, options: dict | None = None) -> list:
@@ -52,10 +54,12 @@ class HarmonyPlaceholderCreatePlugin(
             str: The node identifier for the created READ node.
         """
         name = node_name or self.identifier.replace(".", "_")
-        return harmony.send({
-            "function": "AyonHarmonyAPI.createNodeContainer",
-            "args": [name, "BurnIn", False],
-        })["result"]
+        return harmony.send(
+            {
+                "function": "AyonHarmonyAPI.createNodeContainer",
+                "args": [name, "BurnIn", False],
+            }
+        )["result"]
 
     def collect_placeholders(self) -> list[CreatePlaceholderItem]:
         """Collect all create placeholder items from the current Harmony scene.

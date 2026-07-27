@@ -55,9 +55,7 @@ class HarmonyTemplateBuilder(AbstractTemplateBuilder):
         progress.setMinimumDuration(0)
         progress.setCancelButton(None)
         progress.show()
-        QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.AllEvents, 50
-        )
+        QtWidgets.QApplication.processEvents(QtCore.QEventLoop.AllEvents, 50)
         return progress
 
     def _update_progress(
@@ -77,9 +75,7 @@ class HarmonyTemplateBuilder(AbstractTemplateBuilder):
             self._progress_dialog.setLabelText(label)
         if value is not None:
             self._progress_dialog.setValue(value)
-        QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.AllEvents, 50
-        )
+        QtWidgets.QApplication.processEvents(QtCore.QEventLoop.AllEvents, 50)
 
     def import_template(self, path: str) -> bool:
         """Import a Harmony template into the current scene.
@@ -172,10 +168,12 @@ class HarmonyPlaceholderPlugin(PlaceholderPlugin):
             str: The node identifier for the created BurnIn node.
         """
         name = node_name or self.identifier.replace(".", "_")
-        node_id = harmony.send({
-            "function": "AyonHarmonyAPI.createNodeContainer",
-            "args": [name, "BurnIn", False],
-        })["result"]
+        node_id = harmony.send(
+            {
+                "function": "AyonHarmonyAPI.createNodeContainer",
+                "args": [name, "BurnIn", False],
+            }
+        )["result"]
         return node_id
 
     def create_placeholder(self, placeholder_data: dict) -> None:
@@ -264,7 +262,6 @@ class HarmonyPlaceholderPlugin(PlaceholderPlugin):
             placeholder_data (dict): The updated placeholder configuration.
         """
         old_node_id = placeholder_item.scene_identifier
-.
         self._imprint(old_node_id, placeholder_data, update=True)
 
         # Rename the physical node in Harmony.
@@ -337,7 +334,7 @@ class HarmonyPlaceholderPlugin(PlaceholderPlugin):
         for key in list(data):
             if key.startswith(self.attr_prefix):
                 value = data.pop(key)
-                data[key[len(self.attr_prefix):]] = value
+                data[key[len(self.attr_prefix) :]] = value
 
         return data
 
@@ -460,14 +457,18 @@ def update_placeholder(*args) -> None:
     def _show():
         # get_placeholders() calls harmony.get_scene_data() internally.
         placeholder_items_by_id = {
-            item.scene_identifier: item
-            for item in builder.get_placeholders()
+            item.scene_identifier: item for item in builder.get_placeholders()
         }
 
-        selected_nodes = harmony.send({
-            "function": "selection.selectedNodes",
-            "args": [],
-        }).get("result") or []
+        selected_nodes = (
+            harmony.send(
+                {
+                    "function": "selection.selectedNodes",
+                    "args": [],
+                }
+            ).get("result")
+            or []
+        )
 
         placeholder_items = [
             placeholder_items_by_id[node]

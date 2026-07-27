@@ -14,8 +14,7 @@ from ayon_harmony.api.workfile_template_builder import HarmonyPlaceholderPlugin
 class HarmonyPlaceholderLoadPlugin(
     HarmonyPlaceholderPlugin, PlaceholderLoadMixin
 ):
-    """Workfile template plugin to create and populate Harmony load placeholders.
-    """
+    """Workfile template plugin to create and populate Harmony load placeholders."""
 
     identifier = "ayon.load.placeholder"
     label = "Harmony Load"
@@ -87,9 +86,7 @@ class HarmonyPlaceholderLoadPlugin(
         output = []
         for node_id in self.collect_scene_placeholders():
             placeholder_data = self._read(node_id)
-            output.append(
-                LoadPlaceholderItem(node_id, placeholder_data, self)
-            )
+            output.append(LoadPlaceholderItem(node_id, placeholder_data, self))
         return output
 
     def load_succeed(
@@ -117,11 +114,7 @@ class HarmonyPlaceholderLoadPlugin(
     def _resolve_container_node(self, container: dict | str) -> str:
         """Extract the Harmony node identifier from a loaded container."""
         if isinstance(container, dict):
-            return (
-                container.get("objectName")
-                or container.get("name")
-                or ""
-            )
+            return container.get("objectName") or container.get("name") or ""
         return str(container)
 
     def transfer_node_connections(
@@ -136,7 +129,6 @@ class HarmonyPlaceholderLoadPlugin(
             target_node (str): Full Harmony path of the loaded container node.
         """
         sig = harmony.signature()
-        # TODO Make this more readable
         func = """function %s(args)
         {
             var coord_x = node.coordX(args[0]);
@@ -145,20 +137,19 @@ class HarmonyPlaceholderLoadPlugin(
             
             var numIn = node.numberOfInputPorts(args[0]);
             for (var i = 0; i < numIn; i++) {
-            var src = node.srcNode(args[0], i);node.link(src, 0, args[1], i, true, true);}
+                var src = node.srcNode(args[0], i);
+                node.link(src, 0, args[1], i, true, true);
+            }
             var numOut = node.numberOfOutputPorts(args[0]);
             if (numOut != 0) {for (var i = 0; i < numOut; i++) {
-            var numLinked = node.numberOfOutputLinks(args[0], i);
-            for (var j = 0; j < numLinked; j++)
-            {var dst = node.dstNode(args[0], i, j);
-            node.link(args[1], i, dst, 0, true, true);}}}
+                var numLinked = node.numberOfOutputLinks(args[0], i);
+                for (var j = 0; j < numLinked; j++){
+                    var dst = node.dstNode(args[0], i, j);
+                    node.link(args[1], i, dst, 0, true, true);
+                    }
+                }
+            }
         }
         %s
         """ % (sig, sig)
-        harmony.send(
-            {
-                "function": func,
-                "args": [source_node, target_node]    
-            }
-        )
-
+        harmony.send({"function": func, "args": [source_node, target_node]})
