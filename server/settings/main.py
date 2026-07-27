@@ -4,7 +4,9 @@ from .imageio import HarmonyImageIOModel
 from .load_plugins import HarmonyLoadPlugins
 from .creator_plugins import HarmonyCreatePlugins
 from .publish_plugins import HarmonyPublishPlugins
-
+from .templated_workfile_build import (
+    TemplatedWorkfileBuildModel
+)
 
 class HarmonySettings(BaseSettingsModel):
     """Harmony Project Settings."""
@@ -24,6 +26,10 @@ class HarmonySettings(BaseSettingsModel):
     publish: HarmonyPublishPlugins = SettingsField(
         default_factory=HarmonyPublishPlugins,
         title="Publish plugins"
+    )
+    templated_workfile_build: TemplatedWorkfileBuildModel = SettingsField(
+        title="Templated Workfile Build",
+        default_factory=TemplatedWorkfileBuildModel
     )
 
 
@@ -132,5 +138,8 @@ DEFAULT_HARMONY_SETTING = {
             "replace_pngs": True,
             "exr_compression": "ZIP"
         },
+    },
+    "templated_workfile_build": {
+        "profiles": []
     }
 }
