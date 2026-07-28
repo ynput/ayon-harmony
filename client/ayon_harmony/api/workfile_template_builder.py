@@ -1,11 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
-import shutil
-import tempfile
-import zipfile
-from pathlib import Path
 from typing import Any
 
 from qtpy import QtWidgets, QtCore
@@ -26,7 +21,7 @@ import ayon_harmony.api as harmony
 
 
 class HarmonyTemplateBuilder(AbstractTemplateBuilder):
-    """Concrete implementation of AbstractTemplateBuilder for Toon Boom Harmony."""
+    """Concrete implementation of AbstractTemplateBuilder for TB Harmony."""
 
     def __init__(self, host):
         super().__init__(host)
@@ -90,7 +85,9 @@ class HarmonyTemplateBuilder(AbstractTemplateBuilder):
         func = """function %s(args)
         {
             var template_path = args[0];
-            var drag_object = copyPaste.pasteTemplateIntoGroup(template_path, "Top", 1);
+            var drag_object = copyPaste.pasteTemplateIntoGroup(
+                template_path, "Top", 1
+            );
         }
         %s
         """ % (sig, sig)
@@ -123,7 +120,7 @@ class HarmonyTemplateBuilder(AbstractTemplateBuilder):
             progress.close()
 
     def rebuild_template(self) -> None:
-        """Rebuild all placeholders in the current scene with a progress dialog."""
+        """Rebuild all placeholders in the current scene."""
         placeholders = self.get_placeholders()
         total = len(placeholders)
         noun = "placeholder" if total == 1 else "placeholders"
@@ -298,13 +295,14 @@ class HarmonyPlaceholderPlugin(PlaceholderPlugin):
         placeholder_data: dict,
         update: bool = False,
     ) -> None:
-        """Write placeholder_data into the AYON scene JSON and the node's printinfo.
+        """Write placeholder_data into the AYON scene and the node's printinfo.
 
         Writing to both stores keeps them in sync:
 
         - The **Scene** entry enables fast reads during normal operation.
         - The **BurnIn ``printinfo``** entry survives template export/import,
-          acting as the authoritative source when the scene JSON entry is absent.
+          acting as the authoritative source when the scene JSON entry is
+          absent.
 
         Args:
             node_id (str): Node identifier used as the scene data JSON key.
@@ -339,9 +337,9 @@ class HarmonyPlaceholderPlugin(PlaceholderPlugin):
         return data
 
     def _write_attr_data(self, node_id: str, data: dict) -> None:
-        """Serialise *data* as JSON and store it in the node's ``printinfo`` attribute.
+        """Serialise *data* as JSON and store it in the printinfo attribute.
 
-        ``node.setTextAttr`` writes to a named text attribute on a Harmony node.
+        ``node.setTextAttr`` writes to a named text attr on a Harmony node.
         The ``printinfo`` attribute is used here because it accepts arbitrary
         freeform text
 
@@ -361,7 +359,7 @@ class HarmonyPlaceholderPlugin(PlaceholderPlugin):
         harmony.send({"function": func, "args": [node_id, payload]})
 
     def _scan_burnin_nodes_for_placeholder_data(self) -> dict[str, dict]:
-        """Scan every BurnIn node in the scene for embedded AYON placeholder data.
+        """Scan every BurnIn node in the scene for AYON placeholder data.
 
         Returns:
             dict[str, dict]: Mapping of Harmony node path to de-serialised

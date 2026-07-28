@@ -8,6 +8,7 @@ from .templated_workfile_build import (
     TemplatedWorkfileBuildModel
 )
 
+
 class HarmonySettings(BaseSettingsModel):
     """Harmony Project Settings."""
 

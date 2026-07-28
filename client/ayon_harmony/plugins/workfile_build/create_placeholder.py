@@ -24,7 +24,7 @@ class HarmonyPlaceholderCreatePlugin(
     def repopulate_placeholder(
         self, placeholder: CreatePlaceholderItem
     ) -> None:
-        """Re-populate an existing create placeholder (e.g. on workfile reopen)."""
+        """Re-populate an existing create placeholder."""
         self.populate_create_placeholder(placeholder)
 
     def get_placeholder_options(self, options: dict | None = None) -> list:

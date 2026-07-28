@@ -14,7 +14,7 @@ from ayon_harmony.api.workfile_template_builder import HarmonyPlaceholderPlugin
 class HarmonyPlaceholderLoadPlugin(
     HarmonyPlaceholderPlugin, PlaceholderLoadMixin
 ):
-    """Workfile template plugin to create and populate Harmony load placeholders."""
+    """Workfile template plugin to create and populate load placeholders."""
 
     identifier = "ayon.load.placeholder"
     label = "Harmony Load"
@@ -72,7 +72,7 @@ class HarmonyPlaceholderLoadPlugin(
             options (dict | None): Existing option values to pre-populate.
 
         Returns:
-            list: Option widget definitions for the WorkfileBuildPlaceholderDialog.
+            list: Option widget definitions for WorkfileBuildPlaceholderDialog.
         """
         return self.get_load_plugin_options(options)
 
@@ -122,7 +122,7 @@ class HarmonyPlaceholderLoadPlugin(
         source_node: str,
         target_node: str,
     ) -> None:
-        """Transfer all input and output connections from source to target node.
+        """Transfer all input/output connections from source to target node.
 
         Args:
             source_node (str): Full Harmony path of the placeholder node.
@@ -134,7 +134,7 @@ class HarmonyPlaceholderLoadPlugin(
             var coord_x = node.coordX(args[0]);
             var coord_y = node.coordY(args[0]);
             node.setCoord(args[1], coord_x, coord_y);
-            
+
             var numIn = node.numberOfInputPorts(args[0]);
             for (var i = 0; i < numIn; i++) {
                 var src = node.srcNode(args[0], i);
