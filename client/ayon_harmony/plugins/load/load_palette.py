@@ -5,6 +5,14 @@ from ayon_core.pipeline import load
 
 import ayon_harmony.api as harmony
 
+def _texture_dir(plt_path: Path) -> Path:
+    """Return the expected texture folder path next to a .plt file.
+
+    Convention: "<plt_stem>_textures" sitting alongside the .plt.
+    """
+    result = plt_path.with_name(plt_path.stem + "_textures")
+    return result
+
 
 class LinkPaletteLoader(load.LoaderPlugin):
     """Link a palette.
@@ -98,7 +106,8 @@ class LinkPaletteLoader(load.LoaderPlugin):
 class ImportPaletteLoader(LinkPaletteLoader):
     """Import a palette.
 
-    Copy the palette to the scene directory and link it.
+    Copy the palette (and its texture folder, if any) to the scene
+    directory and link it.
     """
 
     label = "Import Palette"
@@ -110,7 +119,8 @@ class ImportPaletteLoader(LinkPaletteLoader):
     def load_palette(self, palette_path: str) -> str:
         """Import the palette to the scene.
 
-        Copy the palette to the scene directory and link it.
+        Copy the palette (and its texture folder, if present) to the
+        scene directory and link it.
 
         Args:
             palette_path (str): Path to the palette.
@@ -122,13 +132,50 @@ class ImportPaletteLoader(LinkPaletteLoader):
             {"function": "scene.currentProjectPath"}
         )["result"]
 
-        dst = Path(
-            scene_path,
-            "palette-library",
-            Path(palette_path).name,
-        )
+        src_plt = Path(palette_path)
+        dst_plt = Path(scene_path, "palette-library", src_plt.name)
 
-        self.log.info(f"Copying palette to {dst}")
-        shutil.copy(palette_path, dst)
+        self.log.info(f"Copying palette to {dst_plt}")
+        shutil.copy(src_plt, dst_plt)
 
-        return super().load_palette(dst.as_posix())
+        src_textures = _texture_dir(src_plt)
+        if src_textures.is_dir():
+            dst_textures = _texture_dir(dst_plt)
+            self.log.info(f"Copying textures to {dst_textures}")
+            shutil.copytree(src_textures, dst_textures, dirs_exist_ok=True)
+        else:
+            self.log.debug(
+                f"No texture folder found next to {src_plt}, skipping."
+            )
+
+        result = super().load_palette(dst_plt.as_posix())
+        return result
+
+    def remove(self, container) -> int:
+        """Remove the imported palette from the scene.
+
+        Removes the Harmony palette reference, then deletes the local
+        copied .plt file and its texture folder from disk.
+
+        Args:
+            container (dict): Container data.
+
+        Returns:
+            int: Removed palette index.
+        """
+        removed_idx = super().remove(container)
+
+        local_plt = Path(container["nodes"][0])
+
+        if local_plt.is_file():
+            self.log.info(f"Deleting local palette file {local_plt}")
+            local_plt.unlink()
+        else:
+            self.log.warning(f"Local palette file not found: {local_plt}")
+
+        local_textures = _texture_dir(local_plt)
+        if local_textures.is_dir():
+            self.log.info(f"Deleting local texture folder {local_textures}")
+            shutil.rmtree(local_textures)
+            
+        return removed_idx

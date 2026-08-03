@@ -8,6 +8,8 @@ from PIL import Image, ImageDraw, ImageFont
 import ayon_harmony.api as harmony
 from ayon_core.pipeline import publish
 
+log_path = r"C:\Users\normaal\Documents\YuanDev\AYON-Development-Workbench\ayon-harmony\LOG.txt"
+
 
 class ExtractPalette(publish.Extractor):
     """Extract palette."""
@@ -30,54 +32,116 @@ class ExtractPalette(publish.Extractor):
             raise AssertionError("Invalid reply from server.")
         palette_name = result[0]
         palette_file = result[1]
-        self.log.info(f"Got palette named {palette_name} "
-                      f"and file {palette_file}.")
+        self.log.info(
+            f"Got palette named {palette_name} and file {palette_file}."
+        )
 
-        tmp_thumb_path = os.path.join(os.path.dirname(palette_file),
-                                      os.path.basename(palette_file)
-                                      .split(".plt")[0] + "_swatches.png"
-                                      )
+        palette_type = self._parse_palette_entries(palette_file)
+        self.log.info(f"Detected palette type: {palette_type}")
+
+        tmp_thumb_path = os.path.join(
+            os.path.dirname(palette_file),
+            os.path.basename(palette_file).split(".plt")[0] + "_swatches.png"
+        )
         self.log.info(f"Temporary thumbnail path {tmp_thumb_path}")
 
         palette_version = str(instance.data.get("version")).zfill(3)
-
         self.log.info(f"Palette version {palette_version}")
 
         if not instance.data.get("representations"):
             instance.data["representations"] = []
 
         try:
-            thumbnail_path = self.create_palette_thumbnail(palette_name,
-                                                           palette_version,
-                                                           palette_file,
-                                                           tmp_thumb_path)
+            if palette_type == "solid":
+                thumbnail_path = self.create_palette_thumbnail(
+                    palette_name, palette_version, palette_file, tmp_thumb_path
+                )
+                instance.data["representations"].append({
+                    "name": "thumbnail",
+                    "ext": "png",
+                    "files": os.path.basename(thumbnail_path),
+                    "stagingDir": os.path.dirname(thumbnail_path),
+                    "tags": ["thumbnail"]
+                })
+                with open(log_path, "a") as f:
+                    f.write(f"    thumbnail_path: {thumbnail_path}\n")
+        
         except OSError as e:
             # FIXME: this happens on Mac where PIL cannot access fonts
             # for some reason.
             self.log.warning("Thumbnail generation failed")
             self.log.warning(e)
-        except ValueError:
+            with open(log_path, "a") as f:
+                f.write(f"    !!! Thumbnail generation failed (OSError): {e}\n")
+        except ValueError as e:
             self.log.error("Unsupported palette type for thumbnail.")
+            with open(log_path, "a") as f:
+                f.write(f"    !!! Unsupported palette type for thumbnail: {e}\n")
 
-        else:
-            thumbnail = {
-                "name": "thumbnail",
-                "ext": "png",
-                "files": os.path.basename(thumbnail_path),
-                "stagingDir": os.path.dirname(thumbnail_path),
-                "tags": ["thumbnail"]
-            }
 
-            instance.data["representations"].append(thumbnail)
 
-        representation = {
+        instance.data["representations"].append({
             "name": "plt",
             "ext": "plt",
             "files": os.path.basename(palette_file),
             "stagingDir": os.path.dirname(palette_file)
-        }
+        })
 
-        instance.data["representations"].append(representation)
+        if palette_type == "texture":
+            self.add_texture_representations(instance, palette_file)
+
+
+    def _parse_palette_entries(self, palette_path):
+        """Parse a .plt file and return its type + entries.
+
+        Returns:
+            tuple(str, list[dict]): palette type ("solid", "texture",
+                "mixed" or "empty") and the parsed entries in file order.
+        """
+        types_found = set()
+
+        with open(palette_path, newline="") as plt:
+            plt_parser = csv.reader(plt, delimiter=" ")
+            for i, line in enumerate(plt_parser):
+                if i == 0:
+                    continue
+                while "" in line:
+                    line.remove("")
+                if not line:
+                    continue
+
+                entry_type = line[0]
+
+                if entry_type == "Solid":
+                    types_found.add(entry_type)
+                elif entry_type == "Texture":
+                    types_found.add(entry_type)
+                elif len(line) == 1:
+                    self.log.debug(
+                        f"Skipping folder/group marker line: {line[0]}"
+                    )
+                else:
+                    self.log.warning(
+                        f"Unsupported palette entry type: {entry_type}"
+                    )
+
+        if types_found == {"Solid"}:
+            palette_type = "solid"
+        elif types_found == {"Texture"}:
+            palette_type = "texture"
+        elif types_found:
+            palette_type = "mixed"
+            self.log.warning(f"Mixed entry types in palette: {types_found}")
+        else:
+            palette_type = "empty"
+
+        with open(log_path, "a") as f:
+            f.write(
+                f"    _parse_palette_entries -> type={palette_type}, "
+                f"types_found={types_found}\n"
+            )
+
+        return palette_type
 
     def create_palette_thumbnail(self,
                                  palette_name,
@@ -105,9 +169,6 @@ class ExtractPalette(publish.Extractor):
                     continue
                 while ("" in line):
                     line.remove("")
-                # self.log.debug(line)
-                if line[0] not in ["Solid"]:
-                    raise ValueError("Unsupported palette type.")
                 color_name = line[1].strip('"')
                 colors[color_name] = {"type": line[0],
                                       "uuid": line[2],
@@ -203,3 +264,43 @@ class ExtractPalette(publish.Extractor):
 
         img.save(dst_path)
         return dst_path
+
+
+    def add_texture_representations(self, instance, palette_file):
+        """Find and publish the .tga files sitting next to the .plt.
+
+        Expects a flat folder named "<palette_stem>_texture" or
+        "<palette_stem>_textures" next to the .plt file.
+        """
+        texture_dir = os.path.join(
+            os.path.dirname(palette_file), 
+            f"{os.path.basename(palette_file).split(".plt")[0]}_textures"
+            )
+        if not os.path.isdir(texture_dir):
+            texture_dir = None
+
+        if not texture_dir:
+            self.log.warning(
+                f"No texture folder found next to {palette_file} "
+            )
+            return
+
+        tga_files = sorted(
+            f for f in os.listdir(texture_dir) if f.lower().endswith(".tga")
+        )
+
+        if not tga_files:
+            self.log.warning(f"No .tga files found in {texture_dir}")
+            return
+
+        self.log.info(f"Found {len(tga_files)} texture files in {texture_dir}")
+
+        for tga_file in tga_files:
+            repre_name = os.path.splitext(tga_file)[0]
+            instance.data["representations"].append({
+                "name": f"tga_{repre_name}",
+                "ext": "tga",
+                "files": tga_file,
+                "stagingDir": texture_dir,
+                "outputName": f"textures/{repre_name}",
+            })
