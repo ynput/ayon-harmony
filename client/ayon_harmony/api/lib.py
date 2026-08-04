@@ -43,6 +43,9 @@ from .server import Server
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+CURRENT_DIR = Path(__file__).parent.absolute()
+TEMP_WORKFILE_PATH = CURRENT_DIR / "temp.zip"
+
 
 class ProcessContext:
     server = None
@@ -128,6 +131,25 @@ class _ZipFile(zipfile.ZipFile):
     _windows_illegal_name_trans_table = str.maketrans(
         _windows_illegal_characters,
         "_" * len(_windows_illegal_characters)
+    )
+
+
+def _is_macos_metadata_entry(name: str) -> bool:
+    """Check whether a zip entry or file name is macOS metadata junk.
+
+    Archives created by macOS Finder embed AppleDouble files (`__MACOSX/`
+    directory, `._`-prefixed files) and `.DS_Store` files.
+
+    Args:
+        name (str): The name of the zip entry or file.
+
+    Returns:
+        bool: True if the name is macOS metadata junk.
+    """
+    return (
+        name.startswith("__MACOSX/")
+        or Path(name).name.startswith("._")
+        or Path(name).name == ".DS_Store"
     )
 
 
@@ -280,8 +302,13 @@ def check_workfiles_tool():
         open_empty_workfile()
 
 
+def is_temp_workfile(filepath):
+    """Check if filepath points to the temporary scratch workfile."""
+    return Path(filepath) == TEMP_WORKFILE_PATH
+
+
 def open_empty_workfile():
-    zip_file = os.path.join(os.path.dirname(__file__), "temp.zip")
+    zip_file = TEMP_WORKFILE_PATH.as_posix()
     temp_path = get_local_harmony_path(zip_file)
     if os.path.exists(temp_path):
         log.info(f"removing existing {temp_path}")
@@ -481,7 +508,10 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     if unzip:
         filepath = localize_file(filepath)
         with _ZipFile(filepath, "r") as zip_ref:
-            names = zip_ref.namelist()
+            names = [
+                name for name in zip_ref.namelist()
+                if not _is_macos_metadata_entry(name)
+            ]
             main_name = next(
                 Path(name).stem
                 for name in names
@@ -511,6 +541,8 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 return name
 
             for zip_info in zip_ref.infolist():
+                if _is_macos_metadata_entry(zip_info.filename):
+                    continue
                 if has_root_dir:
                     # Root-dir archives are handled by applying the same
                     # top-level file rename one level deeper and then
@@ -622,6 +654,8 @@ def zip_and_move(source, destination):
         for file in files:
             file_path = os.path.join(root, file)
             arcname = os.path.relpath(file_path, source)
+            if _is_macos_metadata_entry(arcname.replace(os.sep, "/")):
+                continue
             file_list.append((file_path, arcname))
 
     progress = QtWidgets.QProgressDialog(
