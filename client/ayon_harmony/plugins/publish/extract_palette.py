@@ -83,8 +83,11 @@ class ExtractPalette(publish.Extractor):
             self.add_texture_representations(instance, palette_file)
 
 
-    def parse_palette_entries(self, palette_path):
+    def parse_palette_entries(self, palette_path: str) -> str:
         """Parse a .plt file and return its type + entries.
+
+        Args:
+            palette_path (str): Path to the palette.
 
         Returns:
             str: palette type ("solid", "texture")
@@ -127,10 +130,13 @@ class ExtractPalette(publish.Extractor):
 
         return palette_type
 
-    def add_texture_representations(self, instance, palette_file):
+    def add_texture_representations(self, instance, palette_file: str):
         """Find and publish the .tga files sitting next to the .plt.
 
         Expects a flat folder named "<palette_stem>_textures" next to the .plt file.
+
+        Args:
+            palette_path (str): Path to the palette.
         """
         texture_dir = os.path.join(
             os.path.dirname(palette_file), 

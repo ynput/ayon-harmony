@@ -143,11 +143,8 @@ class ImportPaletteLoader(LinkPaletteLoader):
         result = super().load_palette(destination_plt.as_posix())
         return result
 
-    def remove(self, container) -> int:
-        """Remove the imported palette from the scene.
-
-        Removes the Harmony palette reference, then deletes the local
-        copied .plt file and its texture folder from disk.
+    def remove(self, container: dict) -> int:
+        """Remove the imported palette from the scene and their files.
 
         Args:
             container (dict): Container data.
