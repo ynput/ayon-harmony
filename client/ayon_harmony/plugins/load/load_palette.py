@@ -5,14 +5,6 @@ from ayon_core.pipeline import load
 
 import ayon_harmony.api as harmony
 
-def _texture_dir(plt_path: Path) -> Path:
-    """Return the expected texture folder path next to a .plt file.
-
-    Convention: "<plt_stem>_textures" sitting alongside the .plt.
-    """
-    result = plt_path.with_name(plt_path.stem + "_textures")
-    return result
-
 
 class LinkPaletteLoader(load.LoaderPlugin):
     """Link a palette.
@@ -132,23 +124,23 @@ class ImportPaletteLoader(LinkPaletteLoader):
             {"function": "scene.currentProjectPath"}
         )["result"]
 
-        src_plt = Path(palette_path)
-        dst_plt = Path(scene_path, "palette-library", src_plt.name)
+        source_plt = Path(palette_path)
+        destination_plt = Path(scene_path, "palette-library", source_plt.name)
 
-        self.log.info(f"Copying palette to {dst_plt}")
-        shutil.copy(src_plt, dst_plt)
+        self.log.info(f"Copying palette to {destination_plt}")
+        shutil.copy(source_plt, destination_plt)
 
-        src_textures = _texture_dir(src_plt)
-        if src_textures.is_dir():
-            dst_textures = _texture_dir(dst_plt)
-            self.log.info(f"Copying textures to {dst_textures}")
-            shutil.copytree(src_textures, dst_textures, dirs_exist_ok=True)
+        source_textures = source_plt.with_name(source_plt.stem + "_textures")
+        if source_textures.is_dir():
+            destination_textures = destination_plt.with_name(destination_plt.stem + "_textures")
+            self.log.info(f"Copying textures to {destination_textures}")
+            shutil.copytree(source_textures, destination_textures, dirs_exist_ok=True)
         else:
             self.log.debug(
-                f"No texture folder found next to {src_plt}, skipping."
+                f"No texture folder found next to {source_plt}, skipping."
             )
 
-        result = super().load_palette(dst_plt.as_posix())
+        result = super().load_palette(destination_plt.as_posix())
         return result
 
     def remove(self, container) -> int:
@@ -163,7 +155,7 @@ class ImportPaletteLoader(LinkPaletteLoader):
         Returns:
             int: Removed palette index.
         """
-        removed_idx = super().remove(container)
+        removed_plt = super().remove(container)
 
         local_plt = Path(container["nodes"][0])
 
@@ -173,9 +165,9 @@ class ImportPaletteLoader(LinkPaletteLoader):
         else:
             self.log.warning(f"Local palette file not found: {local_plt}")
 
-        local_textures = _texture_dir(local_plt)
+        local_textures = local_plt.with_name(local_plt.stem + "_textures")
         if local_textures.is_dir():
             self.log.info(f"Deleting local texture folder {local_textures}")
             shutil.rmtree(local_textures)
             
-        return removed_idx
+        return removed_plt

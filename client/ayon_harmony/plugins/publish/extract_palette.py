@@ -8,8 +8,6 @@ from PIL import Image, ImageDraw, ImageFont
 import ayon_harmony.api as harmony
 from ayon_core.pipeline import publish
 
-log_path = r"C:\Users\normaal\Documents\YuanDev\AYON-Development-Workbench\ayon-harmony\LOG.txt"
-
 
 class ExtractPalette(publish.Extractor):
     """Extract palette."""
@@ -36,7 +34,7 @@ class ExtractPalette(publish.Extractor):
             f"Got palette named {palette_name} and file {palette_file}."
         )
 
-        palette_type = self._parse_palette_entries(palette_file)
+        palette_type = self.parse_palette_entries(palette_file)
         self.log.info(f"Detected palette type: {palette_type}")
 
         tmp_thumb_path = os.path.join(
@@ -46,6 +44,7 @@ class ExtractPalette(publish.Extractor):
         self.log.info(f"Temporary thumbnail path {tmp_thumb_path}")
 
         palette_version = str(instance.data.get("version")).zfill(3)
+
         self.log.info(f"Palette version {palette_version}")
 
         if not instance.data.get("representations"):
@@ -63,21 +62,14 @@ class ExtractPalette(publish.Extractor):
                     "stagingDir": os.path.dirname(thumbnail_path),
                     "tags": ["thumbnail"]
                 })
-                with open(log_path, "a") as f:
-                    f.write(f"    thumbnail_path: {thumbnail_path}\n")
         
         except OSError as e:
             # FIXME: this happens on Mac where PIL cannot access fonts
             # for some reason.
             self.log.warning("Thumbnail generation failed")
             self.log.warning(e)
-            with open(log_path, "a") as f:
-                f.write(f"    !!! Thumbnail generation failed (OSError): {e}\n")
-        except ValueError as e:
+        except ValueError :
             self.log.error("Unsupported palette type for thumbnail.")
-            with open(log_path, "a") as f:
-                f.write(f"    !!! Unsupported palette type for thumbnail: {e}\n")
-
 
 
         instance.data["representations"].append({
@@ -87,16 +79,15 @@ class ExtractPalette(publish.Extractor):
             "stagingDir": os.path.dirname(palette_file)
         })
 
-        if palette_type == "texture":
+        if palette_type == "texture" | palette_type == "mixed":
             self.add_texture_representations(instance, palette_file)
 
 
-    def _parse_palette_entries(self, palette_path):
+    def parse_palette_entries(self, palette_path):
         """Parse a .plt file and return its type + entries.
 
         Returns:
-            tuple(str, list[dict]): palette type ("solid", "texture",
-                "mixed" or "empty") and the parsed entries in file order.
+            str: palette type ("solid", "texture")
         """
         types_found = set()
 
@@ -131,17 +122,48 @@ class ExtractPalette(publish.Extractor):
             palette_type = "texture"
         elif types_found:
             palette_type = "mixed"
-            self.log.warning(f"Mixed entry types in palette: {types_found}")
         else:
             palette_type = "empty"
 
-        with open(log_path, "a") as f:
-            f.write(
-                f"    _parse_palette_entries -> type={palette_type}, "
-                f"types_found={types_found}\n"
-            )
-
         return palette_type
+
+    def add_texture_representations(self, instance, palette_file):
+        """Find and publish the .tga files sitting next to the .plt.
+
+        Expects a flat folder named "<palette_stem>_textures" next to the .plt file.
+        """
+        texture_dir = os.path.join(
+            os.path.dirname(palette_file), 
+            f"{os.path.basename(palette_file).split(".plt")[0]}_textures"
+            )
+        if not os.path.isdir(texture_dir):
+            texture_dir = None
+
+        if not texture_dir:
+            self.log.warning(
+                f"No texture folder found next to {palette_file} "
+            )
+            return
+
+        tga_files = sorted(
+            f for f in os.listdir(texture_dir) if f.lower().endswith(".tga")
+        )
+
+        if not tga_files:
+            self.log.warning(f"No .tga files found in {texture_dir}")
+            return
+
+        self.log.info(f"Found {len(tga_files)} texture files in {texture_dir}")
+
+        for tga_file in tga_files:
+            repre_name = os.path.splitext(tga_file)[0]
+            instance.data["representations"].append({
+                "name": f"tga_{repre_name}",
+                "ext": "tga",
+                "files": tga_file,
+                "stagingDir": texture_dir,
+                "outputName": f"textures/{repre_name}",
+            })
 
     def create_palette_thumbnail(self,
                                  palette_name,
@@ -264,43 +286,3 @@ class ExtractPalette(publish.Extractor):
 
         img.save(dst_path)
         return dst_path
-
-
-    def add_texture_representations(self, instance, palette_file):
-        """Find and publish the .tga files sitting next to the .plt.
-
-        Expects a flat folder named "<palette_stem>_texture" or
-        "<palette_stem>_textures" next to the .plt file.
-        """
-        texture_dir = os.path.join(
-            os.path.dirname(palette_file), 
-            f"{os.path.basename(palette_file).split(".plt")[0]}_textures"
-            )
-        if not os.path.isdir(texture_dir):
-            texture_dir = None
-
-        if not texture_dir:
-            self.log.warning(
-                f"No texture folder found next to {palette_file} "
-            )
-            return
-
-        tga_files = sorted(
-            f for f in os.listdir(texture_dir) if f.lower().endswith(".tga")
-        )
-
-        if not tga_files:
-            self.log.warning(f"No .tga files found in {texture_dir}")
-            return
-
-        self.log.info(f"Found {len(tga_files)} texture files in {texture_dir}")
-
-        for tga_file in tga_files:
-            repre_name = os.path.splitext(tga_file)[0]
-            instance.data["representations"].append({
-                "name": f"tga_{repre_name}",
-                "ext": "tga",
-                "files": tga_file,
-                "stagingDir": texture_dir,
-                "outputName": f"textures/{repre_name}",
-            })
