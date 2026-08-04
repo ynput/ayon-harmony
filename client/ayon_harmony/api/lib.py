@@ -134,6 +134,25 @@ class _ZipFile(zipfile.ZipFile):
     )
 
 
+def _is_macos_metadata_entry(name: str) -> bool:
+    """Check whether a zip entry or file name is macOS metadata junk.
+
+    Archives created by macOS Finder embed AppleDouble files (`__MACOSX/`
+    directory, `._`-prefixed files) and `.DS_Store` files.
+
+    Args:
+        name (str): The name of the zip entry or file.
+
+    Returns:
+        bool: True if the name is macOS metadata junk.
+    """
+    return (
+        name.startswith("__MACOSX/")
+        or Path(name).name.startswith("._")
+        or Path(name).name == ".DS_Store"
+    )
+
+
 def main(*subprocess_args):
     # coloring in StdOutBroker
     os.environ["AYON_LOG_NO_COLORS"] = "0"
@@ -489,7 +508,10 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     if unzip:
         filepath = localize_file(filepath)
         with _ZipFile(filepath, "r") as zip_ref:
-            names = zip_ref.namelist()
+            names = [
+                name for name in zip_ref.namelist()
+                if not _is_macos_metadata_entry(name)
+            ]
             main_name = next(
                 Path(name).stem
                 for name in names
@@ -519,6 +541,8 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 return name
 
             for zip_info in zip_ref.infolist():
+                if _is_macos_metadata_entry(zip_info.filename):
+                    continue
                 if has_root_dir:
                     # Root-dir archives are handled by applying the same
                     # top-level file rename one level deeper and then
@@ -630,6 +654,8 @@ def zip_and_move(source, destination):
         for file in files:
             file_path = os.path.join(root, file)
             arcname = os.path.relpath(file_path, source)
+            if _is_macos_metadata_entry(arcname.replace(os.sep, "/")):
+                continue
             file_list.append((file_path, arcname))
 
     progress = QtWidgets.QProgressDialog(
