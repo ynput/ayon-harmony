@@ -87,7 +87,7 @@ class LinkPaletteLoader(load.LoaderPlugin):
         harmony.send(
             {
                 "function": "AyonHarmony.movePaletteToIndex",
-                "args": [palette_path, palette_idx]
+                "args": [palette_path, palette_idx],
             }
         )
 
@@ -120,7 +120,9 @@ class ImportPaletteLoader(LinkPaletteLoader):
         Returns:
             str: Palette ID.
         """
-        scene_path = harmony.send({"function": "scene.currentProjectPath"})["result"]
+        scene_path = harmony.send({"function": "scene.currentProjectPath"})[
+            "result"
+        ]
 
         source_plt = Path(palette_path)
         destination_plt = Path(scene_path, "palette-library", source_plt.name)
@@ -134,9 +136,13 @@ class ImportPaletteLoader(LinkPaletteLoader):
                 destination_plt.stem + "_textures"
             )
             self.log.info(f"Copying textures to {destination_textures}")
-            shutil.copytree(source_textures, destination_textures, dirs_exist_ok=True)
+            shutil.copytree(
+                source_textures, destination_textures, dirs_exist_ok=True
+            )
         else:
-            self.log.debug(f"No texture folder found next to {source_plt}, skipping.")
+            self.log.debug(
+                f"No texture folder found next to {source_plt}, skipping."
+            )
 
         result = super().load_palette(destination_plt.as_posix())
         return result

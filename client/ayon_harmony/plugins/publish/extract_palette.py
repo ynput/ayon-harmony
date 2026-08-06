@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Extract palette from Harmony."""
+
 import os
 import csv
 
@@ -22,8 +23,9 @@ class ExtractPalette(publish.Extractor):
         result = harmony.send(
             {
                 "function": f"AyonHarmony.Publish.{self_name}.getPalette",
-                "args": instance.data["id"]
-            })["result"]
+                "args": instance.data["id"],
+            }
+        )["result"]
 
         if not isinstance(result, list):
             self.log.error(f"Invalid reply: {result}")
@@ -39,7 +41,7 @@ class ExtractPalette(publish.Extractor):
 
         tmp_thumb_path = os.path.join(
             os.path.dirname(palette_file),
-            os.path.basename(palette_file).split(".plt")[0] + "_swatches.png"
+            os.path.basename(palette_file).split(".plt")[0] + "_swatches.png",
         )
         self.log.info(f"Temporary thumbnail path {tmp_thumb_path}")
 
@@ -55,33 +57,35 @@ class ExtractPalette(publish.Extractor):
                 thumbnail_path = self.create_palette_thumbnail(
                     palette_name, palette_version, palette_file, tmp_thumb_path
                 )
-                instance.data["representations"].append({
-                    "name": "thumbnail",
-                    "ext": "png",
-                    "files": os.path.basename(thumbnail_path),
-                    "stagingDir": os.path.dirname(thumbnail_path),
-                    "tags": ["thumbnail"]
-                })
-        
+                instance.data["representations"].append(
+                    {
+                        "name": "thumbnail",
+                        "ext": "png",
+                        "files": os.path.basename(thumbnail_path),
+                        "stagingDir": os.path.dirname(thumbnail_path),
+                        "tags": ["thumbnail"],
+                    }
+                )
+
         except OSError as e:
             # FIXME: this happens on Mac where PIL cannot access fonts
             # for some reason.
             self.log.warning("Thumbnail generation failed")
             self.log.warning(e)
-        except ValueError :
+        except ValueError:
             self.log.error("Unsupported palette type for thumbnail.")
 
-
-        instance.data["representations"].append({
-            "name": "plt",
-            "ext": "plt",
-            "files": os.path.basename(palette_file),
-            "stagingDir": os.path.dirname(palette_file)
-        })
+        instance.data["representations"].append(
+            {
+                "name": "plt",
+                "ext": "plt",
+                "files": os.path.basename(palette_file),
+                "stagingDir": os.path.dirname(palette_file),
+            }
+        )
 
         if palette_type == "texture" | palette_type == "mixed":
             self.add_texture_representations(instance, palette_file)
-
 
     def parse_palette_entries(self, palette_path: str) -> str:
         """Parse a .plt file and return its type + entries.
@@ -139,9 +143,9 @@ class ExtractPalette(publish.Extractor):
             palette_path (str): Path to the palette.
         """
         texture_dir = os.path.join(
-            os.path.dirname(palette_file), 
-            f"{os.path.basename(palette_file).split(".plt")[0]}_textures"
-            )
+            os.path.dirname(palette_file),
+            f"{os.path.basename(palette_file).split('.plt')[0]}_textures",
+        )
         if not os.path.isdir(texture_dir):
             texture_dir = None
 
@@ -163,19 +167,19 @@ class ExtractPalette(publish.Extractor):
 
         for tga_file in tga_files:
             repre_name = os.path.splitext(tga_file)[0]
-            instance.data["representations"].append({
-                "name": f"tga_{repre_name}",
-                "ext": "tga",
-                "files": tga_file,
-                "stagingDir": texture_dir,
-                "outputName": f"textures/{repre_name}",
-            })
+            instance.data["representations"].append(
+                {
+                    "name": f"tga_{repre_name}",
+                    "ext": "tga",
+                    "files": tga_file,
+                    "stagingDir": texture_dir,
+                    "outputName": f"textures/{repre_name}",
+                }
+            )
 
-    def create_palette_thumbnail(self,
-                                 palette_name,
-                                 palette_version,
-                                 palette_path,
-                                 dst_path):
+    def create_palette_thumbnail(
+        self, palette_name, palette_version, palette_path, dst_path
+    ):
         """Create thumbnail for palette file.
 
         Args:
@@ -190,21 +194,24 @@ class ExtractPalette(publish.Extractor):
         """
         colors = {}
 
-        with open(palette_path, newline='') as plt:
+        with open(palette_path, newline="") as plt:
             plt_parser = csv.reader(plt, delimiter=" ")
             for i, line in enumerate(plt_parser):
                 if i == 0:
                     continue
-                while ("" in line):
+                while "" in line:
                     line.remove("")
                 color_name = line[1].strip('"')
-                colors[color_name] = {"type": line[0],
-                                      "uuid": line[2],
-                                      "rgba": (int(line[3]),
-                                               int(line[4]),
-                                               int(line[5]),
-                                               int(line[6])),
-                                      }
+                colors[color_name] = {
+                    "type": line[0],
+                    "uuid": line[2],
+                    "rgba": (
+                        int(line[3]),
+                        int(line[4]),
+                        int(line[5]),
+                        int(line[6]),
+                    ),
+                }
             plt.close()
 
         img_pad_top = 80
@@ -216,12 +223,11 @@ class ExtractPalette(publish.Extractor):
         swatch_h = 50
 
         image_w = 800
-        image_h = (img_pad_top +
-                   (len(colors.keys()) *
-                    swatch_h) +
-                   (swatch_pad_top *
-                    len(colors.keys()))
-                   )
+        image_h = (
+            img_pad_top
+            + (len(colors.keys()) * swatch_h)
+            + (swatch_pad_top * len(colors.keys()))
+        )
 
         img = Image.new("RGBA", (image_w, image_h), "white")
 
@@ -241,10 +247,12 @@ class ExtractPalette(publish.Extractor):
         title_font = ImageFont.truetype("arial.ttf", 28)
         label_font = ImageFont.truetype("arial.ttf", 20)
 
-        draw.text((label_pad_name, 20),
-                  "{} (v{})".format(palette_name, palette_version),
-                  "black",
-                  font=title_font)
+        draw.text(
+            (label_pad_name, 20),
+            "{} (v{})".format(palette_name, palette_version),
+            "black",
+            font=title_font,
+        )
 
         for i, name in enumerate(colors):
             rgba = colors[name]["rgba"]
@@ -271,22 +279,45 @@ class ExtractPalette(publish.Extractor):
             #         fill=rgba, outline=(0, 0, 0), width=2)
             # else:
 
-            draw.rectangle((
-                swatch_pad_left,  # upper left x
-                img_pad_top + swatch_pad_top + (i * swatch_h),  # upper left y
-                swatch_pad_left + (swatch_w * 2),  # lower right x
-                img_pad_top + swatch_h + (i * swatch_h)),  # lower right y
-                fill=rgba, outline=(0, 0, 0), width=2)
+            draw.rectangle(
+                (
+                    swatch_pad_left,  # upper left x
+                    img_pad_top
+                    + swatch_pad_top
+                    + (i * swatch_h),  # upper left y
+                    swatch_pad_left + (swatch_w * 2),  # lower right x
+                    img_pad_top + swatch_h + (i * swatch_h),
+                ),  # lower right y
+                fill=rgba,
+                outline=(0, 0, 0),
+                width=2,
+            )
 
-            draw.text((label_pad_name, img_pad_top + (i * swatch_h) + swatch_pad_top + (swatch_h / 4)),  # noqa: E501
-                      name,
-                      "black",
-                      font=label_font)
+            draw.text(
+                (
+                    label_pad_name,
+                    img_pad_top
+                    + (i * swatch_h)
+                    + swatch_pad_top
+                    + (swatch_h / 4),
+                ),  # noqa: E501
+                name,
+                "black",
+                font=label_font,
+            )
 
-            draw.text((label_pad_rgb, img_pad_top + (i * swatch_h) + swatch_pad_top + (swatch_h / 4)),  # noqa: E501
-                      str(rgba),
-                      "black",
-                      font=label_font)
+            draw.text(
+                (
+                    label_pad_rgb,
+                    img_pad_top
+                    + (i * swatch_h)
+                    + swatch_pad_top
+                    + (swatch_h / 4),
+                ),  # noqa: E501
+                str(rgba),
+                "black",
+                font=label_font,
+            )
 
         draw = ImageDraw.Draw(img)
 
