@@ -11,7 +11,11 @@ class ValidatePaletteLocation(
     pyblish.api.InstancePlugin,
     OptionalPyblishPluginMixin,
 ):
-    """Validate that a palette is stored at scene level. Palettes stored at 'environment' or 'job' level are not versioned with the scene."""
+    """
+    Validate that a palette is stored at scene level. 
+    
+    Palettes stored at 'environment' or 'job' level are not versioned with the scene.
+    """
 
     label = "Validate Palette Location"
     hosts = ["harmony"]
@@ -28,9 +32,14 @@ class ValidatePaletteLocation(
         storage = instance.data.get("paletteStorage")
 
         if storage in self.invalid_storages:
-            msg = f"Found invalid palette location '{instance.name}' is stored at '{storage}'"
+            msg = (
+                f"Found invalid palette location '{instance.name}' "
+                f"is stored at '{storage}'"
+            )
             formatting_data = {
                 "palette_name": instance.name,
                 "palette_location": storage,
             }
-            raise PublishXmlValidationError(self, msg, formatting_data=formatting_data)
+            raise PublishXmlValidationError(
+                self, msg, formatting_data=formatting_data
+            )
