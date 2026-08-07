@@ -27,7 +27,7 @@ class ExtractWorkfile(publish.Extractor):
             src = fr"\\?\{src}"
             filepath = fr"\\?\{filepath}"
         self.log.info(f"Copying to {filepath}")
-        shutil.copytree(src, filepath)
+        shutil.copytree(src, filepath, ignore=shutil.ignore_patterns("frames*"))
 
         # Prep representation.
         shutil.make_archive(
