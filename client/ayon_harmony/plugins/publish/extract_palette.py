@@ -137,7 +137,7 @@ class ExtractPalette(publish.Extractor):
     def add_texture_representations(self, instance, palette_file: str):
         """Find and publish the .tga files sitting next to the .plt.
 
-        Expects a flat folder named "<palette_stem>_textures" next to the .plt file.
+        Expects a flat folder named "<palette_stem>_textures" next to the .plt.
 
         Args:
             palette_path (str): Path to the palette.
