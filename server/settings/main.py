@@ -1,8 +1,9 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
+from .cache_default import HarmonyCacheDefaultSettings
+from .creator_plugins import HarmonyCreatePlugins
 from .imageio import HarmonyImageIOModel
 from .load_plugins import HarmonyLoadPlugins
-from .creator_plugins import HarmonyCreatePlugins
 from .publish_plugins import HarmonyPublishPlugins
 
 
@@ -12,6 +13,10 @@ class HarmonySettings(BaseSettingsModel):
     imageio: HarmonyImageIOModel = SettingsField(
         default_factory=HarmonyImageIOModel,
         title="OCIO config"
+    )
+    cache_default: HarmonyCacheDefaultSettings = SettingsField(
+        default_factory=HarmonyCacheDefaultSettings,
+        title="Cache conflict resolution",
     )
     load: HarmonyLoadPlugins = SettingsField(
         default_factory=HarmonyLoadPlugins,
@@ -88,6 +93,10 @@ DEFAULT_HARMONY_SETTING = {
                 "template": "G{group_index}_L{layer_index}_{variant}"
             }
         }
+    },
+    "cache_default": {
+        "force_default": False,
+        "cache_default_source": "server",
     },
     "load": {
         "override_name": "",
