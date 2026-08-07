@@ -14,7 +14,7 @@ class ValidatePaletteLocation(
     """
     Validate that a palette is stored at scene level.
 
-    Palettes stored at 'environment' or 'job' level 
+    Palettes stored at 'environment' or 'job' level
     are not versioned with the scene.
     """
 
