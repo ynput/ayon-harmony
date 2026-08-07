@@ -12,9 +12,10 @@ class ValidatePaletteLocation(
     OptionalPyblishPluginMixin,
 ):
     """
-    Validate that a palette is stored at scene level. 
-    
-    Palettes stored at 'environment' or 'job' level are not versioned with the scene.
+    Validate that a palette is stored at scene level.
+
+    Palettes stored at 'environment' or 'job' level 
+    are not versioned with the scene.
     """
 
     label = "Validate Palette Location"
