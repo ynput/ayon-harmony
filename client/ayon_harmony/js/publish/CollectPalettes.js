@@ -12,6 +12,32 @@ if (typeof AyonHarmony === 'undefined') {
 
 
 /**
+ * Map a numeric PaletteObjectManager.Constants.Location value to a
+ * human-readable storage name ("scene", "environment", "job",
+ * "element", "external").
+ * @param {number} location
+ * @return {string}
+ */
+function paletteLocationToStorage(location) {
+    var Loc = PaletteObjectManager.Constants.Location;
+    switch (location) {
+        case Loc.ENVIRONMENT:
+            return "environment";
+        case Loc.JOB:
+            return "job";
+        case Loc.SCENE:
+            return "scene";
+        case Loc.ELEMENT:
+            return "element";
+        case Loc.EXTERNAL:
+            return "external";
+        default:
+            return "unknown";
+    }
+}
+
+
+/**
  * @namespace
  * @classdesc CollectPalettes JS code.
  */
@@ -31,13 +57,17 @@ CollectPalettes.prototype.getPalettes = function(local_only) {
     var palettes = {};
     for(var i=0; i < palette_list.numPalettes; ++i) {
         var palette = palette_list.getPaletteByIndex(i);
-        
+        var storage = paletteLocationToStorage(palette.location);
+
         // if local_only is true, skip external palettes
         if (local_only && palette.location == PaletteObjectManager.Constants.Location.EXTERNAL) {
             continue;
         }
-        
-        palettes[palette.getName()] = palette.id;
+
+        palettes[palette.getName()] = {
+            id: palette.id,
+            storage: storage
+        };
     }
 
     return palettes;
