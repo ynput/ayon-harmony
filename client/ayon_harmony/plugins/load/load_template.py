@@ -53,7 +53,7 @@ class TemplateLoader(harmony.BackdropBaseLoader):
                 "args": [
                     next(Path(temp_dir).glob("*.tpl")).as_posix(),
                     override_name,
-                    parent_backdrop_name,
+                    parent_backdrop_name
                 ],
             }
         )["result"]
