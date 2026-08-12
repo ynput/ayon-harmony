@@ -37,7 +37,6 @@ TemplateLoader.prototype.loadContainer = function(args) {
     var templatePath = args[0];
     var overrideName = args[1] || "";
     var parentBackdropName = args[2] || null;
-    var existingNames = args[3] || [];
 
     // Copy from template file
     MessageLog.trace("loadContainer:: ");
@@ -137,11 +136,12 @@ TemplateLoader.prototype.loadContainer = function(args) {
 
         var mainBackdropBaseName = parseBackdropName(mainBackdrop.title.text).baseName;
 
-        // Collect used suffix slots for this baseName, based on the
-        // Python-provided list of already-registered container names
         var usedNumbers = [];
-        for (var n = 0; n < existingNames.length; n++) {
-            var parsed = parseBackdropName(existingNames[n]);
+        for (var n = 0; n < allBackdrops.length; n++) {
+            if (allBackdrops[n] === mainBackdrop) {
+                continue;
+            }
+            var parsed = parseBackdropName(allBackdrops[n].title.text);
             if (parsed.baseName !== mainBackdropBaseName) {
                 continue;
             }
