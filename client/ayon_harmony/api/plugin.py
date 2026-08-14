@@ -207,7 +207,6 @@ class HarmonyRenderCreator(HarmonyCreator):
 
     It creates new Composite type node from which it is rendered.
     """
-    product_type = "render"
 
     node_type = "COMPOSITE"
     # should node be auto connected to main Composite node for Harmony Advanced
