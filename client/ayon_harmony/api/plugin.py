@@ -92,6 +92,7 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
     If the selection is used, the selected nodes will be connected to the
     created node.
     """
+    skip_discovery = True
 
     settings_category = "harmony"
 
@@ -207,6 +208,7 @@ class HarmonyRenderCreator(HarmonyCreator):
 
     It creates new Composite type node from which it is rendered.
     """
+    skip_discovery = True
 
     node_type = "COMPOSITE"
     # should node be auto connected to main Composite node for Harmony Advanced
@@ -331,12 +333,11 @@ class HarmonyRenderCreator(HarmonyCreator):
 
 
 class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
-
+    skip_discovery = True
     settings_category = "harmony"
     enabled = True
 
     def create(self):
-
         variant = None
         if self.default_variants:
             variant = self.default_variants[0]
