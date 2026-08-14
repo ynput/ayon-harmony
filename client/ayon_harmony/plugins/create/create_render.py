@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """Create render node."""
 import ayon_harmony.api as harmony
-from ayon_harmony.api import plugin
+from ayon_harmony.api.plugin import HarmonyRenderCreator
 
 
-class CreateRender(plugin.HarmonyRenderCreator):
+class CreateRender(HarmonyRenderCreator):
     """Composite node for publishing renders."""
 
     identifier = "io.ayon.creators.harmony.render"
