@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import collections
 import re
 
@@ -92,6 +93,7 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
     If the selection is used, the selected nodes will be connected to the
     created node.
     """
+    skip_discovery = True
 
     settings_category = "harmony"
 
@@ -186,8 +188,9 @@ class HarmonyCreator(Creator, HarmonyCreatorBase):
             }
         )
 
+    @abstractmethod
     def product_impl(self, name, instance_data: dict, pre_create_data: dict):
-        raise NotImplementedError
+        pass
 
     def get_pre_create_attr_defs(self):
         output = [
@@ -207,7 +210,7 @@ class HarmonyRenderCreator(HarmonyCreator):
 
     It creates new Composite type node from which it is rendered.
     """
-    product_type = "render"
+    skip_discovery = True
 
     node_type = "COMPOSITE"
     # should node be auto connected to main Composite node for Harmony Advanced
@@ -332,12 +335,11 @@ class HarmonyRenderCreator(HarmonyCreator):
 
 
 class HarmonyAutoCreator(HarmonyCreatorBase, AutoCreator):
-
+    skip_discovery = True
     settings_category = "harmony"
     enabled = True
 
     def create(self):
-
         variant = None
         if self.default_variants:
             variant = self.default_variants[0]
