@@ -50,6 +50,13 @@ class ValidateInstancePlugin(BaseSettingsModel):
     active: bool = SettingsField(True, title="Active")
 
 
+class ValidatePaletteLocationPlugin(BaseSettingsModel):
+    """Validate if palette location is inside  in the workfile."""
+    enabled: bool = False
+    optional: bool = SettingsField(False, title="Optional")
+    active: bool = SettingsField(True, title="Active")
+
+
 def compression_enum():
     return [
         {"value": "ZIP", "label": "ZIP"},
@@ -130,6 +137,11 @@ class HarmonyPublishPlugins(BaseSettingsModel):
     ValidateInstance: ValidateInstancePlugin = SettingsField(
         title="Validate Instance",
         default_factory=ValidateInstancePlugin,
+    )
+
+    ValidatePaletteLocation: ValidatePaletteLocationPlugin = SettingsField(
+        title="Validate Instance",
+        default_factory=ValidatePaletteLocationPlugin,
     )
 
     ExtractConvertToEXR: ExtractConvertToEXRModel = SettingsField(

@@ -136,6 +136,11 @@ DEFAULT_HARMONY_SETTING = {
             "optional": True,
             "active": True
         },
+        "ValidatePaletteLocation": {
+            "enabled": False,
+            "optional": True,
+            "active": True
+        },
         "ExtractConvertToEXR": {
             "enabled": False,
             "replace_pngs": True,
