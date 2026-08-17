@@ -140,7 +140,7 @@ class HarmonyPublishPlugins(BaseSettingsModel):
     )
 
     ValidatePaletteLocation: ValidatePaletteLocationPlugin = SettingsField(
-        title="Validate Instance",
+        title="Validate Palette Location",
         default_factory=ValidatePaletteLocationPlugin,
     )
 
