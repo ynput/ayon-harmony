@@ -611,7 +611,10 @@ def launch_zip_file(filepath):
 
     # Unzip the scene file and get the .xstage path
     try:
-        scene_path = unzip_scene_file(filepath)
+        scene_path = unzip_scene_file(
+            filepath,
+            headless=is_headless_mode_enabled()
+        )
     except Exception as e:
         print(f"Error unzipping scene file: {e}")
         ProcessContext.server.stop()
