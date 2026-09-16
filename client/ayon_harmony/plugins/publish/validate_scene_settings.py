@@ -58,7 +58,7 @@ class ValidateSceneSettings(
     # skip resolution check if Task name matches any of regex patterns
     skip_resolution_check = ["render", "Render"]  # regex
 
-    # skip frameStart, frameEnd check if Task name matches any of regex patt.
+    # skip frameStart, frameEnd check if Task and Folder name matches any of regex patt.
     skip_timelines_check = []  # regex
 
     def process(self, instance):
@@ -90,18 +90,32 @@ class ValidateSceneSettings(
             expected_settings.pop("resolutionWidth")
             expected_settings.pop("resolutionHeight")
 
-        if any(
-            re.search(pattern, task_name)
-            for pattern in self.skip_timelines_check
-        ):
-            self.log.info(
-                "Skipping frames check because of task name"
-                f" and pattern {self.skip_timelines_check}"
-            )
-            expected_settings.pop("frameStart", None)
-            expected_settings.pop("frameEnd", None)
-            expected_settings.pop("frameStartHandle", None)
-            expected_settings.pop("frameEndHandle", None)
+        for filter in self.skip_timelines_check:
+            if (
+                (
+                    not filter.tasks
+                    or any(
+                        re.search(pattern, task_name)
+                        for pattern in filter.tasks
+                    )
+                )
+                and (
+                    not filter.folder_paths
+                    or any(
+                        re.search(pattern, instance.data["folderPath"])
+                        for pattern in filter.folder_paths
+                    )
+                )
+            ):
+                self.log.info(
+                    "Skipping frames check because of task name"
+                    f" and pattern {self.skip_timelines_check}"
+                )
+                expected_settings.pop("frameStart", None)
+                expected_settings.pop("frameEnd", None)
+                expected_settings.pop("frameStartHandle", None)
+                expected_settings.pop("frameEndHandle", None)
+                break
 
         folder_name = instance.context.data["folderPath"].rsplit("/", 1)[-1]
         if any(re.search(pattern, folder_name)
