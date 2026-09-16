@@ -3,7 +3,7 @@ import os
 import pyblish.api
 
 
-class CollectAudioFile(pyblish.api.InstancePlugin):
+class CollectHarmonyAudio(pyblish.api.InstancePlugin):
     """
         Collect relative path for audio file to instance.
 
