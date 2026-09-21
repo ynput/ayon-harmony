@@ -380,7 +380,8 @@ def containerise(name,
         "namespace": namespace,
         "loader": str(loader),
         "representation": context["representation"]["id"],
-        "nodes": nodes
+        "nodes": nodes,
+        "project_name": context["project"]["name"],
     }
 
     harmony.imprint(node, data)
