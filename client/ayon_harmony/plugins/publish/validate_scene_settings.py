@@ -91,19 +91,21 @@ class ValidateSceneSettings(
             expected_settings.pop("resolutionHeight")
 
         for filter in self.skip_timelines_check:
+            task_filters = filter.get("tasks", {})
+            folder_path_filters = filter.get("folder_paths", {})
             if (
                 (
-                    not filter.tasks
+                    not task_filters
                     or any(
                         re.search(pattern, task_name)
-                        for pattern in filter.tasks
+                        for pattern in task_filters
                     )
                 )
                 and (
-                    not filter.folder_paths
+                    not folder_path_filters
                     or any(
                         re.search(pattern, instance.data["folderPath"])
-                        for pattern in filter.folder_paths
+                        for pattern in folder_path_filters
                     )
                 )
             ):

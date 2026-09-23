@@ -22,11 +22,13 @@ class SkipTimelineCheckFilter(BaseSettingsModel):
     """Skip Timeline Check Filter for Validate Scene Settings Plugin."""
     tasks: list[str] = SettingsField(
         default_factory=list,
-        title="Tasks for which timeline checks should be bypassed.",
+        title="Tasks",
+        description="Bypass timeline checks for tehse tasks."
     )
     folder_paths: list[str] = SettingsField(
         default_factory=list,
-        title="Folder paths for which timeline checks should be bypassed.",
+        title="Folder paths",
+        description="Bypass timeline checks for these folder paths.",
     )
 
 
