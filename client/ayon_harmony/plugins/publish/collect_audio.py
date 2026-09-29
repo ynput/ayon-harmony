@@ -3,7 +3,7 @@ import os
 import pyblish.api
 
 
-class CollectAudio(pyblish.api.InstancePlugin):
+class CollectHarmonyAudio(pyblish.api.InstancePlugin):
     """
         Collect relative path for audio file to instance.
 
@@ -14,7 +14,7 @@ class CollectAudio(pyblish.api.InstancePlugin):
     """
 
     order = pyblish.api.CollectorOrder + 0.499
-    label = "Collect Audio"
+    label = "Collect Audio File"
     hosts = ["harmony"]
     families = ["render.farm"]
 
