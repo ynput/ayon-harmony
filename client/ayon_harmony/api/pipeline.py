@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import logging
-
+import json
 from qtpy import QtWidgets
 
 from ayon_core import style
@@ -50,6 +50,7 @@ from .workio import (
 )
 
 log = logging.getLogger("ayon_harmony")
+
 
 PLUGINS_DIR = os.path.join(HARMONY_ADDON_ROOT, "plugins")
 PUBLISH_PATH = os.path.join(PLUGINS_DIR, "publish")
@@ -319,15 +320,20 @@ def ls():
     """Yields containers from Harmony scene.
 
     Clean up scene data from orphaned containers.
+    Look for backdrop metadata and add them to scene data if not registered.
 
     Yields:
         dict: container
     """
+    resolve_duplicate_backdrops()
+
     scene_data = harmony.get_scene_data() or dict()
+
     containers_names = (
         harmony.get_all_top_names() | harmony.get_palettes_paths()
     )
-    cleaned_scene_data = False
+
+    updated_scene_data = False
     for entity_name, entity_data in scene_data.copy().items():
         if not is_container_data(entity_data):
             continue
@@ -335,16 +341,185 @@ def ls():
         # Filter orphaned containers
         if entity_name not in containers_names:
             del scene_data[entity_name]
-            cleaned_scene_data = True
+            updated_scene_data = True
+
+    for entity_name, entity_data in scene_data.items():
+        if is_container_data(entity_data):
+            clean_data = {k: v for k, v in entity_data.items()}
+            ensure_metadata_in_backdrop(entity_name, {entity_name: clean_data})
+
+    backdrop_metadata = read_metadata_from_backdrops()
+
+    for entity_name, entity_data in backdrop_metadata.items():
+        if entity_name not in scene_data:
+            updated_scene_data = True
+            scene_data[entity_name] = entity_data
+
+        # Single yield point
+    yielded_count = 0
+    for entity_name, entity_data in scene_data.items():
+        if not is_container_data(entity_data):
             continue
 
-        if not entity_data.get("objectName"):  # backward compatibility
+        if entity_name not in containers_names:
+            continue
+        if not entity_data.get("objectName"):
             entity_data["objectName"] = entity_data["name"]
+        yielded_count += 1
         yield entity_data
 
     # Update scene data if cleaned
-    if cleaned_scene_data:
+    if updated_scene_data:
         harmony.set_scene_data(scene_data)
+
+
+def read_metadata_from_backdrops() -> dict:
+    """Read metadata of templates from backdrop text fields.
+
+    Looks for backdrops containing the AYON metadata marker in their
+    description text, and parses the JSON metadata that follows it.
+
+    Returns:
+        dict: Dictionary with metadata.
+    """
+
+    func = """function readBackdropMetadata() {
+        var backdrops = Backdrop.backdrops("Top");
+        var results = [];
+        for (var i = 0; i < backdrops.length; i++) {
+            var desc = backdrops[i].description.text || "";
+            var marker = "<AYON_METADATA/>";
+            var markerIndex = desc.indexOf(marker);
+            if (markerIndex !== -1) {
+                var jsonStr = desc.substring(
+                    markerIndex + marker.length
+                ).trim();
+                results.push(jsonStr);
+            }
+        }
+        return results;
+    }
+    readBackdropMetadata"""
+
+    response = harmony.send({"function": func})
+
+    metadata_list = response["result"]
+
+    metadata_dict = {}
+    for i, entry in enumerate(metadata_list):
+        parsed = json.loads(entry)
+        metadata_dict |= parsed
+
+    return metadata_dict
+
+
+def ensure_metadata_in_backdrop(backdrop_name: str, metadata: dict):
+    """Ensure AYON metadata is stored in a backdrop's text field.
+
+    Looks for a backdrop matching the given name and checks if the
+    marker is already present in its description. If not, appends the
+    marker and the serialized metadata as JSON, separated by lines to
+    keep it hidden from animators.
+
+    Args:
+        backdrop_name (str): Name of backdrop to write metadata into.
+        metadata (dict): Metadata to store in the backdrop.
+    """
+
+    metadata_json = json.dumps(metadata).replace('"', '\\"')
+    separator = "\\n" * 100
+
+    harmony.send({"script": f"""
+    var backdrops = Backdrop.backdrops("Top");
+    for (var i = 0; i < backdrops.length; i++) {{
+        if (backdrops[i].title.text === "{backdrop_name}") {{
+            var currentText = backdrops[i].description.text || "";
+            var marker = "<AYON_METADATA/>";
+            var markerIndex = currentText.indexOf(marker);
+            if (markerIndex === -1) {{
+                backdrops[i].description.text = currentText +
+                    "{separator}" + marker + "\\n" + "{metadata_json}";
+                Backdrop.setBackdrops("Top", backdrops);
+                MessageLog.trace(
+                    "Metadata ensured in backdrop: " +
+                    backdrops[i].title.text
+                );
+            }}
+        }}
+    }}
+    """})
+
+
+def resolve_duplicate_backdrops() -> list:
+    """Rename backdrops sharing an identical exact name.
+
+    Returns:
+        list: List of [old_name, new_name] pairs, one per backdrop
+            that was renamed. Empty list if no duplicates were found.
+    """
+    function_name = (
+        "AyonHarmony.Loaders.TemplateLoader."
+        "resolveDuplicateBackdropTitles"
+    )
+    response = harmony.send(
+        {
+            "function": function_name,
+            "args": [],
+        }
+    )
+    renames = response["result"]
+
+    for old_name, new_name in renames:
+        _move_metadata_key(old_name, new_name)
+
+    return renames
+
+
+def _move_metadata_key(old_name: str, new_name: str):
+    """Move a backdrop's metadata entry from old_name to new_name key,
+    and update the "name"/"objectName" fields inside that entry to
+    match the new key.
+
+    Args:
+        old_name (str): Old name of backdrop.
+        new_name (str): New name after resolving duplicates.
+    """
+
+    harmony.send({"script": f"""
+    var backdrops = Backdrop.backdrops("Top");
+    for (var i = 0; i < backdrops.length; i++) {{
+        if (backdrops[i].title.text === "{new_name}") {{
+            var desc = backdrops[i].description.text || "";
+            var marker = "<AYON_METADATA/>";
+            var idx = desc.indexOf(marker);
+            if (idx !== -1) {{
+                var prefix = desc.substring(0, idx + marker.length);
+                try {{
+                    var metadata = JSON.parse(
+                        desc.substring(idx + marker.length).trim()
+                    );
+                    if (metadata["{old_name}"]) {{
+                        metadata["{new_name}"] = metadata["{old_name}"];
+                        delete metadata["{old_name}"];
+
+                        // Keep "name"/"objectName" in sync with the new
+                        // key, so they stop pointing at a stale/shared
+                        // value once this entry has been renamed.
+                        metadata["{new_name}"]["name"] = "{new_name}";
+                        if (metadata["{new_name}"]["objectName"]) {{
+                            metadata["{new_name}"]["objectName"] =
+                                "{new_name}";
+                        }}
+
+                        backdrops[i].description.text =
+                            prefix + "\\n" + JSON.stringify(metadata);
+                        Backdrop.setBackdrops("Top", backdrops);
+                    }}
+                }} catch (e) {{}}
+            }}
+        }}
+    }}
+    """})
 
 
 def containerise(name,
