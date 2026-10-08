@@ -91,20 +91,22 @@ class ValidateSceneSettings(
             expected_settings.pop("resolutionHeight")
 
         for filter in self.skip_timelines_check:
-            task_filters = filter.get("tasks", {})
-            folder_path_filters = filter.get("folder_paths", {})
+            task_filters = filter.get("tasks", [])
+            folder_path_filters = filter.get("folder_paths", [])
             if (
                 (
                     not task_filters
                     or any(
-                        re.search(pattern, task_name)
+                        re.search(pattern, task_name, flags=re.I)
                         for pattern in task_filters
                     )
                 )
                 and (
                     not folder_path_filters
                     or any(
-                        re.search(pattern, instance.data["folderPath"])
+                        re.search(
+                            pattern, instance.data["folderPath"], flags=re.I
+                        )
                         for pattern in folder_path_filters
                     )
                 )
@@ -118,18 +120,6 @@ class ValidateSceneSettings(
                 expected_settings.pop("frameStartHandle", None)
                 expected_settings.pop("frameEndHandle", None)
                 break
-
-        folder_name = instance.context.data["folderPath"].rsplit("/", 1)[-1]
-        if any(re.search(pattern, folder_name)
-                for pattern in self.frame_check_filter):
-            self.log.info(
-                "Skipping frames check because of task name"
-                f" and pattern {self.frame_check_filter}"
-            )
-            expected_settings.pop('frameStart', None)
-            expected_settings.pop('frameEnd', None)
-            expected_settings.pop('frameStartHandle', None)
-            expected_settings.pop('frameEndHandle', None)
 
         # handle case when fps uses only two decimal places
         # 23.976023976023978 vs. 23.98
