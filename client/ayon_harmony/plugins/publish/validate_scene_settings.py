@@ -58,7 +58,7 @@ class ValidateSceneSettings(
     # skip resolution check if Task name matches any of regex patterns
     skip_resolution_check = ["render", "Render"]  # regex
 
-    # skip frameStart, frameEnd check if Task name matches any of regex patt.
+    # skip frameStart, frameEnd check if Task and Folder name matches any of regex patt.
     skip_timelines_check = []  # regex
 
     def process(self, instance):
@@ -90,30 +90,36 @@ class ValidateSceneSettings(
             expected_settings.pop("resolutionWidth")
             expected_settings.pop("resolutionHeight")
 
-        if any(
-            re.search(pattern, task_name)
-            for pattern in self.skip_timelines_check
-        ):
-            self.log.info(
-                "Skipping frames check because of task name"
-                f" and pattern {self.skip_timelines_check}"
-            )
-            expected_settings.pop("frameStart", None)
-            expected_settings.pop("frameEnd", None)
-            expected_settings.pop("frameStartHandle", None)
-            expected_settings.pop("frameEndHandle", None)
-
-        folder_name = instance.context.data["folderPath"].rsplit("/", 1)[-1]
-        if any(re.search(pattern, folder_name)
-                for pattern in self.frame_check_filter):
-            self.log.info(
-                "Skipping frames check because of task name"
-                f" and pattern {self.frame_check_filter}"
-            )
-            expected_settings.pop('frameStart', None)
-            expected_settings.pop('frameEnd', None)
-            expected_settings.pop('frameStartHandle', None)
-            expected_settings.pop('frameEndHandle', None)
+        for filter in self.skip_timelines_check:
+            task_filters = filter.get("tasks", [])
+            folder_path_filters = filter.get("folder_paths", [])
+            if (
+                (
+                    not task_filters
+                    or any(
+                        re.search(pattern, task_name, flags=re.I)
+                        for pattern in task_filters
+                    )
+                )
+                and (
+                    not folder_path_filters
+                    or any(
+                        re.search(
+                            pattern, instance.data["folderPath"], flags=re.I
+                        )
+                        for pattern in folder_path_filters
+                    )
+                )
+            ):
+                self.log.info(
+                    "Skipping frames check because of task name"
+                    f" and pattern {self.skip_timelines_check}"
+                )
+                expected_settings.pop("frameStart", None)
+                expected_settings.pop("frameEnd", None)
+                expected_settings.pop("frameStartHandle", None)
+                expected_settings.pop("frameEndHandle", None)
+                break
 
         # handle case when fps uses only two decimal places
         # 23.976023976023978 vs. 23.98

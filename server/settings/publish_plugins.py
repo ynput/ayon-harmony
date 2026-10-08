@@ -18,6 +18,20 @@ class ValidateAudioPlugin(BaseSettingsModel):
     active: bool = SettingsField(True, title="Active")
 
 
+class SkipTimelineCheckFilter(BaseSettingsModel):
+    """Skip Timeline Check Filter for Validate Scene Settings Plugin."""
+    tasks: list[str] = SettingsField(
+        default_factory=list,
+        title="Tasks",
+        description="Bypass timeline checks for tehse tasks."
+    )
+    folder_paths: list[str] = SettingsField(
+        default_factory=list,
+        title="Folder paths",
+        description="Bypass timeline checks for these folder paths.",
+    )
+
+
 class ValidateSceneSettingsPlugin(BaseSettingsModel):
     """Validate if FrameStart, FrameEnd and Resolution match shot data in DB.
        Use regular expressions to limit validations only on particular folder
@@ -37,9 +51,9 @@ class ValidateSceneSettingsPlugin(BaseSettingsModel):
         title="Skip Resolution Check for Tasks"
     )
 
-    skip_timelines_check: list[str] = SettingsField(
+    skip_timelines_check: list[SkipTimelineCheckFilter] = SettingsField(
         default_factory=list,
-        title="Skip Timeline Check for Tasks"
+        title="Skip Timeline Check Filters"
     )
 
 
