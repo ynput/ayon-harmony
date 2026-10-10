@@ -579,6 +579,9 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 zip_ref.extract(zip_info, extract_root)
         scene_path = next(local_scene_dir_path.glob("*.xstage"), None)
 
+        # Remove local zipfile after extaction
+        os.remove(filepath)
+
     if not scene_path:
         raise Exception("No xstage file was found.")
 
