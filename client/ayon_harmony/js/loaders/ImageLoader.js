@@ -81,16 +81,10 @@ PsdLoader.prototype.importPsd = function(psdPath) {
     var sceneRoot = doc.root;
     var psdNodes = sceneRoot.importPSD(psdPath);
 
-    // Gather nodes in view
+    // Order only the newly imported nodes (everything upstream of the PSD
+    // composite).
     var psdComp = psdNodes[psdNodes.length - 1];
-    var sceneComp = doc.$node("Top/Composite");
-    if (sceneComp) {
-        psdComp.linkOutNode(sceneComp);
-        sceneRoot.orderNodeView();
-        psdComp.unlinkOutNode(sceneComp);
-    } else {
-        sceneRoot.orderNodeView();
-    }
+    psdComp.orderAboveNodes();
 
     return psdNodes;
 };

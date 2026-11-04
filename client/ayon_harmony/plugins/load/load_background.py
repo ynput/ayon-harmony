@@ -354,7 +354,8 @@ class BackgroundLoader(load.LoaderPlugin):
             container['name'],
             {
                 "representation": repre_entity["id"],
-                "nodes": container["nodes"]
+                "nodes": container["nodes"],
+                "project_name": context["project"]["name"],
             }
         )
 

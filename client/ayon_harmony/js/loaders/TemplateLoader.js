@@ -51,7 +51,7 @@ TemplateLoader.prototype.loadContainer = function(args) {
     function parseBackdropName(name) {
         var lastIndex = name.lastIndexOf('_');
         if (lastIndex === -1) {
-            return { baseName: name, count: 1 };
+            return { baseName: name, count: 0 };
         }
         var base = name.substring(0, lastIndex);
         var suffix = name.substring(lastIndex + 1);
@@ -60,7 +60,7 @@ TemplateLoader.prototype.loadContainer = function(args) {
         if (isNumericSuffix) {
             return { baseName: base, count: increment };
         }
-        return { baseName: name, count: 1 };
+        return { baseName: name, count: 0 };
     }
 
     var _copyOptions = copyPaste.getCurrentCreateOptions();
@@ -134,27 +134,29 @@ TemplateLoader.prototype.loadContainer = function(args) {
             mainBackdrop.title.text = overrideName;
         }
 
-        // Count existing backdrops by base name
-        var backdropCounts = {};
-        for (var i = 0; i < allBackdrops.length; i++) {
-            var parsed = parseBackdropName(allBackdrops[i].title.text);
-            var baseName = parsed.baseName;
-            var count = parsed.count;
+        var mainBackdropBaseName = parseBackdropName(mainBackdrop.title.text).baseName;
 
-            if (backdropCounts[baseName]) {
-                backdropCounts[baseName]++;
-            } else {
-                backdropCounts[baseName] = count;
+        var usedNumbers = [];
+        for (var n = 0; n < allBackdrops.length; n++) {
+            if (allBackdrops[n] === mainBackdrop) {
+                continue;
             }
+            var parsed = parseBackdropName(allBackdrops[n].title.text);
+            if (parsed.baseName !== mainBackdropBaseName) {
+                continue;
+            }
+            usedNumbers.push(parsed.count);
         }
 
-        // Increment count of backdrop with the same base name
-        var mainBackdropName = mainBackdrop.title.text;
-        var mainBackdropParsed = parseBackdropName(mainBackdropName);
-        var count = backdropCounts[mainBackdropParsed.baseName] !== undefined ? backdropCounts[mainBackdropParsed.baseName] : 1;
-        if (count > 1){
-            // count -1 to match imported nodes which start from _1
-            mainBackdropName = mainBackdropName + "_" + (count - 1);
+        var mainBackdropName;
+        if (usedNumbers.indexOf(0) === -1) {
+            mainBackdropName = mainBackdropBaseName;
+        } else {
+            var nextSuffix = 1;
+            while (usedNumbers.indexOf(nextSuffix) !== -1) {
+                nextSuffix++;
+            }
+            mainBackdropName = mainBackdropBaseName + "_" + nextSuffix;
         }
 
         // Set name of main backdrop (always at index 0)

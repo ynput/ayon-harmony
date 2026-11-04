@@ -44,10 +44,11 @@ class CollectPalettes(pyblish.api.ContextPlugin):
         folder_path = context.data["folderPath"]
 
         product_base_type = "harmony.palette"
-        for name, palette_id in palettes.items():
+        for name, info in palettes.items():
             instance = context.create_instance(name)
             instance.data.update({
-                "id": palette_id,
+                "id": info["id"],
+                "paletteStorage": info["storage"],
                 "productType": product_base_type,
                 "productBaseType": product_base_type,
                 "family": product_base_type,

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """Utility functions used for AYON - Harmony integration."""
+
+from __future__ import annotations
+
 from pathlib import Path
 import platform
 import subprocess
@@ -28,6 +31,8 @@ from ayon_core.lib import (
     env_value_to_bool,
     register_event_callback,
 )
+from ayon_core.pipeline import get_current_project_name
+from ayon_core.settings import get_project_settings
 from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
@@ -42,6 +47,9 @@ from .server import Server
 # Setup logging.
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+
+CURRENT_DIR = Path(__file__).parent.absolute()
+TEMP_WORKFILE_PATH = CURRENT_DIR / "temp.zip"
 
 
 class ProcessContext:
@@ -128,6 +136,25 @@ class _ZipFile(zipfile.ZipFile):
     _windows_illegal_name_trans_table = str.maketrans(
         _windows_illegal_characters,
         "_" * len(_windows_illegal_characters)
+    )
+
+
+def _is_macos_metadata_entry(name: str) -> bool:
+    """Check whether a zip entry or file name is macOS metadata junk.
+
+    Archives created by macOS Finder embed AppleDouble files (`__MACOSX/`
+    directory, `._`-prefixed files) and `.DS_Store` files.
+
+    Args:
+        name (str): The name of the zip entry or file.
+
+    Returns:
+        bool: True if the name is macOS metadata junk.
+    """
+    return (
+        name.startswith("__MACOSX/")
+        or Path(name).name.startswith("._")
+        or Path(name).name == ".DS_Store"
     )
 
 
@@ -280,8 +307,13 @@ def check_workfiles_tool():
         open_empty_workfile()
 
 
+def is_temp_workfile(filepath):
+    """Check if filepath points to the temporary scratch workfile."""
+    return Path(filepath) == TEMP_WORKFILE_PATH
+
+
 def open_empty_workfile():
-    zip_file = os.path.join(os.path.dirname(__file__), "temp.zip")
+    zip_file = TEMP_WORKFILE_PATH.as_posix()
     temp_path = get_local_harmony_path(zip_file)
     if os.path.exists(temp_path):
         log.info(f"removing existing {temp_path}")
@@ -396,6 +428,11 @@ def copy_with_progress(src, dst):
     log.info(f"Successfully copied {src} to {dst}")
 
 
+def get_harmony_settings():
+    project = get_current_project_name()
+    return get_project_settings(project).get("harmony")
+
+
 def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     """Unzip a Harmony scene file and return the path to the .xstage file.
 
@@ -441,30 +478,41 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
             )
             unzip = False
         else:
-            # Local is newer or same timestamp - ask user
-            msg_box = QtWidgets.QMessageBox()
-            msg_box.setStyleSheet(style.load_stylesheet())
-            msg_box.setIcon(QtWidgets.QMessageBox.Question)
-            msg_box.setWindowTitle("Local cache of version exists")
-            msg_box.setText(
-                "A cached version of this scene exists that is newer or "
-                "with the same timestamp as the server version."
-            )
-            msg_box.setInformativeText(
-                "Do you want to use the local file or "
-                "re-cache from the server?"
-            )
-            msg_box.setStandardButtons(
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-            )
-            msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
+            # Local is newer or same timestamp - ask user or defer to settings.
+            harmony_settings = get_harmony_settings()
+            use_default = False
+            cache_settings = harmony_settings.get("cache_default")
+            use_default = cache_settings.get("force_default")
+            default_opt = QtWidgets.QMessageBox.Yes
+            if cache_settings["cache_default_source"] == "server":
+                default_opt = QtWidgets.QMessageBox.No
 
-            msg_box.button(QtWidgets.QMessageBox.Yes).setText("Use Local")
-            msg_box.button(QtWidgets.QMessageBox.No).setText("From Server")
+            result = default_opt
 
-            msg_box.setModal(True)
+            if not use_default:
+                msg_box = QtWidgets.QMessageBox()
+                msg_box.setStyleSheet(style.load_stylesheet())
+                msg_box.setIcon(QtWidgets.QMessageBox.Question)
+                msg_box.setWindowTitle("Local cache of version exists")
+                msg_box.setText(
+                    "A cached version of this scene exists that is newer or "
+                    "with the same timestamp as the server version."
+                )
+                msg_box.setInformativeText(
+                    "Do you want to use the local file or "
+                    "re-cache from the server?"
+                )
+                msg_box.setStandardButtons(
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+                )
+                msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
 
-            result = msg_box.exec_()
+                msg_box.button(QtWidgets.QMessageBox.Yes).setText("Use Local")
+                msg_box.button(QtWidgets.QMessageBox.No).setText("From Server")
+
+                msg_box.setModal(True)
+
+                result = msg_box.exec_()
 
             if result == QtWidgets.QMessageBox.No:
                 try:
@@ -481,7 +529,10 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     if unzip:
         filepath = localize_file(filepath)
         with _ZipFile(filepath, "r") as zip_ref:
-            names = zip_ref.namelist()
+            names = [
+                name for name in zip_ref.namelist()
+                if not _is_macos_metadata_entry(name)
+            ]
             main_name = next(
                 Path(name).stem
                 for name in names
@@ -511,6 +562,8 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 return name
 
             for zip_info in zip_ref.infolist():
+                if _is_macos_metadata_entry(zip_info.filename):
+                    continue
                 if has_root_dir:
                     # Root-dir archives are handled by applying the same
                     # top-level file rename one level deeper and then
@@ -558,7 +611,10 @@ def launch_zip_file(filepath):
 
     # Unzip the scene file and get the .xstage path
     try:
-        scene_path = unzip_scene_file(filepath)
+        scene_path = unzip_scene_file(
+            filepath,
+            headless=is_headless_mode_enabled()
+        )
     except Exception as e:
         print(f"Error unzipping scene file: {e}")
         ProcessContext.server.stop()
@@ -622,6 +678,8 @@ def zip_and_move(source, destination):
         for file in files:
             file_path = os.path.join(root, file)
             arcname = os.path.relpath(file_path, source)
+            if _is_macos_metadata_entry(arcname.replace(os.sep, "/")):
+                continue
             file_list.append((file_path, arcname))
 
     progress = QtWidgets.QProgressDialog(
