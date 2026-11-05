@@ -124,29 +124,38 @@ class BackdropBaseLoader(load.LoaderPlugin):
 
     def switch(self, container, context):
         """Switch representation containers."""
-        backdrop_name = container["name"]
-        backdrop = harmony.find_backdrop_by_name(backdrop_name)
+        self_name = self.__class__.__name__
+        container_name = container["name"]
+        container_namespace = container["namespace"]
+        backdrop = harmony.find_backdrop_by_name(container_name)
 
-        # Keep backdrop links
-        backdrop_links = harmony.send(
+        filepath = self.filepath_from_context(context)
+        name = container_name
+        if self.override_name:
+            name = self.override_name.format(**context)
+
+        parent_backdrop_name = None
+        if self.parent_backdrop_matching:
+            parent_backdrop_name = self._resolve_parent_backdrop_name(context)
+
+        new_backdrop_name = harmony.send(
             {
-                "function": "AyonHarmony.getBackdropLinks",
-                "args": backdrop,
+                "function": "AyonHarmony.switchContainer",
+                "args": [
+                    backdrop,
+                    self_name,
+                    filepath,
+                    name,
+                    parent_backdrop_name,
+                ],
             }
         )["result"]
 
-        # Replace template container
-        self.remove(container)  # Before load to avoid node name incrementation
-        container = self.load(
-            context, container["name"], container["namespace"]
+        harmony.remove(container_name)
+        return harmony.containerise(
+            new_backdrop_name,
+            container_namespace,
+            new_backdrop_name,
+            context,
+            self_name,
         )
-
-        # Restore backdrop links
-        harmony.send(
-            {
-                "function": "AyonHarmony.setNodesLinks",
-                "args": backdrop_links
-            }
-        )
-
-        return container
