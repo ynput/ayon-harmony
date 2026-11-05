@@ -14,6 +14,7 @@ from .pipeline import (
     application_launch,
     export_backdrop_as_template,
     inject_ayon_js,
+    ensure_metadata_in_backdrop,
 )
 
 from .lib import (
@@ -60,6 +61,7 @@ __all__ = [
     "application_launch",
     "export_backdrop_as_template",
     "inject_ayon_js",
+    "ensure_metadata_in_backdrop",
 
     # lib
     "launch",
