@@ -86,7 +86,3 @@ def open_file(filepath):
 def current_file():
     """Returning None to make Workfiles app look at first file extension."""
     return ProcessContext.workfile_path
-
-
-def work_root(session):
-    return os.path.normpath(session["AYON_WORKDIR"]).replace("\\", "/")
