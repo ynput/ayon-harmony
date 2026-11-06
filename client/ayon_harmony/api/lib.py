@@ -9,6 +9,7 @@ import subprocess
 import threading
 import os
 import random
+import re
 import zipfile
 import sys
 import filecmp
@@ -782,6 +783,99 @@ def set_scene_data(data):
             "function": "AyonHarmonyAPI.setSceneData",
             "args": data
         })
+
+
+def get_expected_settings(settings: dict) -> dict:
+    """Compute scene settings expected in Harmony from task settings.
+
+    Harmony always starts at frame 1 and its frame range includes handles.
+
+    Args:
+        settings (dict): Task settings from the server.
+
+    Returns:
+        dict: Expected scene settings.
+
+    """
+    frames_count = settings["frameEnd"] - settings["frameStart"] + 1
+    return {
+        "fps": settings["fps"],
+        "frameStart": 1,
+        "frameEnd": (
+            frames_count + settings["handleStart"] + settings["handleEnd"]
+        ),
+        "resolutionWidth": settings["resolutionWidth"],
+        "resolutionHeight": settings["resolutionHeight"],
+    }
+
+
+def get_scene_settings() -> dict:
+    """Get current scene settings from Harmony.
+
+    Returns:
+        dict: fps, frame range and resolution of the current scene.
+
+    """
+    result = send(
+        {"function": "AyonHarmony.getSceneSettings", "args": []}
+    )["result"]
+    return {
+        "fps": result[3],
+        "frameStart": result[4],
+        "frameEnd": result[5],
+        "resolutionWidth": result[7],
+        "resolutionHeight": result[8],
+    }
+
+
+def get_invalid_scene_settings(
+    settings: dict, task_name: str, folder_path: str
+) -> dict:
+    """Get scene settings that differ from the task settings.
+
+    Settings that are not checked for the given context are ignored.
+
+    Args:
+        settings (dict): Task settings from the server.
+        task_name (str): Name of the current task.
+        folder_path (str): Path of the current folder.
+
+    Returns:
+        dict: Setting name mapped to a (expected, found) values tuple.
+
+    """
+    plugin_settings = (
+        get_harmony_settings()["publish"]["ValidateSceneSettings"]
+    )
+    expected = get_expected_settings(settings)
+
+    if any(re.search(pattern, task_name)
+           for pattern in plugin_settings["skip_resolution_check"]):
+        expected.pop("resolutionWidth", None)
+        expected.pop("resolutionHeight", None)
+
+    folder_name = folder_path.rsplit("/", 1)[-1]
+    if (
+        any(re.search(pattern, task_name)
+            for pattern in plugin_settings["skip_timelines_check"])
+        or any(re.search(pattern, folder_name)
+               for pattern in plugin_settings["frame_check_filter"])
+    ):
+        expected.pop("frameStart", None)
+        expected.pop("frameEnd", None)
+
+    current = get_scene_settings()
+
+    # handle case when fps uses only two decimal places
+    # 23.976023976023978 vs. 23.98
+    if isinstance(fps := current["fps"], float):
+        current["fps"] = float(f"{fps:.2f}")
+
+    return {
+        key: (value, current.get(key))
+        for key, value in expected.items()
+        if value != current.get(key)
+    }
 
 
 def read(node_id):

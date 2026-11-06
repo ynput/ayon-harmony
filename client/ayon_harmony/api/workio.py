@@ -1,11 +1,13 @@
 """Host API required Work Files tool"""
 import os
 from pathlib import Path
+from typing import Optional
 import shutil
 
 from .lib import (
     ProcessContext,
     get_local_harmony_path,
+    is_temp_workfile,
     zip_and_move,
     launch_zip_file
 )
@@ -18,8 +20,8 @@ def file_extensions():
     return [".zip"]
 
 
-def has_unsaved_changes():
-    if ProcessContext.server:
+def has_unsaved_changes() -> bool:
+    if current_file() and ProcessContext.server:
         return ProcessContext.server.send(
             {"function": "scene.isDirty"})["result"]
 
@@ -83,9 +85,20 @@ def open_file(filepath):
     launch_zip_file(filepath)
 
 
-def current_file():
-    """Returning None to make Workfiles app look at first file extension."""
-    return ProcessContext.workfile_path
+def current_file() -> Optional[str]:
+    """Get path of the currently opened workfile.
+
+    Returns:
+        Optional[str]: Workfile path, None for an unsaved scene.
+
+    """
+    if (workfile := ProcessContext.workfile_path) is None:
+        return None
+
+    if is_temp_workfile(workfile):
+        return None
+
+    return workfile
 
 
 def work_root(session):
