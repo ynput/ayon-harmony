@@ -56,6 +56,7 @@ class ProcessContext:
     server = None
     pid = None
     process = None
+    restarting = False
     application_path = None
     callback_queue = collections.deque()
     workfile_path = None
@@ -74,6 +75,8 @@ class ProcessContext:
         if cls.callback_queue:
             callback = cls.callback_queue.popleft()
             callback()
+        if cls.restarting:
+            return
         if cls.process is not None and cls.process.poll() is not None:
             log.info("Server has stopped, cleaning up")
             ProcessContext.stdout_broker.stop()
@@ -591,55 +594,61 @@ def launch_zip_file(filepath):
     Args:
         filepath (str): Path to file.
     """
-    # Close existing scene.
-    if ProcessContext.pid:
-        os.kill(ProcessContext.pid, signal.SIGTERM)
-
-    # Stop server.
-    if ProcessContext.server:
-        ProcessContext.server.stop()
-
-    # Launch AYON server.
-    ProcessContext.server = Server(ProcessContext.port)
-    ProcessContext.server.start()
-    # thread = threading.Thread(target=self.server.start)
-    # thread.daemon = True
-    # thread.start()
-
-    # Save workfile path for later.
-    ProcessContext.workfile_path = filepath
-
-    # Unzip the scene file and get the .xstage path
+    # Keep the process watchdog from quitting AYON while Harmony is
+    # intentionally killed to be relaunched with the new scene.
+    ProcessContext.restarting = True
     try:
-        scene_path = unzip_scene_file(
-            filepath,
-            headless=is_headless_mode_enabled()
+        # Close existing scene.
+        if ProcessContext.pid:
+            os.kill(ProcessContext.pid, signal.SIGTERM)
+
+        # Stop server.
+        if ProcessContext.server:
+            ProcessContext.server.stop()
+
+        # Launch AYON server.
+        ProcessContext.server = Server(ProcessContext.port)
+        ProcessContext.server.start()
+        # thread = threading.Thread(target=self.server.start)
+        # thread.daemon = True
+        # thread.start()
+
+        # Save workfile path for later.
+        ProcessContext.workfile_path = filepath
+
+        # Unzip the scene file and get the .xstage path
+        try:
+            scene_path = unzip_scene_file(
+                filepath,
+                headless=is_headless_mode_enabled()
+            )
+        except Exception as e:
+            print(f"Error unzipping scene file: {e}")
+            ProcessContext.server.stop()
+            return
+
+        print("Launching {}".format(scene_path))
+        # QUESTION Could we use 'run_detached_process' from 'ayon_core.lib'?
+        kwargs = {}
+        if (
+            platform.system().lower() == "windows"
+            and not is_using_ayon_console()
+        ):
+            kwargs.update({
+                "creationflags": subprocess.CREATE_NO_WINDOW,
+                "stdout": subprocess.DEVNULL,
+                "stderr": subprocess.DEVNULL
+            })
+
+        process = subprocess.Popen(
+            [ProcessContext.application_path, scene_path],
+            **kwargs
         )
-    except Exception as e:
-        print(f"Error unzipping scene file: {e}")
-        ProcessContext.server.stop()
-        return
-
-    print("Launching {}".format(scene_path))
-    # QUESTION Could we use 'run_detached_process' from 'ayon_core.lib'?
-    kwargs = {}
-    if (
-        platform.system().lower() == "windows"
-        and not is_using_ayon_console()
-    ):
-        kwargs.update({
-            "creationflags": subprocess.CREATE_NO_WINDOW,
-            "stdout": subprocess.DEVNULL,
-            "stderr": subprocess.DEVNULL
-        })
-
-    process = subprocess.Popen(
-        [ProcessContext.application_path, scene_path],
-        **kwargs
-    )
-    ProcessContext.pid = process.pid
-    ProcessContext.process = process
-    ProcessContext.stdout_broker.host_connected()
+        ProcessContext.pid = process.pid
+        ProcessContext.process = process
+        ProcessContext.stdout_broker.host_connected()
+    finally:
+        ProcessContext.restarting = False
 
 
 def on_file_changed(path, threaded=True):
