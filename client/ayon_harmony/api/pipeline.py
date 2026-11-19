@@ -49,7 +49,6 @@ from .workio import (
     current_file,
     has_unsaved_changes,
     file_extensions,
-    work_root
 )
 
 log = logging.getLogger("ayon_harmony")
@@ -87,9 +86,6 @@ class HarmonyHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
     def save_workfile(self, filepath=None):
         return save_file(filepath)
-
-    def work_root(self, session):
-        return work_root(session)
 
     def get_current_workfile(self):
         return current_file()
