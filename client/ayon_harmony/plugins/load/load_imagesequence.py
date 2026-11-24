@@ -162,7 +162,10 @@ class ImageSequenceLoader(load.LoaderPlugin):
                 }
             )
 
-        harmony.imprint(node, {"representation": repre_entity["id"]})
+        harmony.imprint(node, {
+            "representation": repre_entity["id"],
+            "project_name": context["project"]["name"]
+        })
 
     def remove(self, container):
         """Remove loaded container.

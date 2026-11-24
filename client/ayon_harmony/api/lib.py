@@ -9,6 +9,7 @@ import subprocess
 import threading
 import os
 import random
+import re
 import zipfile
 import sys
 import filecmp
@@ -56,6 +57,7 @@ class ProcessContext:
     server = None
     pid = None
     process = None
+    restarting = False
     application_path = None
     callback_queue = collections.deque()
     workfile_path = None
@@ -74,6 +76,8 @@ class ProcessContext:
         if cls.callback_queue:
             callback = cls.callback_queue.popleft()
             callback()
+        if cls.restarting:
+            return
         if cls.process is not None and cls.process.poll() is not None:
             log.info("Server has stopped, cleaning up")
             ProcessContext.stdout_broker.stop()
@@ -579,6 +583,9 @@ def unzip_scene_file(filepath: str, headless: bool = False) -> str:
                 zip_ref.extract(zip_info, extract_root)
         scene_path = next(local_scene_dir_path.glob("*.xstage"), None)
 
+        # Remove local zipfile after extaction
+        os.remove(filepath)
+
     if not scene_path:
         raise Exception("No xstage file was found.")
 
@@ -591,55 +598,61 @@ def launch_zip_file(filepath):
     Args:
         filepath (str): Path to file.
     """
-    # Close existing scene.
-    if ProcessContext.pid:
-        os.kill(ProcessContext.pid, signal.SIGTERM)
-
-    # Stop server.
-    if ProcessContext.server:
-        ProcessContext.server.stop()
-
-    # Launch AYON server.
-    ProcessContext.server = Server(ProcessContext.port)
-    ProcessContext.server.start()
-    # thread = threading.Thread(target=self.server.start)
-    # thread.daemon = True
-    # thread.start()
-
-    # Save workfile path for later.
-    ProcessContext.workfile_path = filepath
-
-    # Unzip the scene file and get the .xstage path
+    # Keep the process watchdog from quitting AYON while Harmony is
+    # intentionally killed to be relaunched with the new scene.
+    ProcessContext.restarting = True
     try:
-        scene_path = unzip_scene_file(
-            filepath,
-            headless=is_headless_mode_enabled()
+        # Close existing scene.
+        if ProcessContext.pid:
+            os.kill(ProcessContext.pid, signal.SIGTERM)
+
+        # Stop server.
+        if ProcessContext.server:
+            ProcessContext.server.stop()
+
+        # Launch AYON server.
+        ProcessContext.server = Server(ProcessContext.port)
+        ProcessContext.server.start()
+        # thread = threading.Thread(target=self.server.start)
+        # thread.daemon = True
+        # thread.start()
+
+        # Save workfile path for later.
+        ProcessContext.workfile_path = filepath
+
+        # Unzip the scene file and get the .xstage path
+        try:
+            scene_path = unzip_scene_file(
+                filepath,
+                headless=is_headless_mode_enabled()
+            )
+        except Exception as e:
+            print(f"Error unzipping scene file: {e}")
+            ProcessContext.server.stop()
+            return
+
+        print("Launching {}".format(scene_path))
+        # QUESTION Could we use 'run_detached_process' from 'ayon_core.lib'?
+        kwargs = {}
+        if (
+            platform.system().lower() == "windows"
+            and not is_using_ayon_console()
+        ):
+            kwargs.update({
+                "creationflags": subprocess.CREATE_NO_WINDOW,
+                "stdout": subprocess.DEVNULL,
+                "stderr": subprocess.DEVNULL
+            })
+
+        process = subprocess.Popen(
+            [ProcessContext.application_path, scene_path],
+            **kwargs
         )
-    except Exception as e:
-        print(f"Error unzipping scene file: {e}")
-        ProcessContext.server.stop()
-        return
-
-    print("Launching {}".format(scene_path))
-    # QUESTION Could we use 'run_detached_process' from 'ayon_core.lib'?
-    kwargs = {}
-    if (
-        platform.system().lower() == "windows"
-        and not is_using_ayon_console()
-    ):
-        kwargs.update({
-            "creationflags": subprocess.CREATE_NO_WINDOW,
-            "stdout": subprocess.DEVNULL,
-            "stderr": subprocess.DEVNULL
-        })
-
-    process = subprocess.Popen(
-        [ProcessContext.application_path, scene_path],
-        **kwargs
-    )
-    ProcessContext.pid = process.pid
-    ProcessContext.process = process
-    ProcessContext.stdout_broker.host_connected()
+        ProcessContext.pid = process.pid
+        ProcessContext.process = process
+        ProcessContext.stdout_broker.host_connected()
+    finally:
+        ProcessContext.restarting = False
 
 
 def on_file_changed(path, threaded=True):
@@ -782,6 +795,116 @@ def set_scene_data(data):
             "function": "AyonHarmonyAPI.setSceneData",
             "args": data
         })
+
+
+def get_expected_settings(settings: dict) -> dict:
+    """Compute scene settings expected in Harmony from task settings.
+
+    Harmony always starts at frame 1 and its frame range includes handles.
+
+    Args:
+        settings (dict): Task settings from the server.
+
+    Returns:
+        dict: Expected scene settings.
+
+    """
+    frames_count = settings["frameEnd"] - settings["frameStart"] + 1
+    return {
+        "fps": settings["fps"],
+        "frameStart": 1,
+        "frameEnd": (
+            frames_count + settings["handleStart"] + settings["handleEnd"]
+        ),
+        "resolutionWidth": settings["resolutionWidth"],
+        "resolutionHeight": settings["resolutionHeight"],
+    }
+
+
+def get_scene_settings() -> dict:
+    """Get current scene settings from Harmony.
+
+    Returns:
+        dict: fps, frame range and resolution of the current scene.
+
+    """
+    result = send(
+        {"function": "AyonHarmony.getSceneSettings", "args": []}
+    )["result"]
+    return {
+        "fps": result[3],
+        "frameStart": result[4],
+        "frameEnd": result[5],
+        "resolutionWidth": result[7],
+        "resolutionHeight": result[8],
+    }
+
+
+def get_invalid_scene_settings(
+    settings: dict, task_name: str, folder_path: str
+) -> dict:
+    """Get scene settings that differ from the task settings.
+
+    Settings that are not checked for the given context are ignored.
+
+    Args:
+        settings (dict): Task settings from the server.
+        task_name (str): Name of the current task.
+        folder_path (str): Path of the current folder.
+
+    Returns:
+        dict: Setting name mapped to a (expected, found) values tuple.
+
+    """
+    plugin_settings = (
+        get_harmony_settings()["publish"]["ValidateSceneSettings"]
+    )
+    expected = get_expected_settings(settings)
+
+    if any(re.search(pattern, task_name)
+           for pattern in plugin_settings["skip_resolution_check"]):
+        expected.pop("resolutionWidth", None)
+        expected.pop("resolutionHeight", None)
+
+    for filter in plugin_settings["skip_timelines_check"]:
+        task_filters = filter.get("tasks", [])
+        folder_path_filters = filter.get("folder_paths", [])
+        if (
+            (
+                not task_filters
+                or any(
+                    re.search(pattern, task_name, flags=re.I)
+                    for pattern in task_filters
+                )
+            )
+            and (
+                not folder_path_filters
+                or any(
+                    re.search(
+                        pattern, folder_path, flags=re.I
+                    )
+                    for pattern in folder_path_filters
+                )
+            )
+        ):
+            expected.pop("frameStart", None)
+            expected.pop("frameEnd", None)
+            expected.pop("frameStartHandle", None)
+            expected.pop("frameEndHandle", None)
+            break
+
+    current = get_scene_settings()
+
+    # handle case when fps uses only two decimal places
+    # 23.976023976023978 vs. 23.98
+    if isinstance(fps := current["fps"], float):
+        current["fps"] = float(f"{fps:.2f}")
+
+    return {
+        key: (value, current.get(key))
+        for key, value in expected.items()
+        if value != current.get(key)
+    }
 
 
 def read(node_id):

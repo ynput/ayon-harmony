@@ -33,6 +33,8 @@ from .lib import (
     select_nodes,
     get_scene_data,
     set_scene_data,
+    get_expected_settings,
+    get_invalid_scene_settings,
     get_all_top_names,
     get_palettes_paths,
     unzip_scene_file,
@@ -44,7 +46,6 @@ from .workio import (
     current_file,
     has_unsaved_changes,
     file_extensions,
-    work_root
 )
 
 from .base_loaders import BackdropBaseLoader
@@ -79,6 +80,8 @@ __all__ = [
     "select_nodes",
     "get_scene_data",
     "set_scene_data",
+    "get_expected_settings",
+    "get_invalid_scene_settings",
     "get_all_top_names",
     "get_palettes_paths",
     "unzip_scene_file",
@@ -89,7 +92,6 @@ __all__ = [
     "current_file",
     "has_unsaved_changes",
     "file_extensions",
-    "work_root",
 
     # Loaders
     "BackdropBaseLoader",
