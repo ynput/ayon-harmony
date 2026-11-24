@@ -11,8 +11,10 @@ import ayon_harmony.api as harmony
 class ImportTemplateLoader(load.LoaderPlugin):
     """Import Harmony workfiles."""
 
-    product_types = {"workfile"}
-    representations = {"tpl"}
+    product_base_types = {"workfile"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"tpl"}
     label = "Import Template"
 
     def load(self, context, name=None, namespace=None, data=None):
@@ -58,6 +60,8 @@ class ImportTemplateLoader(load.LoaderPlugin):
 class ImportWorkfileLoader(ImportTemplateLoader):
     """Import workfiles."""
 
-    product_types = {"workfile"}
-    representations = {"zip"}
+    product_base_types = {"workfile"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"zip"}
     label = "Import Workfile"

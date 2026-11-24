@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """Create render node."""
 import ayon_harmony.api as harmony
-from ayon_harmony.api import plugin
+from ayon_harmony.api.plugin import HarmonyRenderCreator
 
 
-class CreateRender(plugin.HarmonyRenderCreator):
+class CreateRender(HarmonyRenderCreator):
     """Composite node for publishing renders."""
 
     identifier = "io.ayon.creators.harmony.render"
     label = "Render"
-    product_type = "render"
     product_base_type = "render"
+    product_type = product_base_type
     icon = "eye"
 
     node_type = "WRITE"

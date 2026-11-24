@@ -7,8 +7,8 @@ class CreateWorkfile(HarmonyAutoCreator):
     """Workfile auto-creator."""
     identifier = "io.ayon.creators.harmony.workfile"
     label = "Workfile"
-    product_type = "workfile"
     product_base_type = "workfile"
+    product_type = product_base_type
     icon = "fa5.file"
 
     default_variants = ["Main"]

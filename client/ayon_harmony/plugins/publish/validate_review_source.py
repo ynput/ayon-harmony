@@ -23,7 +23,8 @@ class ValidateTopDisplay(pyblish.api.InstancePlugin):
     settings_category = "harmony"
 
     def process(self, instance):
-        if instance.data["productType"] != "review":
+        product_base_type = instance.data["productBaseType"]
+        if product_base_type != "review":
             self.log.debug("Not primary `review` product type, skipping.")
             return
 

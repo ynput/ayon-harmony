@@ -341,6 +341,15 @@ function Client() {
     self.socket.disconnected.connect(self.onDisconnected);
 }
 
+function envToBool(value, defaultValue) {
+    if (typeof value === 'undefined' || value === null || value === '') {
+        return defaultValue;
+    }
+
+    value = value.toString().toLowerCase();
+    return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
+
 /**
  * Entry point, creating AYON Client.
  */
@@ -367,6 +376,7 @@ function start() {
     }
     var menuBar = mainWindow.menuBar();
     var actions = menuBar.actions();
+    var action;
     app.ayonMenu = null;
 
     for (var i = 0 ; i < actions.length; i++) {
@@ -381,6 +391,42 @@ function start() {
         menu = menuBar.addMenu(System.getenv('AYON_MENU_LABEL'));
     }
 
+    var addVersionUp = envToBool(
+        System.getenv('AYON_HARMONY_VERSION_UP_WORKFILE'),
+        false
+    );
+    /**
+     * Show Version Up
+     */
+    self.onVersionUp = function() {
+        app.ayonClient.send({
+            'module': 'ayon_harmony.api.lib',
+            'method': 'save_next_version',
+            'args': []
+        }, false);
+    };
+    if (app.ayonMenu == null && addVersionUp) {
+        menu.addSeparator();
+        action = menu.addAction('Version Up Workfile');
+        action.triggered.connect(self.onVersionUp);
+    }
+
+    /**
+     * Show Workfiles
+     */
+    self.onWorkfiles = function() {
+        app.ayonClient.send({
+            'module': 'ayon_harmony.api.lib',
+            'method': 'show',
+            'args': ['workfiles']
+        }, false);
+    };
+    if (app.ayonMenu == null) {
+        action = menu.addAction('Workfiles...');
+        action.triggered.connect(self.onWorkfiles);
+        menu.addSeparator();
+    }
+
     /**
      * Show creator
      */
@@ -392,7 +438,7 @@ function start() {
         }, false);
     };
 
-    var action = menu.addAction('Create...');
+    action = menu.addAction('Create...');
     action.triggered.connect(self.onCreator);
 
     /**
@@ -441,22 +487,6 @@ function start() {
     if (app.ayonMenu == null) {
         action = menu.addAction('Manage...');
         action.triggered.connect(self.onManage);
-    }
-
-    /**
-     * Show Workfiles
-     */
-    self.onWorkfiles = function() {
-        app.ayonClient.send({
-            'module': 'ayon_harmony.api.lib',
-            'method': 'show',
-            'args': ['workfiles']
-        }, false);
-    };
-    if (app.ayonMenu == null) {
-        menu.addSeparator();
-        action = menu.addAction('Workfiles...');
-        action.triggered.connect(self.onWorkfiles);
     }
 
      /**

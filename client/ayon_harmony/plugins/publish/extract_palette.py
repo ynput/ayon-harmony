@@ -2,11 +2,13 @@
 """Extract palette from Harmony."""
 import os
 import csv
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 import ayon_harmony.api as harmony
 from ayon_core.pipeline import publish
+from ayon_core.pipeline.publish import KnownPublishError
 
 
 class ExtractPalette(publish.Extractor):
@@ -29,7 +31,7 @@ class ExtractPalette(publish.Extractor):
             self.log.error(f"Invalid reply: {result}")
             raise AssertionError("Invalid reply from server.")
         palette_name = result[0]
-        palette_file = result[1]
+        palette_file = self._resolve_palette_path(Path(result[1])).as_posix()
         self.log.info(f"Got palette named {palette_name} "
                       f"and file {palette_file}.")
 
@@ -78,6 +80,39 @@ class ExtractPalette(publish.Extractor):
         }
 
         instance.data["representations"].append(representation)
+
+    def _resolve_palette_path(self, palette_path: Path) -> Path:
+        """Return the palette file path in the current scene.
+
+        Harmony resolves palette paths once when the scene is opened. After
+        the workfile is incremented during publish, the resolved path can
+        point to the previous workfile folder. The path is then rebuilt from
+        the current scene folder.
+
+        Args:
+            palette_path (Path): Palette path resolved by Harmony.
+
+        Returns:
+            Path: Existing palette file path.
+
+        Raises:
+            KnownPublishError: If the palette file does not exist.
+        """
+        if os.path.exists(palette_path):
+            return palette_path
+
+        scene_path = Path(harmony.send(
+            {"function": "scene.currentProjectPath"})["result"])
+        relative_parts = Path(palette_path).relative_to(
+            scene_path.parent).parts[1:]
+        scene_palette_path = scene_path.joinpath(*relative_parts)
+        if scene_palette_path.exists():
+            return scene_palette_path
+
+        raise KnownPublishError(
+            f"Palette file '{palette_path}' does not exist in the current "
+            f"scene '{scene_path}'."
+        )
 
     def create_palette_thumbnail(self,
                                  palette_name,

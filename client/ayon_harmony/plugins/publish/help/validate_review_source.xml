@@ -5,7 +5,7 @@
 <description>
 ## Top/Display node expected
 
-Export of `review` product type expects Display node with `Top/Display` identifier.
+Export of `review` product base type expects Display node with `Top/Display` identifier.
 
 ### How to repair?
 

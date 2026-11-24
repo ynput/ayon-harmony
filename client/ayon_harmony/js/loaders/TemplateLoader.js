@@ -29,12 +29,14 @@ var TemplateLoader = function() {};
  * // arguments are in this order:
  * var args = [
  *     templatePath, // Path to tpl file
- *     overrideName // Override name of backdrop container
+ *     overrideName, // Override name of backdrop container
+ *     parentBackdropName // Optional parent backdrop name
  * ];
  */
 TemplateLoader.prototype.loadContainer = function(args) {
     var templatePath = args[0];
     var overrideName = args[1] || "";
+    var parentBackdropName = args[2] || null;
 
     // Copy from template file
     MessageLog.trace("loadContainer:: ");
@@ -49,7 +51,7 @@ TemplateLoader.prototype.loadContainer = function(args) {
     function parseBackdropName(name) {
         var lastIndex = name.lastIndexOf('_');
         if (lastIndex === -1) {
-            return { baseName: name, count: 1 };
+            return { baseName: name, count: 0 };
         }
         var base = name.substring(0, lastIndex);
         var suffix = name.substring(lastIndex + 1);
@@ -58,40 +60,7 @@ TemplateLoader.prototype.loadContainer = function(args) {
         if (isNumericSuffix) {
             return { baseName: base, count: increment };
         }
-        return { baseName: name, count: 1 };
-    }
-
-    // Get existing content bounds
-    var existingBackdrops = Backdrop.backdrops("Top");
-    var existingNodes = node.subNodes("Top");
-    var existingBounds = null;
-
-    if (existingBackdrops.length > 0 || existingNodes.length > 0) {
-        existingBounds = {
-            top: Infinity,
-            right: -Infinity,
-            bottom: -Infinity
-        };
-
-        existingBackdrops.forEach(function(b) {
-            var right = b.position.x + b.position.w;
-            var top = b.position.y;
-            var bottom = b.position.y + b.position.h;
-            if (right > existingBounds.right) existingBounds.right = right;
-            if (top < existingBounds.top) existingBounds.top = top;
-            if (bottom > existingBounds.bottom) existingBounds.bottom = bottom;
-        });
-
-        existingNodes.forEach(function(nodePath) {
-            var nodeRight = node.coordX(nodePath) + node.width(nodePath);
-            var nodeTop = node.coordY(nodePath);
-            var nodeBottom = node.coordY(nodePath) + node.height(nodePath);
-            if (nodeRight > existingBounds.right) existingBounds.right = nodeRight;
-            if (nodeTop < existingBounds.top) existingBounds.top = nodeTop;
-            if (nodeBottom > existingBounds.bottom) existingBounds.bottom = nodeBottom;
-        });
-
-        if (existingBounds.right === -Infinity) existingBounds = null;
+        return { baseName: name, count: 0 };
     }
 
     var _copyOptions = copyPaste.getCurrentCreateOptions();
@@ -99,124 +68,107 @@ TemplateLoader.prototype.loadContainer = function(args) {
 
     // Paste into scene
     var pasteOptions = copyPaste.getCurrentPasteOptions();
-    pasteOptions.extendScene = true; // TODO does this work?
-    copyPaste.pasteNewNodes(_tpl, "Top", pasteOptions);
-
-    // Get pasted content bounds and minimum offset
-    var pastedBackdrops = selection.selectedBackdrops();
-    var pastedNodes = selection.selectedNodes();
-    var offsetX = 0;
-    var offsetY = 0;
-
-    if (existingBounds && (pastedBackdrops.length > 0 || pastedNodes.length > 0)) {
-        // Bounding box of pasted backdrops and nodes
-        var pastedLeft = Infinity;
-        var pastedTop = Infinity;
-        var pastedBottom = -Infinity;
-
-        pastedBackdrops.forEach(function(b) {
-            if (b.position.x < pastedLeft) pastedLeft = b.position.x;
-            if (b.position.y < pastedTop) pastedTop = b.position.y;
-            var bBottom = b.position.y + b.position.h;
-            if (bBottom > pastedBottom) pastedBottom = bBottom;
-        });
-
-        pastedNodes.forEach(function(nodePath) {
-            var nx = node.coordX(nodePath);
-            if (nx < pastedLeft) pastedLeft = nx;
-            var ny = node.coordY(nodePath);
-            if (ny < pastedTop) pastedTop = ny;
-            var nBottom = ny + node.height(nodePath);
-            if (nBottom > pastedBottom) pastedBottom = nBottom;
-        });
-
-        // Offsets to clear existing: right (X) or below (Y), with 100px gap
-        var potentialOffsetX = 0;
-        var potentialOffsetY = 0;
-        if (pastedLeft !== Infinity) {
-            potentialOffsetX = Math.max(0, existingBounds.right - pastedLeft + 100);
-        }
-        if (pastedTop !== Infinity && pastedBottom > -Infinity &&
-            pastedTop < existingBounds.bottom && pastedBottom > existingBounds.top) {
-            potentialOffsetY = existingBounds.bottom - pastedTop + 100;
+    pasteOptions.extendScene = true;
+    $.beginUndo('AYON: Load Template');
+    try {
+        copyPaste.pasteNewNodes(_tpl, "Top", pasteOptions);
+        var pastedBackdrops = selection.selectedBackdrops();
+        var _allSelected = selection.selectedNodes();
+        var topPastedNodes = _allSelected.filter(
+            function(nodePath) { return node.parentNode(nodePath) === "Top"; }
+        );
+        var mainBackdropBeforeMove = AyonHarmony.findMainBackdrop(pastedBackdrops);
+        var parentArea = null;
+        if (parentBackdropName) {
+            var pastedBounds = AyonHarmony.getContentBounds(
+                pastedBackdrops, topPastedNodes
+            );
+            var parentBackdrop = AyonHarmony.ensureParentBackdrop(
+                parentBackdropName, pastedBounds
+            );
+            parentArea = {
+                x: parentBackdrop.position.x,
+                y: parentBackdrop.position.y,
+                w: parentBackdrop.position.w,
+                h: parentBackdrop.position.h
+            };
         }
 
-        // Use only the smaller offset so pasted content stays as close as possible
-        if (potentialOffsetX > 0 && potentialOffsetY > 0) {
-            offsetX = potentialOffsetX <= potentialOffsetY ? potentialOffsetX : 0;
-            offsetY = potentialOffsetY < potentialOffsetX ? potentialOffsetY : 0;
-        } else if (potentialOffsetX > 0) {
-            offsetX = potentialOffsetX;
-        } else if (potentialOffsetY > 0) {
-            offsetY = potentialOffsetY;
-        }
-    }
+        var overlapResult = AyonHarmony.preventOverlap(
+            pastedBackdrops, topPastedNodes, parentArea, parentBackdropName
+        );
+        var allBackdrops = overlapResult.allBackdrops;
 
-    if (offsetX !== 0 || offsetY !== 0) {
-        // Apply offset to pasted content
-        // Resolve pasted backdrop indices now (before move); order may change after node move
-        var allBackdropsBeforeMove = Backdrop.backdrops("Top");
-        var pastedBackdropIndices = [];
-        pastedBackdrops.forEach(function(pastedBackdrop) {
-            for (var i = 0; i < allBackdropsBeforeMove.length; i++) {
-                var b = allBackdropsBeforeMove[i];
-                if (b.title.text === pastedBackdrop.title.text &&
-                    b.position.x === pastedBackdrop.position.x &&
-                    b.position.y === pastedBackdrop.position.y) {
-                    pastedBackdropIndices.push(i);
+        if (parentBackdropName && overlapResult.area && parentArea &&
+            (overlapResult.area.x !== parentArea.x ||
+            overlapResult.area.y !== parentArea.y ||
+            overlapResult.area.w !== parentArea.w ||
+            overlapResult.area.h !== parentArea.h)) {
+            allBackdrops = AyonHarmony.applyAreaToBackdrop(
+                parentBackdropName, overlapResult.area
+            );
+        }
+
+        var mainBackdrop = null;
+        if (mainBackdropBeforeMove) {
+            for (var backdropIndex = 0; backdropIndex < allBackdrops.length; backdropIndex++) {
+                var backdrop = allBackdrops[backdropIndex];
+                if (backdrop.title.text === mainBackdropBeforeMove.title.text &&
+                    backdrop.position.w === mainBackdropBeforeMove.position.w &&
+                    backdrop.position.h === mainBackdropBeforeMove.position.h) {
+                    mainBackdrop = backdrop;
                     break;
                 }
             }
-        });
-
-        // Move pasted nodes by offset
-        pastedNodes.forEach(function(nodePath) {
-            var newX = node.coordX(nodePath) + offsetX;
-            var newY = node.coordY(nodePath) + offsetY;
-            node.setCoord(nodePath, newX, newY);
-        });
-
-        // Move pasted backdrops by offset
-        var allBackdrops = Backdrop.backdrops("Top");
-        pastedBackdropIndices.forEach(function(idx) {
-            allBackdrops[idx].position.x += offsetX;
-            allBackdrops[idx].position.y += offsetY;
-        });
-    }
-
-    // Override name if provided
-    if (overrideName) {
-        allBackdrops[0].title.text = overrideName;
-    }
-
-    // Count existing backdrops by base name
-    var backdropCounts = {};
-    for (var i = 0; i < allBackdrops.length; i++) {
-        var parsed = parseBackdropName(allBackdrops[i].title.text);
-        var baseName = parsed.baseName;
-        var count = parsed.count;
-
-        if (backdropCounts[baseName]) {
-            backdropCounts[baseName]++;
-        } else {
-            backdropCounts[baseName] = count;
         }
+        if (!mainBackdrop && allBackdrops.length > 0) {
+            mainBackdrop = allBackdrops[0];
+        }
+        if (!mainBackdrop) {
+            $.cancelUndo();
+            return "";
+        }
+
+        // Override name if provided
+        if (overrideName) {
+            mainBackdrop.title.text = overrideName;
+        }
+
+        var mainBackdropBaseName = parseBackdropName(mainBackdrop.title.text).baseName;
+
+        var usedNumbers = [];
+        for (var n = 0; n < allBackdrops.length; n++) {
+            if (allBackdrops[n] === mainBackdrop) {
+                continue;
+            }
+            var parsed = parseBackdropName(allBackdrops[n].title.text);
+            if (parsed.baseName !== mainBackdropBaseName) {
+                continue;
+            }
+            usedNumbers.push(parsed.count);
+        }
+
+        var mainBackdropName;
+        if (usedNumbers.indexOf(0) === -1) {
+            mainBackdropName = mainBackdropBaseName;
+        } else {
+            var nextSuffix = 1;
+            while (usedNumbers.indexOf(nextSuffix) !== -1) {
+                nextSuffix++;
+            }
+            mainBackdropName = mainBackdropBaseName + "_" + nextSuffix;
+        }
+
+        // Set name of main backdrop (always at index 0)
+        mainBackdrop.title.text = mainBackdropName;
+
+        // Update backdrops in scene
+        Backdrop.setBackdrops("Top", allBackdrops);
+    } catch (_err) {
+        $.cancelUndo();
+        throw _err;
     }
-
-    // Increment count of backdrop with the same base name
-    var mainBackdropName = allBackdrops[0].title.text;
-    var mainBackdropParsed = parseBackdropName(mainBackdropName);
-    var count = backdropCounts[mainBackdropParsed.baseName] !== undefined ? backdropCounts[mainBackdropParsed.baseName] : 1;
-    if (count > 1){
-        // count -1 to match imported nodes which start from _1
-        mainBackdropName = mainBackdropName + "_" + (count - 1);
-    }
-
-    // Set name of main backdrop (always at index 0)
-    allBackdrops[0].title.text = mainBackdropName;
-
-    // Update backdrops in scene
-    Backdrop.setBackdrops("Top", allBackdrops);
+    $.endUndo();
 
     return mainBackdropName;
 };

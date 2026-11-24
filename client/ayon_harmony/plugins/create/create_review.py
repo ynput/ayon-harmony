@@ -7,14 +7,14 @@ class CreateReview(HarmonyAutoCreator):
     """Review auto-creator.
 
     It requires `ayon+settings://harmony/create/CreateReview` to be enabled.
-    This creator produces instance of `review` product type, artist does not
-    need create any instance manually if they have a `Top/Display` node
-    in the scene.
+    This creator produces instance of `review` product base type, artist
+    does not need create any instance manually if they have a `Top/Display`
+    node in the scene.
     """
     identifier = "io.ayon.creators.harmony.review"
     label = "Review"
-    product_type = "review"
     product_base_type = "review"
+    product_type = product_base_type
     icon = "ei.video"
 
     default_variants = ["Main"]

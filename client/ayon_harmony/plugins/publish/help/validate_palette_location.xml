@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+<error id="main">
+<title>Invalid palette location</title>
+<description>
+## Palette stored in an invalid location
+
+Palette '{palette_name}' is located in '{palette_location}', which is not allowed for publish.
+
+### How to repair?
+
+Please 'Clone' this palette at Scene level and 'Remove and Delete on Disk' the original palette manually.
+
+</description>
+</error>
+</root>

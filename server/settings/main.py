@@ -1,7 +1,8 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
-from .imageio import HarmonyImageIOModel
+from .cache_default import HarmonyCacheDefaultSettings
 from .creator_plugins import HarmonyCreatePlugins
+from .imageio import HarmonyImageIOModel
 from .load_plugins import HarmonyLoadPlugins
 from .publish_plugins import HarmonyPublishPlugins
 
@@ -13,13 +14,17 @@ class HarmonySettings(BaseSettingsModel):
         default_factory=HarmonyImageIOModel,
         title="OCIO config"
     )
-    create: HarmonyCreatePlugins = SettingsField(
-        default_factory=HarmonyCreatePlugins,
-        title="Creator plugins"
+    cache_default: HarmonyCacheDefaultSettings = SettingsField(
+        default_factory=HarmonyCacheDefaultSettings,
+        title="Cache conflict resolution",
     )
     load: HarmonyLoadPlugins = SettingsField(
         default_factory=HarmonyLoadPlugins,
         title="Loader plugins",
+    )
+    create: HarmonyCreatePlugins = SettingsField(
+        default_factory=HarmonyCreatePlugins,
+        title="Creator plugins"
     )
     publish: HarmonyPublishPlugins = SettingsField(
         default_factory=HarmonyPublishPlugins,
@@ -89,10 +94,22 @@ DEFAULT_HARMONY_SETTING = {
             }
         }
     },
+    "cache_default": {
+        "force_default": False,
+        "cache_default_source": "server",
+    },
     "load": {
-        "TemplateLoader": {
+        "override_name": "",
+        "parent_backdrop_matching": False,
+        "ImageSequenceLoader": {
             "enabled": True,
-            "override_name": ""
+            "expose_only_current_frame": False
+        },
+        "TemplateLoader": {
+            "enabled": True
+        },
+        "PsdLoader": {
+            "enabled": True
         }
     },
     "publish": {
@@ -116,6 +133,11 @@ DEFAULT_HARMONY_SETTING = {
         },
         "ValidateInstances": {
             "enabled": True,
+            "optional": True,
+            "active": True
+        },
+        "ValidatePaletteLocation": {
+            "enabled": False,
             "optional": True,
             "active": True
         },

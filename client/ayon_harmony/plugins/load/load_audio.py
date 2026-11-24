@@ -33,8 +33,10 @@ function %s(args)
 class ImportAudioLoader(load.LoaderPlugin):
     """Import audio."""
 
-    product_types = {"shot", "audio"}
-    representations = {"wav"}
+    product_base_types = {"shot", "audio"}
+    product_types = product_base_types
+    representations = {"*"}
+    extensions = {"wav"}
     label = "Import Audio"
 
     def load(self, context, name=None, namespace=None, data=None):

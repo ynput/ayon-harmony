@@ -30,12 +30,42 @@ var PsdLoader = function() {};
 PsdLoader.prototype.loadContainer = function(args) {
     var psdPath = args[0];
     var name = args[1];
-    psdNodes = PsdLoader.prototype.importPsd(psdPath);
+    var parentBackdropName = args[2] || null;
+
+    var psdNodes = PsdLoader.prototype.importPsd(psdPath);
     var sceneRoot = $.scn.root;
-    psdNodes = psdNodes.filter(function(node) {
-        return node.group == "Top";
+    psdNodes = psdNodes.filter(function(n) {
+        return n.group == "Top";
     });
     var backdrop = sceneRoot.addBackdropToNodes(psdNodes, name);
+
+    var newBackdrops = [backdrop.backdropObject];
+    var newNodePaths = psdNodes.map(function(n) { return n.path; });
+    var parentArea = null;
+    if (parentBackdropName) {
+        var newBounds = AyonHarmony.getContentBounds(newBackdrops, newNodePaths);
+        var parentBackdrop = AyonHarmony.ensureParentBackdrop(
+            parentBackdropName, newBounds
+        );
+        parentArea = {
+            x: parentBackdrop.position.x,
+            y: parentBackdrop.position.y,
+            w: parentBackdrop.position.w,
+            h: parentBackdrop.position.h
+        };
+    }
+
+    var overlapResult = AyonHarmony.preventOverlap(
+        newBackdrops, newNodePaths, parentArea, parentBackdropName
+    );
+    if (parentBackdropName && overlapResult.area && parentArea &&
+        (overlapResult.area.x !== parentArea.x ||
+        overlapResult.area.y !== parentArea.y ||
+        overlapResult.area.w !== parentArea.w ||
+        overlapResult.area.h !== parentArea.h)) {
+        AyonHarmony.applyAreaToBackdrop(parentBackdropName, overlapResult.area);
+    }
+
     return backdrop.title;
 }
 
@@ -51,12 +81,10 @@ PsdLoader.prototype.importPsd = function(psdPath) {
     var sceneRoot = doc.root;
     var psdNodes = sceneRoot.importPSD(psdPath);
 
-    // Gather nodes in view
+    // Order only the newly imported nodes (everything upstream of the PSD
+    // composite).
     var psdComp = psdNodes[psdNodes.length - 1];
-    var sceneComp = doc.$node("Top/Composite");
-    psdComp.linkOutNode(sceneComp);
-    sceneRoot.orderNodeView();
-    psdComp.unlinkOutNode(sceneComp);
+    psdComp.orderAboveNodes();
 
     return psdNodes;
 };

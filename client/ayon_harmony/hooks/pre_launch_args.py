@@ -55,6 +55,8 @@ class HarmonyPrelaunchHook(PreLaunchHook):
     launch_types = {LaunchTypes.local}
 
     def execute(self):
+        self._enable_version_menu()
+
         # Pop executable
         executable_path = self.launch_context.launch_args.pop(0)
 
@@ -96,3 +98,16 @@ class HarmonyPrelaunchHook(PreLaunchHook):
         self.launch_context.kwargs = get_launch_kwargs(
             self.launch_context.kwargs
         )
+
+    def _enable_version_menu(self):
+        """Enable version menu in Harmony if enabled in settings."""
+        version_up_current_workfile: bool = (
+            self.data["project_settings"]
+            .get("core", {})
+            .get("tools", {})
+            .get("ayon_menu", {})
+            .get("version_up_current_workfile", False)
+        )
+        if version_up_current_workfile:
+            self.log.debug("Enabling 'Version Up' menu entry in Harmony.")
+            self.launch_context.env["AYON_HARMONY_VERSION_UP_WORKFILE"] = "1"

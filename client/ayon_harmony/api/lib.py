@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 """Utility functions used for AYON - Harmony integration."""
+
+from __future__ import annotations
+
 from pathlib import Path
 import platform
 import subprocess
 import threading
 import os
 import random
+import re
 import zipfile
 import sys
 import filecmp
@@ -22,10 +26,20 @@ from functools import lru_cache
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from ayon_core.lib import is_using_ayon_console, env_value_to_bool
+from ayon_core.lib import (
+    is_headless_mode_enabled,
+    is_using_ayon_console,
+    env_value_to_bool,
+    register_event_callback,
+)
+from ayon_core.pipeline import get_current_project_name
+from ayon_core.settings import get_project_settings
 from ayon_core.tools.stdout_broker import StdOutBroker
 from ayon_core.tools.utils import host_tools
 from ayon_core import style
+
+# Function 'save_next_version' is used by javascript integration
+from ayon_core.pipeline.workfile import save_next_version  # noqa: F401
 
 from ayon_harmony import HARMONY_ADDON_ROOT
 
@@ -35,17 +49,23 @@ from .server import Server
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+CURRENT_DIR = Path(__file__).parent.absolute()
+TEMP_WORKFILE_PATH = CURRENT_DIR / "temp.zip"
+
 
 class ProcessContext:
     server = None
     pid = None
     process = None
+    restarting = False
     application_path = None
     callback_queue = collections.deque()
     workfile_path = None
     port = None
     stdout_broker = None
     workfile_tool = None
+    loop_timer = None
+    qt_app = None
 
     @classmethod
     def execute_in_main_thread(cls, func_to_call_from_main_thread):
@@ -56,10 +76,47 @@ class ProcessContext:
         if cls.callback_queue:
             callback = cls.callback_queue.popleft()
             callback()
+        if cls.restarting:
+            return
         if cls.process is not None and cls.process.poll() is not None:
-            log.info("Server is not running, closing")
+            log.info("Server has stopped, cleaning up")
             ProcessContext.stdout_broker.stop()
-            QtWidgets.QApplication.quit()
+            if cls.loop_timer is not None:
+                cls.loop_timer.stop()
+                cls.loop_timer = None
+            if cls.qt_app is not None:
+                cls.qt_app.quit()
+            cls.process = None
+
+
+def _on_application_close():
+    """Gracefully close Harmony launch process on explicit close event."""
+    if (
+        ProcessContext.process is not None
+        and ProcessContext.process.poll() is None
+    ):
+        try:
+            ProcessContext.process.terminate()
+            ProcessContext.process.wait(timeout=10)
+        except Exception:
+            try:
+                ProcessContext.process.kill()
+            except Exception:
+                pass
+
+    if ProcessContext.server:
+        try:
+            ProcessContext.server.stop()
+        except Exception:
+            pass
+
+    if ProcessContext.stdout_broker:
+        try:
+            ProcessContext.stdout_broker.stop()
+        except Exception:
+            pass
+
+    QtWidgets.QApplication.quit()
 
 
 def signature(postfix="func") -> str:
@@ -86,6 +143,25 @@ class _ZipFile(zipfile.ZipFile):
     )
 
 
+def _is_macos_metadata_entry(name: str) -> bool:
+    """Check whether a zip entry or file name is macOS metadata junk.
+
+    Archives created by macOS Finder embed AppleDouble files (`__MACOSX/`
+    directory, `._`-prefixed files) and `.DS_Store` files.
+
+    Args:
+        name (str): The name of the zip entry or file.
+
+    Returns:
+        bool: True if the name is macOS metadata junk.
+    """
+    return (
+        name.startswith("__MACOSX/")
+        or Path(name).name.startswith("._")
+        or Path(name).name == ".DS_Store"
+    )
+
+
 def main(*subprocess_args):
     # coloring in StdOutBroker
     os.environ["AYON_LOG_NO_COLORS"] = "0"
@@ -96,15 +172,22 @@ def main(*subprocess_args):
 
     ProcessContext.stdout_broker = StdOutBroker('harmony')
     ProcessContext.stdout_broker.start()
+    register_event_callback("application.close", _on_application_close)
+    ProcessContext.qt_app = app
     launch(*subprocess_args)
 
     loop_timer = QtCore.QTimer()
     loop_timer.setInterval(20)
+    ProcessContext.loop_timer = loop_timer
 
     loop_timer.timeout.connect(ProcessContext.main_thread_listen)
     loop_timer.start()
 
-    sys.exit(app.exec_())
+    res = app.exec_()
+    if ProcessContext.server:
+        ProcessContext.server.stop()
+
+    sys.exit(res)
 
 
 def setup_startup_scripts():
@@ -210,7 +293,10 @@ def launch(application_path, *args):
 
     open_workfile_app = env_value_to_bool("AYON_HARMONY_WORKFILES_ON_LAUNCH")
     workfile_already_open = ProcessContext.workfile_path
-    if open_workfile_app or not workfile_already_open:
+    if is_headless_mode_enabled():
+        if not workfile_already_open:
+            open_empty_workfile()
+    elif open_workfile_app or not workfile_already_open:
         ProcessContext.workfile_tool = host_tools.get_tool_by_name(
             "workfiles"
         )
@@ -225,8 +311,13 @@ def check_workfiles_tool():
         open_empty_workfile()
 
 
+def is_temp_workfile(filepath):
+    """Check if filepath points to the temporary scratch workfile."""
+    return Path(filepath) == TEMP_WORKFILE_PATH
+
+
 def open_empty_workfile():
-    zip_file = os.path.join(os.path.dirname(__file__), "temp.zip")
+    zip_file = TEMP_WORKFILE_PATH.as_posix()
     temp_path = get_local_harmony_path(zip_file)
     if os.path.exists(temp_path):
         log.info(f"removing existing {temp_path}")
@@ -246,11 +337,114 @@ def get_local_harmony_path(filepath):
     return os.path.join(harmony_path, basename)
 
 
-def unzip_scene_file(filepath: str) -> str:
+def localize_file(filepath):
+    """Copy file to local temp location for faster processing.
+
+    Args:
+        filepath (str): Path to the file (possibly on network).
+
+    Returns:
+        str: Path to localized file, or original if already local.
+    """
+    local_scene_dir_path = os.path.join(
+        os.path.expanduser("~"), ".ayon", "harmony"
+    )
+    os.makedirs(local_scene_dir_path, exist_ok=True)
+
+    local_zip = os.path.join(local_scene_dir_path, os.path.basename(filepath))
+    log.info(f"Copying {filepath} to {local_zip}")
+
+    copy_with_progress(filepath, local_zip)
+    return local_zip
+
+
+def copy_with_progress(src, dst):
+    """Copy file with a progress bar dialog.
+
+    Args:
+        src (str): Source file path.
+        dst (str): Destination file path.
+    """
+    file_size = os.path.getsize(src)
+
+    progress = QtWidgets.QProgressDialog(
+        f"Copying {os.path.basename(src)}...",
+        None,
+        0,
+        100
+    )
+    progress.setStyleSheet(style.load_stylesheet())
+    progress.setWindowTitle("Transferring File")
+    progress.setWindowModality(QtCore.Qt.WindowModal)
+    progress.setMinimumDuration(0)
+    progress.setValue(0)
+    progress.setCancelButton(None)
+
+    chunk_size = 1024 * 1024  # 1MB chunks
+    bytes_copied = 0
+
+    try:
+        with open(src, 'rb') as fsrc:
+            with open(dst, 'wb') as fdst:
+                last_process_events = time.monotonic()
+                while True:
+                    chunk = fsrc.read(chunk_size)
+                    if not chunk:
+                        break
+
+                    fdst.write(chunk)
+                    bytes_copied += len(chunk)
+
+                    if file_size > 0:
+                        percent = int((bytes_copied / file_size) * 100)
+                    else:
+                        # Handle empty source file gracefully
+                        percent = 100
+
+                    progress.setValue(percent)
+
+                    # Process Qt events to keep UI responsive
+                    now = time.monotonic()
+                    if now - last_process_events >= 0.05:
+                        QtWidgets.QApplication.processEvents(
+                            QtCore.QEventLoop.AllEvents, 50
+                        )
+                        last_process_events = now
+
+        shutil.copystat(src, dst)
+
+    except Exception:
+        # Remove partially written destination file to avoid corrupted state
+        try:
+            if os.path.exists(dst):
+                os.remove(dst)
+        except OSError as cleanup_error:
+            # Log but don't mask the original exception
+            print(
+                "Warning: Failed to remove partial file "
+                f"'{dst}': {cleanup_error}"
+            )
+        raise  # Re-raise the original exception to the caller
+
+    finally:
+        progress.close()
+
+    log.info(f"Successfully copied {src} to {dst}")
+
+
+def get_harmony_settings():
+    project = get_current_project_name()
+    return get_project_settings(project).get("harmony")
+
+
+def unzip_scene_file(filepath: str, headless: bool = False) -> str:
     """Unzip a Harmony scene file and return the path to the .xstage file.
 
     Args:
         filepath (str): Path to the zip file.
+        headless (bool): If True, run without any UI interaction. When a
+            local cache exists with the same or newer timestamp, the local
+            version will be used automatically. Defaults to False.
 
     Returns:
         str: Path to the .xstage file.
@@ -262,81 +456,140 @@ def unzip_scene_file(filepath: str) -> str:
     """
     print(f"Localizing {filepath}")
 
-    local_scene_dir_path = get_local_harmony_path(filepath)
-    scene_name = os.path.basename(local_scene_dir_path)
-    if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
-        # unzipped with duplicated scene_name
-        local_scene_dir_path = os.path.join(local_scene_dir_path, scene_name)
-
-    scene_path = os.path.join(
-        local_scene_dir_path, f"{scene_name}.xstage"
+    local_scene_dir_path = Path(get_local_harmony_path(filepath))
+    scene_path = local_scene_dir_path.joinpath(
+        f"{local_scene_dir_path.name}.xstage"
     )
 
     unzip = True
-    if os.path.exists(scene_path):
-        unzip = False
+    if scene_path.exists():
         # Check remote scene is newer than local.
-        if os.path.getmtime(scene_path) < os.path.getmtime(filepath):
+        if scene_path.stat().st_mtime < Path(filepath).stat().st_mtime:
+            # Remote is newer, delete local and unzip
             try:
                 shutil.rmtree(local_scene_dir_path)
             except Exception as e:
                 log.error(e)
-                raise Exception("Cannot delete working folder") from e
+                raise Exception(
+                    f"Cannot delete working folder: {local_scene_dir_path}"
+                ) from e
             unzip = True
+        elif headless:
+            # Local is newer or same timestamp - use local cache automatically
+            log.info(
+                "Headless mode: local cache is newer or same timestamp "
+                "as server version. Using local cache."
+            )
+            unzip = False
+        else:
+            # Local is newer or same timestamp - ask user or defer to settings.
+            harmony_settings = get_harmony_settings()
+            use_default = False
+            cache_settings = harmony_settings.get("cache_default")
+            use_default = cache_settings.get("force_default")
+            default_opt = QtWidgets.QMessageBox.Yes
+            if cache_settings["cache_default_source"] == "server":
+                default_opt = QtWidgets.QMessageBox.No
+
+            result = default_opt
+
+            if not use_default:
+                msg_box = QtWidgets.QMessageBox()
+                msg_box.setStyleSheet(style.load_stylesheet())
+                msg_box.setIcon(QtWidgets.QMessageBox.Question)
+                msg_box.setWindowTitle("Local cache of version exists")
+                msg_box.setText(
+                    "A cached version of this scene exists that is newer or "
+                    "with the same timestamp as the server version."
+                )
+                msg_box.setInformativeText(
+                    "Do you want to use the local file or "
+                    "re-cache from the server?"
+                )
+                msg_box.setStandardButtons(
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+                )
+                msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
+
+                msg_box.button(QtWidgets.QMessageBox.Yes).setText("Use Local")
+                msg_box.button(QtWidgets.QMessageBox.No).setText("From Server")
+
+                msg_box.setModal(True)
+
+                result = msg_box.exec_()
+
+            if result == QtWidgets.QMessageBox.No:
+                try:
+                    shutil.rmtree(local_scene_dir_path)
+                except Exception as e:
+                    log.error(e)
+                    raise Exception(
+                       f"Cannot delete working folder '{local_scene_dir_path}'"
+                    ) from e
+                unzip = True
+            else:
+                unzip = False
 
     if unzip:
+        filepath = localize_file(filepath)
         with _ZipFile(filepath, "r") as zip_ref:
-            zip_ref.extractall(local_scene_dir_path)
-
-        if os.path.exists(os.path.join(local_scene_dir_path, scene_name)):
-            # unzipped with duplicated scene_name
-            local_scene_dir_path = os.path.join(
-                local_scene_dir_path, scene_name
+            names = [
+                name for name in zip_ref.namelist()
+                if not _is_macos_metadata_entry(name)
+            ]
+            main_name = next(
+                Path(name).stem
+                for name in names
+                if name.endswith(".xstage")
             )
 
-    # find any xstage files is directory, prefer the one with the same name
-    # as directory (plus extension)
-    xstage_files = []
-    for root, _, files in os.walk(local_scene_dir_path):
-        for file in files:
-            if os.path.splitext(file)[1] == ".xstage":
-                full_path = os.path.join(root, file)
-                relative_path = os.path.relpath(
-                    full_path, local_scene_dir_path
-                )
-                xstage_files.append(relative_path)
+            # Detect if the archive is wrapped in a single root directory
+            # named after `main_name`. When it is, we extract into the
+            # parent of the local scene dir so the (renamed) root dir
+            # becomes the local scene dir itself.
+            has_root_dir = all(
+                name == f"{main_name}/"
+                or name.startswith(f"{main_name}/")
+                for name in names
+            )
+            extract_root = (
+                local_scene_dir_path.parent
+                if has_root_dir
+                else local_scene_dir_path
+            )
+            new_name = local_scene_dir_path.name
+            root_prefix = f"{main_name}/"
 
-    if not os.path.basename("temp.zip"):
-        if not xstage_files:
-            raise Exception("No xstage file was found.")
+            def _rename_top_level_file(name):
+                if "/" not in name and Path(name).stem == main_name:
+                    return f"{new_name}{Path(name).suffix}"
+                return name
 
-    # prefer the one named as zip file
-    zip_based_name = "{}.xstage".format(
-        os.path.splitext(os.path.basename(filepath))[0])
+            for zip_info in zip_ref.infolist():
+                if _is_macos_metadata_entry(zip_info.filename):
+                    continue
+                if has_root_dir:
+                    # Root-dir archives are handled by applying the same
+                    # top-level file rename one level deeper and then
+                    # reattaching the renamed root directory prefix.
+                    relative_name = zip_info.filename[len(root_prefix):]
+                    relative_name = _rename_top_level_file(relative_name)
+                    zip_info.filename = f"{new_name}/{relative_name}"
+                else:
+                    zip_info.filename = _rename_top_level_file(
+                        zip_info.filename
+                    )
 
-    xstage_files.reverse()  # prefer 0 found xstage
-    for relative_path_xstage in xstage_files:
-        scene_path = os.path.join(
-            local_scene_dir_path, relative_path_xstage
-        )
-        if zip_based_name in relative_path_xstage:
-            break
+                zip_ref.extract(zip_info, extract_root)
+        scene_path = next(local_scene_dir_path.glob("*.xstage"), None)
 
-    # Rename .xstage file if it doesn't match the expected name
-    expected_xstage_path = os.path.join(
-        local_scene_dir_path, zip_based_name
-    )
-    if scene_path != expected_xstage_path:
-        log.info(f"Renaming {scene_path} to {expected_xstage_path}")
-        shutil.move(scene_path, expected_xstage_path)
-        scene_path = expected_xstage_path
+        # Remove local zipfile after extaction
+        os.remove(filepath)
 
-    if not os.path.exists(scene_path):
-        raise Exception(
-            f"Expected '{scene_path}' not found in '{local_scene_dir_path}'."
-        )
+    if not scene_path:
+        raise Exception("No xstage file was found.")
 
-    return scene_path
+    return scene_path.as_posix()
 
 
 def launch_zip_file(filepath):
@@ -345,52 +598,61 @@ def launch_zip_file(filepath):
     Args:
         filepath (str): Path to file.
     """
-    # Close existing scene.
-    if ProcessContext.pid:
-        os.kill(ProcessContext.pid, signal.SIGTERM)
-
-    # Stop server.
-    if ProcessContext.server:
-        ProcessContext.server.stop()
-
-    # Launch AYON server.
-    ProcessContext.server = Server(ProcessContext.port)
-    ProcessContext.server.start()
-    # thread = threading.Thread(target=self.server.start)
-    # thread.daemon = True
-    # thread.start()
-
-    # Save workfile path for later.
-    ProcessContext.workfile_path = filepath
-
-    # Unzip the scene file and get the .xstage path
+    # Keep the process watchdog from quitting AYON while Harmony is
+    # intentionally killed to be relaunched with the new scene.
+    ProcessContext.restarting = True
     try:
-        scene_path = unzip_scene_file(filepath)
-    except Exception as e:
-        print(f"Error unzipping scene file: {e}")
-        ProcessContext.server.stop()
-        return
+        # Close existing scene.
+        if ProcessContext.pid:
+            os.kill(ProcessContext.pid, signal.SIGTERM)
 
-    print("Launching {}".format(scene_path))
-    # QUESTION Could we use 'run_detached_process' from 'ayon_core.lib'?
-    kwargs = {}
-    if (
-        platform.system().lower() == "windows"
-        and not is_using_ayon_console()
-    ):
-        kwargs.update({
-            "creationflags": subprocess.CREATE_NO_WINDOW,
-            "stdout": subprocess.DEVNULL,
-            "stderr": subprocess.DEVNULL
-        })
+        # Stop server.
+        if ProcessContext.server:
+            ProcessContext.server.stop()
 
-    process = subprocess.Popen(
-        [ProcessContext.application_path, scene_path],
-        **kwargs
-    )
-    ProcessContext.pid = process.pid
-    ProcessContext.process = process
-    ProcessContext.stdout_broker.host_connected()
+        # Launch AYON server.
+        ProcessContext.server = Server(ProcessContext.port)
+        ProcessContext.server.start()
+        # thread = threading.Thread(target=self.server.start)
+        # thread.daemon = True
+        # thread.start()
+
+        # Save workfile path for later.
+        ProcessContext.workfile_path = filepath
+
+        # Unzip the scene file and get the .xstage path
+        try:
+            scene_path = unzip_scene_file(
+                filepath,
+                headless=is_headless_mode_enabled()
+            )
+        except Exception as e:
+            print(f"Error unzipping scene file: {e}")
+            ProcessContext.server.stop()
+            return
+
+        print("Launching {}".format(scene_path))
+        # QUESTION Could we use 'run_detached_process' from 'ayon_core.lib'?
+        kwargs = {}
+        if (
+            platform.system().lower() == "windows"
+            and not is_using_ayon_console()
+        ):
+            kwargs.update({
+                "creationflags": subprocess.CREATE_NO_WINDOW,
+                "stdout": subprocess.DEVNULL,
+                "stderr": subprocess.DEVNULL
+            })
+
+        process = subprocess.Popen(
+            [ProcessContext.application_path, scene_path],
+            **kwargs
+        )
+        ProcessContext.pid = process.pid
+        ProcessContext.process = process
+        ProcessContext.stdout_broker.host_connected()
+    finally:
+        ProcessContext.restarting = False
 
 
 def on_file_changed(path, threaded=True):
@@ -421,12 +683,57 @@ def zip_and_move(source, destination):
         destination (str): Destination file path to zip file.
 
     """
-    os.chdir(os.path.dirname(source))
-    shutil.make_archive(os.path.basename(source), "zip", source)
-    with _ZipFile(os.path.basename(source) + ".zip") as zr:
-        if zr.testzip() is not None:
-            raise Exception("File archive is corrupted.")
-    shutil.move(os.path.basename(source) + ".zip", destination)
+    zip_file = os.path.basename(source) + ".zip"
+    zip_path = os.path.join(os.path.dirname(source), zip_file)
+
+    file_list = []
+    for root, dirs, files in os.walk(source):
+        for file in files:
+            file_path = os.path.join(root, file)
+            arcname = os.path.relpath(file_path, source)
+            if _is_macos_metadata_entry(arcname.replace(os.sep, "/")):
+                continue
+            file_list.append((file_path, arcname))
+
+    progress = QtWidgets.QProgressDialog(
+        "Archiving scene files...",
+        None,
+        0,
+        max(1, len(file_list))
+    )
+    progress.setStyleSheet(style.load_stylesheet())
+    progress.setWindowTitle("Creating Archive")
+    progress.setWindowModality(QtCore.Qt.WindowModal)
+    progress.setMinimumDuration(0)
+    progress.setCancelButton(None)
+
+    try:
+        with _ZipFile(zip_path, 'w', zipfile.ZIP_STORED) as zipf:
+            last_process_events = time.monotonic()
+            for idx, (file_path, arcname) in enumerate(file_list):
+                zipf.write(file_path, arcname)
+                progress.setValue(idx + 1)
+                now = time.monotonic()
+                if now - last_process_events >= 0.05:
+                    QtWidgets.QApplication.processEvents(
+                        QtCore.QEventLoop.AllEvents, 50
+                    )
+                    last_process_events = now
+
+        with _ZipFile(zip_path) as zr:
+            if zr.testzip() is not None:
+                raise Exception("File archive is corrupted.")
+
+        copy_with_progress(zip_path, destination)
+        os.remove(zip_path)
+
+    except Exception:
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+        raise
+    finally:
+        progress.close()
+
     log.debug(f"Saved '{source}' to '{destination}'")
 
 
@@ -488,6 +795,99 @@ def set_scene_data(data):
             "function": "AyonHarmonyAPI.setSceneData",
             "args": data
         })
+
+
+def get_expected_settings(settings: dict) -> dict:
+    """Compute scene settings expected in Harmony from task settings.
+
+    Harmony always starts at frame 1 and its frame range includes handles.
+
+    Args:
+        settings (dict): Task settings from the server.
+
+    Returns:
+        dict: Expected scene settings.
+
+    """
+    frames_count = settings["frameEnd"] - settings["frameStart"] + 1
+    return {
+        "fps": settings["fps"],
+        "frameStart": 1,
+        "frameEnd": (
+            frames_count + settings["handleStart"] + settings["handleEnd"]
+        ),
+        "resolutionWidth": settings["resolutionWidth"],
+        "resolutionHeight": settings["resolutionHeight"],
+    }
+
+
+def get_scene_settings() -> dict:
+    """Get current scene settings from Harmony.
+
+    Returns:
+        dict: fps, frame range and resolution of the current scene.
+
+    """
+    result = send(
+        {"function": "AyonHarmony.getSceneSettings", "args": []}
+    )["result"]
+    return {
+        "fps": result[3],
+        "frameStart": result[4],
+        "frameEnd": result[5],
+        "resolutionWidth": result[7],
+        "resolutionHeight": result[8],
+    }
+
+
+def get_invalid_scene_settings(
+    settings: dict, task_name: str, folder_path: str
+) -> dict:
+    """Get scene settings that differ from the task settings.
+
+    Settings that are not checked for the given context are ignored.
+
+    Args:
+        settings (dict): Task settings from the server.
+        task_name (str): Name of the current task.
+        folder_path (str): Path of the current folder.
+
+    Returns:
+        dict: Setting name mapped to a (expected, found) values tuple.
+
+    """
+    plugin_settings = (
+        get_harmony_settings()["publish"]["ValidateSceneSettings"]
+    )
+    expected = get_expected_settings(settings)
+
+    if any(re.search(pattern, task_name)
+           for pattern in plugin_settings["skip_resolution_check"]):
+        expected.pop("resolutionWidth", None)
+        expected.pop("resolutionHeight", None)
+
+    folder_name = folder_path.rsplit("/", 1)[-1]
+    if (
+        any(re.search(pattern, task_name)
+            for pattern in plugin_settings["skip_timelines_check"])
+        or any(re.search(pattern, folder_name)
+               for pattern in plugin_settings["frame_check_filter"])
+    ):
+        expected.pop("frameStart", None)
+        expected.pop("frameEnd", None)
+
+    current = get_scene_settings()
+
+    # handle case when fps uses only two decimal places
+    # 23.976023976023978 vs. 23.98
+    if isinstance(fps := current["fps"], float):
+        current["fps"] = float(f"{fps:.2f}")
+
+    return {
+        key: (value, current.get(key))
+        for key, value in expected.items()
+        if value != current.get(key)
+    }
 
 
 def read(node_id):
