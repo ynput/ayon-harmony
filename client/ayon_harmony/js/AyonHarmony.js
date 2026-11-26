@@ -1015,13 +1015,16 @@ AyonHarmony.captureBackdropLinks = function(backdrop) {
  * Restore a node tree captured by captureNodeTree() onto a freshly loaded
  * backdrop.
  *
- * Harmony appends a `_N` suffix to a pasted node when its name collides, so a
- * freshly loaded node may be `X_1` where the captured one was `X`. Matching
- * therefore tries the exact path first and then the suffixed variants. Once a
- * node is matched, its original name is restored (after Harmony's dedup has
- * done its job) so attributes and links line up with the captured tree.
+ * Attributes are transferred to every matched node, at any depth. Only the
+ * top-level nodes (direct children of "Top") also keep their captured
+ * position and name; the inner structure of the loaded node groups (sub-node
+ * positions, names, tree) is left exactly as the new template placed it.
  *
- * Nodes with no match at all are user-added and are recreated under their
+ * Harmony appends a `_N` suffix to a pasted node when its name collides, so a
+ * freshly loaded node may be `X_1` where the captured one was `X`; matching
+ * tries the exact path first and then the suffixed variants.
+ *
+ * Top-level nodes with no match are user-added and are recreated under their
  * original parent with their original position and attributes.
  *
  * @function
@@ -1076,30 +1079,38 @@ AyonHarmony.restoreNodeTree = function(entries, newPaths) {
     entries.forEach(function(entry) {
         var parentPath = pathMap[entry.parent] || entry.parent;
         var matchPath = findMatch(entry, parentPath);
+        var isTopLevel = entry.parent === "Top";
 
         if (matchPath) {
             used[matchPath] = true;
             var oN = $.scene.getNodeByPath(matchPath);
+            // Attributes are transferred to every matched node, at any depth.
             AyonHarmony.applyAttributeSnapshot(oN, entry.snapshot);
-            if (node.coordX(matchPath) !== entry.x
-                || node.coordY(matchPath) !== entry.y) {
-                node.setCoord(matchPath, entry.x, entry.y);
-            }
-            // Restore the original name.
-            if (matchPath !== entry.path) {
-                oN.name = entry.name;
-                if (oN.path !== matchPath) {
-                    remapPaths(matchPath, oN.path);
-                    used[oN.path] = true;
-                    matchPath = oN.path;
+
+            // Only top-level nodes keep their captured position and name. The
+            // inner structure of loaded node groups remains untouched.
+            if (isTopLevel) {
+                if (node.coordX(matchPath) !== entry.x
+                    || node.coordY(matchPath) !== entry.y) {
+                    node.setCoord(matchPath, entry.x, entry.y);
+                }
+                // Restore the original name.
+                if (matchPath !== entry.path) {
+                    oN.name = entry.name;
+                    if (oN.path !== matchPath) {
+                        remapPaths(matchPath, oN.path);
+                        used[oN.path] = true;
+                        matchPath = oN.path;
+                    }
                 }
             }
             pathMap[entry.path] = matchPath;
             return;
         }
 
-        // Missing node: user-added, recreate it under its original parent.
-        if (!$.scene.getNodeByPath(parentPath)) {
+        // Missing node: only recreate user-added TOP-LEVEL nodes. The inner
+        // structure of loaded node groups must not be altered.
+        if (!isTopLevel || !$.scene.getNodeByPath(parentPath)) {
             return;
         }
         var createdPath = node.add(
@@ -1518,9 +1529,11 @@ AyonHarmony.applyAttributeSnapshot = function(oNode, snapshot) {
  * Switch a container backdrop.
  *
  * Captures the node tree, links and positions of the existing container,
- * reloads the new representation, then restores the captured tree: matching
- * nodes keep their attributes, position and name, user-added nodes are
- * recreated, and the wiring is reconciled with the captured topology.
+ * reloads the new representation, then restores the captured tree: attributes
+ * are copied onto every matched node, top-level nodes keep their position and
+ * name, user-added top-level nodes are recreated, and the wiring is reconciled
+ * with the captured topology. The inner structure of the loaded node groups
+ * follows the new template.
  *
  * @function
  * @param {Array} args
