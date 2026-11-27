@@ -510,6 +510,51 @@ function start() {
         action.triggered.connect(self.onSetSceneSettings);
     }
 
+    self.onBuildWorkfileTemplate = function() {
+        app.ayonClient.send({
+            'module': 'ayon_harmony.api.workfile_template_builder',
+            'method': 'build_workfile_template',
+            'args': []
+        }, false);
+    };
+    if (app.ayonMenu == null) {
+        menu.addSeparator();
+        action = menu.addAction('Build Workfile Template');
+        action.triggered.connect(self.onBuildWorkfileTemplate);
+    }
+    self.onUpdateWorkfileTemplate = function() {
+        app.ayonClient.send({
+            'module': 'ayon_harmony.api.workfile_template_builder',
+            'method': 'update_workfile_template',
+            'args': []
+        }, false);
+    };
+    if (app.ayonMenu == null) {
+        action = menu.addAction('Update Workfile Template');
+        action.triggered.connect(self.onUpdateWorkfileTemplate);
+    }
+    self.onCreatePlaceholder = function() {
+        app.ayonClient.send({
+            'module': 'ayon_harmony.api.workfile_template_builder',
+            'method': 'create_placeholder',
+            'args': []
+        }, false);
+    };
+    if (app.ayonMenu == null) {
+        action = menu.addAction('Create PlaceHolder');
+        action.triggered.connect(self.onCreatePlaceholder);
+    }
+    self.onUpdatePlaceholder = function() {
+        app.ayonClient.send({
+            'module': 'ayon_harmony.api.workfile_template_builder',
+            'method': 'update_placeholder',
+            'args': []
+        }, false);
+    };
+    if (app.ayonMenu == null) {
+        action = menu.addAction('Update PlaceHolder');
+        action.triggered.connect(self.onUpdatePlaceholder);
+    }
     /**
       * Show Experimental dialog
       */
