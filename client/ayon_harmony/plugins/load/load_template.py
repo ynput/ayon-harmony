@@ -15,7 +15,7 @@ from ayon_core.pipeline import (
 class TemplateLoader(harmony.BackdropBaseLoader):
     """Load Harmony template as Backdrop container."""
 
-    product_base_types = {"harmony.template"}
+    product_base_types = {"harmonyTemplate"}
     product_types = product_base_types
     representations = {"*"}
     extensions = {"zip"}

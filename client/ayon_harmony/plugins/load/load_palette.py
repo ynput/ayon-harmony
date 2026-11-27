@@ -13,7 +13,7 @@ class LinkPaletteLoader(load.LoaderPlugin):
     """
 
     label = "Link Palette"
-    product_base_types = {"palette", "harmony.palette"}
+    product_base_types = {"palette", "harmonyPalette"}
     product_types = product_base_types
     representations = {"*"}
     extensions = {"plt"}
