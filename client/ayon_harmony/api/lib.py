@@ -866,15 +866,32 @@ def get_invalid_scene_settings(
         expected.pop("resolutionWidth", None)
         expected.pop("resolutionHeight", None)
 
-    folder_name = folder_path.rsplit("/", 1)[-1]
-    if (
-        any(re.search(pattern, task_name)
-            for pattern in plugin_settings["skip_timelines_check"])
-        or any(re.search(pattern, folder_name)
-               for pattern in plugin_settings["frame_check_filter"])
-    ):
-        expected.pop("frameStart", None)
-        expected.pop("frameEnd", None)
+    for filter in plugin_settings["skip_timelines_check"]:
+        task_filters = filter.get("tasks", [])
+        folder_path_filters = filter.get("folder_paths", [])
+        if (
+            (
+                not task_filters
+                or any(
+                    re.search(pattern, task_name, flags=re.I)
+                    for pattern in task_filters
+                )
+            )
+            and (
+                not folder_path_filters
+                or any(
+                    re.search(
+                        pattern, folder_path, flags=re.I
+                    )
+                    for pattern in folder_path_filters
+                )
+            )
+        ):
+            expected.pop("frameStart", None)
+            expected.pop("frameEnd", None)
+            expected.pop("frameStartHandle", None)
+            expected.pop("frameEndHandle", None)
+            break
 
     current = get_scene_settings()
 

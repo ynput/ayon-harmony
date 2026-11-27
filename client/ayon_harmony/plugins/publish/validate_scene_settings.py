@@ -54,6 +54,7 @@ class ValidateSceneSettings(
             instance.context.data["task"],
             instance.context.data["folderPath"],
         )
+
         if invalid_settings:
             invalid_lines = [
                 f"{key} expected: {expected}  found: {found}"
